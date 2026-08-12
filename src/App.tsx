@@ -4,6 +4,7 @@ import { BLEProvider, useBLE } from './contexts/BLEContext';
 import { ScannerView } from './components/ScannerView';
 import { DeviceTopBar } from './components/DeviceTopBar';
 import { VenusAView } from './components/views/VenusAView';
+import { VenusDView } from './components/views/VenusDView';
 import { GenericDeviceView } from './components/views/GenericDeviceView';
 
 const MainLayout = () => {
@@ -41,6 +42,8 @@ const MainLayout = () => {
             
             {deviceInfo.modelName === "Venus A" ? (
                 <VenusAView />
+            ) : deviceInfo.modelName === "Venus D" ? (
+                <VenusDView />
             ) : (
                 <GenericDeviceView />
             )}

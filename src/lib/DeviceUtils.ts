@@ -17,8 +17,11 @@ export const parseDeviceName = (name: string): DeviceInfo => {
 
     const parts = name.split("_");
     switch (parts[1]) {
-        case "VNSA": 
+        case "VNSA":
             info.modelName = "Venus A";
+            break;
+        case "VNSD":
+            info.modelName = "Venus D";
             break;
     }
 
