@@ -29,6 +29,12 @@ export class BLEConnectionManager {
     public onStateChange: (state: ConnectionState, msg?: string) => void = () => {};
     public onRSSI: (rssi: number) => void = () => {};
 
+    // Fired for EVERY incoming notification, regardless of frame shape - used by OTA, which
+    // speaks a different frame format (2-byte big-endian length, no 0x23 marker) than the
+    // regular VenusPacket frames dispatched below. Normal command consumers should keep using
+    // subscribe()/useVenusData(); this is only for OTA-style raw frame handling.
+    public onRawNotification: (bytes: Uint8Array) => void = () => {};
+
     private listeners: Map<number, PacketListener[]> = new Map();
     
     private pollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -185,12 +191,23 @@ export class BLEConnectionManager {
             this.log("Starting Notifications on RX...");
             await this.rxChar.startNotifications();
             this.rxChar.addEventListener('characteristicvaluechanged', (e: any) => {
-                try {
-                    const p = VenusPacket.fromBytes(e.target.value);
-                    this.log(`RX: Cmd 0x${p.commandId.toString(16)}`, p.toBytes());
-                    this.dispatchPacket(p);
-                } catch (err) {
-                    console.warn("Parse Error:", err);
+                const bytes = new Uint8Array(e.target.value.buffer, e.target.value.byteOffset, e.target.value.byteLength);
+
+                // Always fire the raw hook first - OTA (and anything else speaking a non-VenusPacket
+                // frame shape) needs to see every notification, not just ones that parse as VenusPacket.
+                this.onRawNotification(bytes);
+
+                // Only attempt the regular VenusPacket parse for frames that actually look like one
+                // (0x23 marker at position 2). OTA frames use a different length encoding and never
+                // have that marker there, so trying to parse them as VenusPacket just produces noise.
+                if (bytes.length >= 3 && bytes[2] === 0x23) {
+                    try {
+                        const p = VenusPacket.fromBytes(e.target.value);
+                        this.log(`RX: Cmd 0x${p.commandId.toString(16)}`, p.toBytes());
+                        this.dispatchPacket(p);
+                    } catch (err) {
+                        console.warn("Parse Error:", err);
+                    }
                 }
             });
 
@@ -241,6 +258,51 @@ export class BLEConnectionManager {
                 }
             });
         });
+    }
+
+    /**
+     * Write raw, pre-built bytes directly to the TX characteristic, bypassing VenusPacket
+     * framing entirely. Used by OTA, which speaks a different frame format. Shares the same
+     * mutex as sendPacket() so OTA writes and regular command writes never interleave.
+     */
+    async sendRaw(bytes: Uint8Array) {
+        if (!this.txChar || !this.device?.gatt?.connected) {
+            this.error("Cannot send raw: Not connected");
+            throw new Error("Not connected");
+        }
+
+        return new Promise<void>((resolve, reject) => {
+            this.txMutex.take(async () => {
+                try {
+                    if (!this.txChar || !this.device?.gatt?.connected) {
+                        // noinspection ExceptionCaughtLocallyJS
+                        throw new Error("Disconnected while waiting for lock");
+                    }
+
+                    await this.txChar.writeValueWithoutResponse(bytes as BufferSource);
+                    resolve();
+                } catch (err) {
+                    this.error("Raw Write Failed", err);
+                    reject(err);
+                } finally {
+                    setTimeout(() => {
+                        this.txMutex.leave();
+                    }, 25);
+                }
+            });
+        });
+    }
+
+    /**
+     * Pause the periodic STATE poll (e.g. during OTA, where interleaving unrelated command
+     * traffic with the firmware transfer is untested and risky). Call resumePolling() when done.
+     */
+    suspendPolling() {
+        this.stopPolling();
+    }
+
+    resumePolling() {
+        this.pollState();
     }
 
     private handleDisconnect = () => {
