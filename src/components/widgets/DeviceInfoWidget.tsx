@@ -153,13 +153,13 @@ export const DeviceInfoWidget = () => {
                                 <Chip label="Versions" size="small" color="secondary" variant="outlined" sx={{ mb: 1, fontWeight: 'bold' }} />
                                 <Grid container columnSpacing={4}>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label="Main FW" value={data.data.get('dev_ver')} icon={<MemoryIcon fontSize="small"/>} />
-                                        <InfoRow label="BMS" value={data.data.get('bms_ver')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label="EMS FW (Control)" value={data.data.get('dev_ver')} icon={<MemoryIcon fontSize="small"/>} />
+                                        <InfoRow label="BMS FW" value={data.data.get('bms_ver')} icon={<PowerIcon fontSize="small"/>} />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label="Inverter" value={data.data.get('inv_ver')} icon={<PowerIcon fontSize="small"/>} />
-                                        <InfoRow label="MPPT" value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
-                                        <InfoRow label="FC Ver" value={data.data.get('fc_ver')} icon={<MemoryIcon fontSize="small"/>} />
+                                        <InfoRow label="VNS FW (Microinverter)" value={data.data.get('inv_ver')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label="MPPT FW" value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label="Communication Module" value={data.data.get('fc_ver')} icon={<MemoryIcon fontSize="small"/>} />
                                     </Grid>
                                 </Grid>
                             </Box>
