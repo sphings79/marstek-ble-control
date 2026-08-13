@@ -110,9 +110,13 @@ export function useVenusData<ID extends keyof typeof VenusRegistry>(
     useEffect(() => {
         const handler = (packet: VenusPacket) => {
             if (packet.commandId === commandId) {
-                const PayloadClass = VenusRegistry[commandId] as unknown as VenusPayloadStatic<VenusData<ID>>;
-                const parsed = PayloadClass.FROM_BYTES(packet.payload);
-                setData(parsed);
+                try {
+                    const PayloadClass = VenusRegistry[commandId] as unknown as VenusPayloadStatic<VenusData<ID>>;
+                    const parsed = PayloadClass.FROM_BYTES(packet.payload);
+                    setData(parsed);
+                } catch (err) {
+                    console.warn(`Failed to parse payload for cmd 0x${commandId.toString(16)}`, err);
+                }
             }
         };
 
