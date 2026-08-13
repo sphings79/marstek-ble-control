@@ -32,9 +32,27 @@ export const DeviceInfoWidget = () => {
         }
     };
 
+    // The device tends to ignore commands for the first ~1-2s after connecting, so a single
+    // request fired the instant we connect is usually lost (whereas a later manual refresh works).
+    // Retry the initial fetch a few times, spaced out, until data actually arrives. Once `data`
+    // is set this effect re-runs, returns early, and the previous run's cleanup cancels the loop.
     useEffect(() => {
-        if (isConnected && !data) refresh();
-    }, [isConnected]);
+        if (!isConnected || data) return;
+
+        let cancelled = false;
+        let attempts = 0;
+        let timer: ReturnType<typeof setTimeout>;
+
+        const attempt = () => {
+            if (cancelled || attempts >= 6) return;
+            attempts++;
+            refresh();
+            timer = setTimeout(attempt, 3000);
+        };
+        timer = setTimeout(attempt, 800);
+
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [isConnected, data]);
 
     useEffect(() => {
         if (data) {

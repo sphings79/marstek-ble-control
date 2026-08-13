@@ -287,11 +287,27 @@ export const WorkModeWidget = ({
     const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const busyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // The device tends to ignore commands for the first ~1-2s after connecting, so the single
+    // request fired on connect is usually lost (whereas a later manual poll works). Retry the
+    // initial fetch a few times, spaced out, until the schedule actually arrives. Once
+    // scheduleData is set this effect re-runs, returns early, and the previous cleanup stops the loop.
     useEffect(() => {
-        if (isConnected && !scheduleData && !isRefreshing) {
+        if (!isConnected || scheduleData) return;
+
+        let cancelled = false;
+        let attempts = 0;
+        let timer: ReturnType<typeof setTimeout>;
+
+        const attempt = () => {
+            if (cancelled || attempts >= 6) return;
+            attempts++;
             fetchSettings();
-        }
-    }, [isConnected]);
+            timer = setTimeout(attempt, 3000);
+        };
+        timer = setTimeout(attempt, 800);
+
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [isConnected, scheduleData]);
 
     useEffect(() => {
         if (serverWorkMode !== undefined && !isBusy) {
@@ -333,7 +349,10 @@ export const WorkModeWidget = ({
     }, [globalMode]);
 
     const fetchSettings = async () => {
-        if (!isConnected || isRefreshing) return;
+        // Note: intentionally not guarding on isRefreshing here so the initial-load retry loop
+        // below can re-send even while a previous (lost) request is still "in flight". Manual
+        // re-triggering is already prevented by the refresh button being disabled while refreshing.
+        if (!isConnected) return;
         
         setIsRefreshing(true);
         if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
