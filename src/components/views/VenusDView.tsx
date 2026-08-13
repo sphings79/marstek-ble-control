@@ -1,4 +1,4 @@
-import { Box, Grid, Alert } from '@mui/material';
+import { Box, Grid, Alert, Link } from '@mui/material';
 import { DeviceInfoWidget } from '../widgets/DeviceInfoWidget';
 import { FactoryResetWidget } from '../widgets/FactoryResetWidget';
 import { StateWidget } from '../widgets/StateWidget';
@@ -10,7 +10,8 @@ import { CTWidget } from "../widgets/CTWidget.tsx";
 import { WorkModeWidget } from "../widgets/WorkModeWidget.tsx";
 import { OtaWidget } from "../widgets/OtaWidget.tsx";
 
-// Venus D support is UNTESTED on real hardware as of this writing. It reuses the exact same
+// Venus D support is confirmed working on real hardware (VNS and BMS OTA updates verified by
+// users). It reuses the exact same
 // widgets/commands as VenusAView because the shared BLE command IDs (STATE, DEVICE_INFO,
 // GET_WORK_MODE_SETTINGS, DEPTH_OF_DISCHARGE_CONTROL, CHARGE/DISCHARGE_POWER_LIMIT_CONTROL, ...)
 // and the STATE (cmd 0x03) payload byte layout have been cross-checked against Venus D-specific
@@ -36,11 +37,16 @@ import { OtaWidget } from "../widgets/OtaWidget.tsx";
 export const VenusDView = () => {
     return (
         <Box sx={{ p: 3 }}>
-            <Alert severity="warning" sx={{ mb: 3 }}>
-                Venus D support is new and has not yet been confirmed against real hardware.
-                Command IDs and the State payload layout are cross-checked against Ghidra
-                reverse-engineering of the Venus D Control firmware, but double-check behavior
-                carefully, especially around Power Limits and Work Mode.
+            <Alert severity="info" sx={{ mb: 3 }}>
+                Venus D is supported and confirmed working on real hardware.{' '}
+                <Link
+                    href="https://github.com/sphings79/venuscontrol"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    fontWeight="bold"
+                >
+                    Project on GitHub
+                </Link>
             </Alert>
             <Grid container spacing={3}>
                 <Grid size={{ xs: 12, md: 6, lg: 4 }}>
