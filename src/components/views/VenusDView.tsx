@@ -9,6 +9,10 @@ import { BatteryModulesStateWidget } from "../widgets/BatteryModulesStateWidget.
 import { CTWidget } from "../widgets/CTWidget.tsx";
 import { WorkModeWidget } from "../widgets/WorkModeWidget.tsx";
 import { OtaWidget } from "../widgets/OtaWidget.tsx";
+import { PeakShavingWidget } from "../widgets/PeakShavingWidget.tsx";
+import { LocalApiWidget } from "../widgets/LocalApiWidget.tsx";
+import { SetTimeWidget } from "../widgets/SetTimeWidget.tsx";
+import { SelfControlPowerOffsetWidget } from "../widgets/SelfControlPowerOffsetWidget.tsx";
 
 // Venus D support is confirmed working on real hardware (VNS and BMS OTA updates verified by
 // users). It reuses the exact same
@@ -20,7 +24,14 @@ import { OtaWidget } from "../widgets/OtaWidget.tsx";
 // confirmed on both sides (grid/battery power @0x00/0x02, inverter state @0x04, daily/monthly/
 // total energy counters @0x0E-0x2D, etc.) - see the sibling "Marstek Venus Monitor" project's
 // VENUS_D_OTA_ADAPTATION.md and the "Marstek Venus D FW Debug" project's
-// BLE_Modbus_CrossReference.md for the underlying evidence.
+// BLE/BLE_Command_Map_v150.md + BLE/BLE_Modbus_CrossReference.md for the underlying evidence.
+//
+// Peak Shaving (cmd 0x29), Device Power Class (cmd 0x15), Local API (cmd 0x28), Set Time
+// (cmd 0x0B) and Self-Consumption Offset (cmd 0x55) were decompiled from the Venus D Control FW
+// v150 BLE command dispatcher (BLE_Cmd_Dispatch @0x08007F20) and confirmed to have real
+// consumers. Note: the free max-discharge-power limit is cmd 0x17 - 0x15 only accepts the
+// 800/2200/2500 W class. (Meter-IP/Generator/Auto-mode-change commands exist in the FW but are
+// set-and-report-only in v150, so they are intentionally not exposed here.)
 //
 // What is NOT yet confirmed for Venus D specifically:
 // - Every other command's payload layout (WorkMode settings, CT readings, Battery Modules
@@ -59,6 +70,9 @@ export const VenusDView = () => {
                     <WorkModeWidget scheduleItemMaxPower={2500} scheduleItemUPSSupported={true} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+                    <PeakShavingWidget />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                     <CTWidget />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6, lg: 4 }}>
@@ -72,6 +86,15 @@ export const VenusDView = () => {
                         dischargeOptions={[800, 1200, 1500, 2000, 2500]}
                         chargeOptions={[800, 1200, 1500, 2000, 2500]}
                     />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+                    <SelfControlPowerOffsetWidget />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+                    <LocalApiWidget />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+                    <SetTimeWidget />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6, lg: 4 }}>
                     <DeviceInfoWidget />

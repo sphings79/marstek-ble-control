@@ -6,12 +6,14 @@ import {
 import BoltIcon from '@mui/icons-material/Bolt';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import BatterySaverIcon from '@mui/icons-material/BatterySaver';
+import SpeedIcon from '@mui/icons-material/Speed';
 
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
 import { DischargePowerLimitControlPayload } from '../../lib/payloads/DischargePowerLimitControlPayload';
 import { ChargePowerLimitControlPayload } from '../../lib/payloads/ChargePowerLimitControlPayload';
+import { DevicePowerClassControlPayload, DEVICE_POWER_CLASS_OPTIONS } from '../../lib/payloads/DevicePowerClassControlPayload';
 
 interface PowerLimitControlProps {
     title: string;
@@ -107,6 +109,60 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
     );
 };
 
+interface DevicePowerClassControlProps {
+    isConnected: boolean;
+    onSendCommand: (value: number) => Promise<void>;
+}
+
+// The device power class (BLE cmd 0x15) is not reported back in the STATE response, so this
+// control keeps a local selection instead of syncing a server value.
+const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClassControlProps) => {
+    const [selected, setSelected] = useState<number | null>(null);
+    const [isPending, setIsPending] = useState(false);
+
+    const handleChange = async (_: React.MouseEvent<HTMLElement>, newVal: number | null) => {
+        if (newVal === null || !isConnected || isPending) return;
+        setSelected(newVal);
+        setIsPending(true);
+        try {
+            await onSendCommand(newVal);
+        } catch (err) {
+            console.error('Failed to set device power class', err);
+        } finally {
+            setIsPending(false);
+        }
+    };
+
+    return (
+        <Box width="100%" textAlign="center" sx={{ py: 2 }}>
+            <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
+                <SpeedIcon color="action" />
+                <Typography variant="subtitle1" fontWeight="bold">Device Power Class</Typography>
+            </Box>
+
+            <ToggleButtonGroup
+                value={selected}
+                exclusive
+                onChange={handleChange}
+                disabled={!isConnected || isPending}
+                fullWidth
+                color="primary"
+                sx={{ mb: 1 }}
+            >
+                {DEVICE_POWER_CLASS_OPTIONS.map(opt => (
+                    <ToggleButton key={opt} value={opt} sx={{ py: 1.5, fontWeight: 'bold' }}>
+                        {opt} W
+                    </ToggleButton>
+                ))}
+            </ToggleButtonGroup>
+
+            <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                Selecting 800 W also clamps all schedule slots to 800 W (BLE cmd 0x15).
+            </Typography>
+        </Box>
+    );
+};
+
 interface Props {
     dischargeOptions?: number[];
     chargeOptions?: number[];
@@ -133,6 +189,12 @@ export const PowerLimitsWidget = ({
     const setChargeLimit = async (value: number) => {
         const payload = new ChargePowerLimitControlPayload(value);
         await sendPacket(COMMAND_ID.CHARGE_POWER_LIMIT_CONTROL, payload.toBytes());
+        pollState();
+    };
+
+    const setDevicePowerClass = async (value: number) => {
+        const payload = new DevicePowerClassControlPayload(value);
+        await sendPacket(COMMAND_ID.DEVICE_POWER_CLASS_CONTROL, payload.toBytes());
         pollState();
     };
 
@@ -170,6 +232,13 @@ export const PowerLimitsWidget = ({
                             isConnected={isConnected}
                             options={chargeOptions}
                             onSendCommand={setChargeLimit}
+                        />
+
+                        <Divider sx={{ my: 1 }} />
+
+                        <DevicePowerClassControl
+                            isConnected={isConnected}
+                            onSendCommand={setDevicePowerClass}
                         />
 
                         <Box mt="auto" pt={2} textAlign="center">

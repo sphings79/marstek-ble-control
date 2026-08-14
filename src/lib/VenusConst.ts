@@ -5,10 +5,17 @@ export const COMMAND_ID = Object.freeze({
 
     SET_WORK_MODE: 0x09,
     GET_WORK_MODE_SETTINGS: 0x0A,
+    SET_TIME: 0x0B,
 
     BACKUP_POWER_CONTROL: 0x0F,
-    DISCHARGE_POWER_LIMIT_CONTROL: 0x15,
+
+    // 0x15 selects the device power class (800 / 2200 / 2500 W) and, for 800 W, clamps all
+    // schedule slots to 800 W. It is NOT a free discharge limit - the firmware only accepts
+    // those three values. (Verified in Venus D Control FW v150, BLE_Cmd_Dispatch case 0x15.)
+    DEVICE_POWER_CLASS_CONTROL: 0x15,
     CHARGE_POWER_LIMIT_CONTROL: 0x16,
+    // Free max discharge power (0-2500 W) is command 0x17, not 0x15 (bug fix).
+    DISCHARGE_POWER_LIMIT_CONTROL: 0x17,
 
     CT_TYPE_CONTROL: 0x18,
     CT_MODE_CONTROL: 0x19,
@@ -17,11 +24,19 @@ export const COMMAND_ID = Object.freeze({
 
     PHASE_AUTODETECTION: 0x1D,
 
+    // Enables/disables the local UDP JSON-RPC API and sets its port (NOT Modbus TCP).
+    LOCAL_API_CONTROL: 0x28,
+
+    // Peak Shaving (firmware v150+): caps grid power at a configurable threshold.
+    PEAK_SHAVING_CONTROL: 0x29,
+
     SURPLUS_FEED_IN_CONTROL: 0x41,
     BATTERY_MODULES_STATE: 0x42,
 
     BLUETOOTH_CONTROL: 0x53,
     DEPTH_OF_DISCHARGE_CONTROL: 0x54,
+    // Signed watt bias for the self-consumption controller (target grid power instead of 0 W).
+    SELF_CONTROL_POWER_OFFSET: 0x55,
 
     LED_CONTROL: 0x59
 });
