@@ -3,8 +3,12 @@ import { VenusPayload } from "./VenusPayload";
 // FIXME: why is there no Grid connected flag?
 
 export interface StateAttributes {
-    UnknownPower01: number; // FIXME: TBD
-    BatteryPower: number;
+    // Backup / off-grid (EPS) load power at 0x00, signed W. User-confirmed: 0 W normally, ~93 W with
+    // a backup load connected. (This is what the old code / ha-marstek loosely called "grid".)
+    BackupLoadPower: number;
+    // Total AC / inverter output power at 0x02, signed W. Matches HA "AC-Leistung" (569 W while
+    // discharging). Historically mislabelled "battery power".
+    AcOutputPower: number;
     InverterState: number; // As per INVERTER_STATE
     CTConnected: boolean;
 
@@ -35,10 +39,12 @@ export interface StateAttributes {
 
     SurplusFeedIn?: boolean
 
-    UnknownPower02?: number;
-    UnknownPower03?: number;
+    // Battery power at 0x8C (140), signed W (negative = discharge). Confirmed via HA cross-check
+    // (-605 W in-app ≈ -615 W HA). Only present on the extended (Venus D) payload.
+    BatteryPower?: number;
+    // Grid (utility) power at 0x90 (144), signed W. Confirmed = AC output minus backup load: 569 W
+    // with no backup, 476 W (= 569 - 93) with a 93 W backup load. Only on the extended payload.
     GridPower?: number;
-    UnknownPower05?: number;
 
     BluetoothEnabled?: boolean;
     DepthOfDischarge?: number; // percent, also FIXME naming? The app calls it that, but it's a bad name
@@ -57,8 +63,8 @@ export class StatePayload extends VenusPayload {
         const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
         
         const attrs: StateAttributes = {
-            UnknownPower01: view.getInt16(0, true), // FIXME: Could be the backup outlet?
-            BatteryPower: view.getInt16(2, true),
+            BackupLoadPower: view.getInt16(0, true), // 0x00 = backup/off-grid load (user-confirmed)
+            AcOutputPower: view.getInt16(2, true),   // 0x02 = total AC / inverter output (matches HA AC)
             InverterState: bytes[4],
 
             CTConnected: bytes[7] === 0x01,
@@ -92,13 +98,9 @@ export class StatePayload extends VenusPayload {
         if (bytes.length > 110) {
             attrs.SurplusFeedIn = bytes[133] === 0x01;
 
-            attrs.UnknownPower02 = view.getInt16(140, true);
-            attrs.UnknownPower03 = view.getInt16(142, true);
-
-            // Inverted, because the reported value is from a battery perspective, which is incorrect
-            attrs.GridPower = view.getInt16(144, true) * -1 // FIXME: verify
-
-            attrs.UnknownPower05 = view.getInt16(146, true);
+            // Confirmed via live HA cross-check + a backup-load toggle test (see interface notes).
+            attrs.BatteryPower = view.getInt16(140, true); // 0x8C = battery power (negative = discharge)
+            attrs.GridPower = view.getInt16(144, true);    // 0x90 = grid power (= AC output - backup load)
 
             attrs.BluetoothEnabled = bytes[148] === 0x01;
             attrs.DepthOfDischarge = bytes[149];

@@ -1,12 +1,13 @@
 import {
-    Paper, Typography, Box, CircularProgress, Chip, Stack, Divider, Grid
+    Paper, Typography, Box, CircularProgress, Chip, Stack, Divider
 } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
 import BatteryStdIcon from '@mui/icons-material/BatteryStd';
 import ElectricMeterIcon from '@mui/icons-material/ElectricMeter';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import PowerIcon from '@mui/icons-material/Power';
+import OutletIcon from '@mui/icons-material/Outlet';
 
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
@@ -79,19 +80,6 @@ const HistoryBlock = ({ label, energyIn, energyOut }: { label: string, energyIn?
     </Box>
 );
 
-const UnknownTile = ({ label, value }: { label: string; value?: number }) => (
-    <Grid size={{ xs: 6, sm: 3 }}>
-        <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)', borderStyle: 'dashed' }}>
-            <Typography variant="caption" color="text.secondary" display="block" noWrap title={label}>
-                {label}
-            </Typography>
-            <Typography variant="body2" fontWeight="bold" fontFamily="monospace" color="text.disabled">
-                {value !== undefined ? value : '--'}
-            </Typography>
-        </Paper>
-    </Grid>
-);
-
 export const StateWidget = () => {
     const { connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
@@ -143,8 +131,10 @@ export const StateWidget = () => {
                             <Box sx={{ px: 1 }}>
                                 <ReadingRow label="State of Charge" value={formatPct(attrs.SoC)} icon={<BatteryStdIcon fontSize="small" />} />
                                 <ReadingRow label="Remaining Energy" value={formatKWh(attrs.RemainingEnergy)} icon={<BatteryStdIcon fontSize="small" />} />
-                                <ReadingRow label="Battery Power" value={formatW(attrs.BatteryPower)} icon={<ElectricMeterIcon fontSize="small" />} />
-                                <ReadingRow label="Grid Power" value={formatW(attrs.GridPower)} icon={<ElectricMeterIcon fontSize="small" />} isLast />
+                                <ReadingRow label="Battery Power" value={formatW(attrs.BatteryPower)} icon={<BatteryStdIcon fontSize="small" />} />
+                                <ReadingRow label="Grid Power" value={formatW(attrs.GridPower)} icon={<ElectricMeterIcon fontSize="small" />} />
+                                <ReadingRow label="AC Power" value={formatW(attrs.AcOutputPower)} icon={<PowerIcon fontSize="small" />} />
+                                <ReadingRow label="Backup Load" value={formatW(attrs.BackupLoadPower)} icon={<OutletIcon fontSize="small" />} isLast />
                             </Box>
                         </Box>
 
@@ -162,23 +152,6 @@ export const StateWidget = () => {
                                 <HistoryBlock label="THIS MONTH" energyIn={attrs.MonthlyEnergyIn} energyOut={attrs.MonthlyEnergyOut} />
                                 <HistoryBlock label="LIFETIME" energyIn={attrs.TotalEnergyIn} energyOut={attrs.TotalEnergyOut} />
                             </Stack>
-                        </Box>
-
-                        <Divider />
-
-                        <Box>
-                            <Box display="flex" alignItems="center" gap={1} mb={2}>
-                                <HelpOutlineIcon fontSize="small" color="disabled" />
-                                <Typography variant="subtitle2" color="text.disabled" fontWeight="bold">
-                                    TBD
-                                </Typography>
-                            </Box>
-                            <Grid container spacing={1.5}>
-                                <UnknownTile label="PWR_01" value={attrs.UnknownPower01} />
-                                <UnknownTile label="PWR_02" value={attrs.UnknownPower02} />
-                                <UnknownTile label="PWR_03" value={attrs.UnknownPower03} />
-                                <UnknownTile label="PWR_05" value={attrs.UnknownPower05} />
-                            </Grid>
                         </Box>
 
                     </Stack>
