@@ -1,4 +1,9 @@
-import { Box, Grid } from '@mui/material';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import BoltIcon from '@mui/icons-material/Bolt';
+import ElectricMeterIcon from '@mui/icons-material/ElectricMeter';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { ResponsiveDashboard, type WidgetGroup } from '../ResponsiveDashboard';
 import { DeviceInfoWidget } from '../widgets/DeviceInfoWidget';
 import { FactoryResetWidget } from '../widgets/FactoryResetWidget';
 import { StateWidget } from '../widgets/StateWidget';
@@ -9,41 +14,48 @@ import { BatteryModulesStateWidget } from "../widgets/BatteryModulesStateWidget.
 import { CTWidget } from "../widgets/CTWidget.tsx";
 import { WorkModeWidget } from "../widgets/WorkModeWidget.tsx";
 
+// Grouping drives the mobile hamburger menu. On desktop every widget is still shown in the grid,
+// flattened in this order. The first group ("Overview") is the mobile landing view.
+const groups: WidgetGroup[] = [
+    {
+        key: 'overview',
+        label: 'Overview',
+        icon: <DashboardIcon />,
+        widgets: [<StateWidget />, <DeviceInfoWidget />],
+    },
+    {
+        key: 'power',
+        label: 'Power & Modes',
+        icon: <BoltIcon />,
+        widgets: [
+            <TogglesWidget />,
+            <WorkModeWidget scheduleItemMaxPower={1500} scheduleItemUPSSupported={true} />,
+            <PowerLimitsWidget
+                dischargeOptions={[800, 1200, 1500]}
+                chargeOptions={[800, 1200, 1500]}
+            />,
+        ],
+    },
+    {
+        key: 'battery',
+        label: 'Battery',
+        icon: <BatteryChargingFullIcon />,
+        widgets: [<BatteryModulesStateWidget />, <DepthOfDischargeWidget min={30} max={88} />],
+    },
+    {
+        key: 'meter',
+        label: 'Meter (CT)',
+        icon: <ElectricMeterIcon />,
+        widgets: [<CTWidget />],
+    },
+    {
+        key: 'system',
+        label: 'System',
+        icon: <SettingsIcon />,
+        widgets: [<FactoryResetWidget />],
+    },
+];
+
 export const VenusAView = () => {
-    return (
-        <Box sx={{ p: 3 }}>
-            <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <StateWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <BatteryModulesStateWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <WorkModeWidget scheduleItemMaxPower={1500} scheduleItemUPSSupported={true} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <CTWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <TogglesWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <DepthOfDischargeWidget min={30} max={88} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <PowerLimitsWidget
-                        dischargeOptions={[800, 1200, 1500]}
-                        chargeOptions={[800, 1200, 1500]}
-                    />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <DeviceInfoWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <FactoryResetWidget />
-                </Grid>
-            </Grid>
-        </Box>
-    );
+    return <ResponsiveDashboard groups={groups} />;
 };

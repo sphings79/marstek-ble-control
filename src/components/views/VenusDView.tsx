@@ -1,4 +1,9 @@
-import { Box, Grid, Alert, Link } from '@mui/material';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
+import BoltIcon from '@mui/icons-material/Bolt';
+import ElectricMeterIcon from '@mui/icons-material/ElectricMeter';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { ResponsiveDashboard, type WidgetGroup } from '../ResponsiveDashboard';
 import { DeviceInfoWidget } from '../widgets/DeviceInfoWidget';
 import { FactoryResetWidget } from '../widgets/FactoryResetWidget';
 import { StateWidget } from '../widgets/StateWidget';
@@ -45,67 +50,50 @@ import { SelfControlPowerOffsetWidget } from "../widgets/SelfControlPowerOffsetW
 //   a confirmed list of what the vendor app itself offers.
 // - Depth-of-discharge min/max: left at the widget's Venus-A-derived defaults (30-88%) because
 //   no Venus D-specific DoD range has been confirmed yet. Needs live verification.
+// Grouping drives the mobile hamburger menu. On desktop every widget is still shown in the grid,
+// flattened in this order. The first group ("Overview") is the mobile landing view.
+const groups: WidgetGroup[] = [
+    {
+        key: 'overview',
+        label: 'Overview',
+        icon: <DashboardIcon />,
+        widgets: [<StateWidget />, <DeviceInfoWidget />],
+    },
+    {
+        key: 'power',
+        label: 'Power & Modes',
+        icon: <BoltIcon />,
+        widgets: [
+            <TogglesWidget />,
+            <WorkModeWidget scheduleItemMaxPower={2500} scheduleItemUPSSupported={true} />,
+            <PowerLimitsWidget
+                dischargeOptions={[800, 1200, 1500, 2000, 2500]}
+                chargeOptions={[800, 1200, 1500, 2000, 2500]}
+            />,
+            <PeakShavingWidget />,
+            <SelfControlPowerOffsetWidget />,
+        ],
+    },
+    {
+        key: 'battery',
+        label: 'Battery',
+        icon: <BatteryChargingFullIcon />,
+        widgets: [<BatteryModulesStateWidget />, <DepthOfDischargeWidget />],
+    },
+    {
+        key: 'meter',
+        label: 'Meter (CT)',
+        icon: <ElectricMeterIcon />,
+        widgets: [<CTWidget />],
+    },
+    {
+        key: 'system',
+        label: 'System & Firmware',
+        icon: <SettingsIcon />,
+        widgets: [<LocalApiWidget />, <SetTimeWidget />, <FactoryResetWidget />, <OtaWidget />],
+    },
+];
+
 export const VenusDView = () => {
-    return (
-        <Box sx={{ p: 3 }}>
-            <Alert severity="info" sx={{ mb: 3 }}>
-                Venus D is supported and confirmed working on real hardware.{' '}
-                <Link
-                    href="https://github.com/sphings79/venuscontrol"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    fontWeight="bold"
-                >
-                    Project on GitHub
-                </Link>
-            </Alert>
-            <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <StateWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <BatteryModulesStateWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <WorkModeWidget scheduleItemMaxPower={2500} scheduleItemUPSSupported={true} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <PeakShavingWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <CTWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <TogglesWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <DepthOfDischargeWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <PowerLimitsWidget
-                        dischargeOptions={[800, 1200, 1500, 2000, 2500]}
-                        chargeOptions={[800, 1200, 1500, 2000, 2500]}
-                    />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <SelfControlPowerOffsetWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <LocalApiWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <SetTimeWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <DeviceInfoWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <FactoryResetWidget />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-                    <OtaWidget />
-                </Grid>
-            </Grid>
-        </Box>
-    );
+    return <ResponsiveDashboard groups={groups} />;
 };
