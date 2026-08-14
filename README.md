@@ -70,6 +70,7 @@ You probably shouldn't, but you could.
 
 - 🌐 **More of my projects & tools:** [sphings-dev.de](https://sphings-dev.de/)
 - 📦 **Firmware archive for Marstek Venus devices:** [sphings79/marstek-firmware-archiv](https://github.com/sphings79/marstek-firmware-archiv)
+- 🛡️ **Firmware backup / checker tool:** [marstek-fw-checker](https://sphings-dev.de/marstek/marstek-fw-checker/) — grab a copy of a firmware image and contribute it to the archive. Note: a firmware can only be backed up while it is still pending, i.e. **before it has been installed** — once flashed, it can no longer be extracted.
 - 🔬 **Venus D firmware reverse engineering:** [sphings79/Marstek-Venus-D-Firmware-Reverse-Engineering](https://github.com/sphings79/Marstek-Venus-D-Firmware-Reverse-Engineering)
 
 ## Credits
