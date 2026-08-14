@@ -1,21 +1,50 @@
-# Venuscontrol
+# Venuscontrol — Venus D Edition
 
 <img height="700" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" />
 
-This is a reimplementation of https://github.com/rweijnen/marstek-venus-monitor without the insufferable agentic LLM noise.
-It still is utilizing LLMs for development, but with a human in the loop to increase sanity.
+A browser-based, **cloud-free** control panel for Marstek Venus storages. It talks to the battery
+directly over Bluetooth (Web Bluetooth) — no app, no account, no cloud.
 
-I greatly appreciate the prior work, but just being in the same room as that codebase makes me uneasy.
+This is a **fork and continued development of [Hypfer/venuscontrol](https://github.com/Hypfer/venuscontrol)**,
+which targets the Venus A. All credit for the original tool and the reverse-engineering groundwork
+goes to Hypfer. This fork extends it with **full Marstek Venus D support (confirmed on real
+hardware)**, **OTA firmware updates**, and a number of additional controls.
+
+> ### 👉 Use it right now — no install: **https://sphings-dev.de/marstek/control/**
+
+## 📱 iOS / iPadOS
+
+Safari and Chrome on iOS do **not** support Web Bluetooth. Use the free
+**[Bluefy – Web BLE Browser](https://apps.apple.com/us/app/bluefy-web-ble-browser/id1492822055)**
+from the App Store, then open **https://sphings-dev.de/marstek/control/** inside Bluefy.
+
+On **Android** use Chrome, on **desktop** use Chrome or Edge.
+
+## ✨ What's new in this fork
+
+- ✅ **Marstek Venus D support** — tested on real hardware
+- 🔄 **OTA firmware updates over Bluetooth** — Control/EMS, BMS, MPPT and Micro-Inverter modules
+  (VNS and BMS updates confirmed working by users)
+- ⚡ **Device Power Class** selection (800 / 2200 / 2500 W)
+- 📉 **Peak Shaving** — cap grid draw at a configurable threshold
+- 🎚️ **Self-Consumption Power Offset** — bias the controller to target a grid power other than 0 W
+- 🔌 **Local API toggle** — enable the on-device UDP JSON-RPC API
+- 🕐 **Set Time** on the device
+- 🐛 Reliability fixes — correct BLE command IDs, robust reassembly of fragmented BLE responses so
+  Device Info and Work Mode load dependably
 
 ## What can it do?
 
-Everything required to set a storage up for cloud-free usage with an (emulated) shelly pro 3em Smartmeter + monitoring via modbusTCP.<br/>
-Cloud stuff like e.g. those dynamic grid pricing arbitrage things is out of scope.
+Everything required to set a storage up for cloud-free usage with an (emulated) Shelly Pro 3EM
+smart meter + monitoring via Modbus TCP.<br/>
+Cloud stuff like dynamic grid-pricing arbitrage is out of scope.
 
 ### Additional funfact:
-You don't need uni-meter or similar. All this battery wants for a Shelly pro 3EM is something that listens to the subnet broadcast address on UDP Port 1010 and replies to its inquiries.
+You don't need uni-meter or similar. All this battery wants for a Shelly Pro 3EM is something that
+listens to the subnet broadcast address on UDP Port 1010 and replies to its inquiries.
 
-You also don't need to actually speak the shelly protocol. At least during my testing, the FW JSON parser was not actually a JSON parser but just "find string offset, read int 2 bytes later".
+You also don't need to actually speak the Shelly protocol. At least during testing, the FW JSON
+parser was not actually a JSON parser but just "find string offset, read int 2 bytes later".
 Therefore, responding with this works:<br/>
 `a_act_power==${l1},b_act_power==${l2},c_act_power==${l3},total_act_power==${total}`
 
@@ -37,32 +66,13 @@ The Shelly Emulator.
 
 You probably shouldn't, but you could.
 
+## Credits
 
-## What does it work with?
+- Original tool: **[Hypfer/venuscontrol](https://github.com/Hypfer/venuscontrol)**
+- Firmware images: [rweijnen/marstek-firmware-archive](https://github.com/rweijnen/marstek-firmware-archive)
+- Reverse-engineering reference: [rweijnen/marstek-venus-monitor](https://github.com/rweijnen/marstek-venus-monitor)
 
-For now, the Venus A.
+## ⭐ Found it useful?
 
-I expect that a lot of code could be reused for other Venus types, but I don't have those and I want actually test things instead of just hoping for the best.
-
-
-## How can I help?
-
-If you're asking this, you can't. Sorry.
-
-Over the last (soon to be a full) decade, I've done so much hand-holding to get people up to speed, I think I did way more than my fair share for "the community".
-Now, someone else can take over that task, thank you.
-
-<br/>
-
-That said, if you know what you're doing (e.g. fellow IoT Hacker, work experience with BLE) there is something:
-**OTA Updates**
-
-The battery can update its submodules via BLE, which is great, but also very scary.
-In that other linked project, an LLM apparently looked into the process, but "an LLM looked into" is an oxymoron.
-
-So, if you're a real human with real experience, that would be a more or less final piece to look into to fully uncloud these storages.
-
-Firmware images can be found there: https://github.com/rweijnen/marstek-firmware-archive but that's also fully vibecoded, so that could definitely be redone as well.
-That repo is seeded using this repo: https://github.com/rweijnen/marstek-fw-checker but that's also fully vibecoded, so that could definitely be redone as well.
-
-But TL;DR: Blobs are available. Now we just need to figure out how to safely push them to the Battery.
+If this helped you get your storage off the cloud, I'd genuinely appreciate a **star** on the
+repo — it helps other Venus owners find it. Thanks!
