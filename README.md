@@ -66,11 +66,16 @@ The Shelly Emulator.
 
 You probably shouldn't, but you could.
 
+## Related projects
+
+- 🌐 **More of my projects & tools:** [sphings-dev.de](https://sphings-dev.de/)
+- 📦 **Firmware archive for Marstek Venus devices:** [sphings79/marstek-firmware-archiv](https://github.com/sphings79/marstek-firmware-archiv)
+- 🔬 **Venus D firmware reverse engineering:** [sphings79/Marstek-Venus-D-Firmware-Reverse-Engineering](https://github.com/sphings79/Marstek-Venus-D-Firmware-Reverse-Engineering)
+
 ## Credits
 
 - Original tool: **[Hypfer/venuscontrol](https://github.com/Hypfer/venuscontrol)**
-- Firmware images: [rweijnen/marstek-firmware-archive](https://github.com/rweijnen/marstek-firmware-archive)
-- Reverse-engineering reference: [rweijnen/marstek-venus-monitor](https://github.com/rweijnen/marstek-venus-monitor)
+- Firmware archive & reverse-engineering references: [rweijnen/marstek-firmware-archive](https://github.com/rweijnen/marstek-firmware-archive) · [rweijnen/marstek-venus-monitor](https://github.com/rweijnen/marstek-venus-monitor)
 
 ## ⭐ Found it useful?
 
