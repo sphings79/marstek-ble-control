@@ -8,6 +8,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import BrowserNotSupportedIcon from '@mui/icons-material/BrowserNotSupported';
 
 import { ConnectionState } from '../lib/BLEConnectionManager';
+import { Footer } from './Footer';
 
 interface Props {
     onScan: () => void;
@@ -69,11 +70,17 @@ export const ScannerView = ({ onScan, status, error }: Props) => {
     return (
         <Box
             display="flex"
-            justifyContent="center"
-            alignItems="center"
+            flexDirection="column"
             minHeight="100vh"
             bgcolor="#f4f6f8"
         >
+            <Box
+                flexGrow={1}
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                p={2}
+            >
             <Paper
                 elevation={4}
                 sx={{
@@ -169,6 +176,9 @@ export const ScannerView = ({ onScan, status, error }: Props) => {
                     </Stack>
                 }
             </Paper>
+            </Box>
+
+            <Footer />
         </Box>
     );
 };
