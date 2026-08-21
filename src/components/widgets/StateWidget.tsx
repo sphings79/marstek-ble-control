@@ -8,10 +8,12 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import PowerIcon from '@mui/icons-material/Power';
 import OutletIcon from '@mui/icons-material/Outlet';
+import SolarPowerIcon from '@mui/icons-material/SolarPower';
 
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID, INVERTER_STATE } from "../../lib/VenusConst.ts";
+import type { StateAttributes } from '../../lib/payloads/StatePayload';
 
 const getInverterStateLabel = (state?: number) => {
     switch (state) {
@@ -45,6 +47,15 @@ const formatW = (val: number | undefined) =>
 
 const formatPct = (val: number | undefined) =>
     val !== undefined ? `${val}%` : '--';
+
+// The device always reports four MPPT slots, even on units without PV inputs. Only surface the ones
+// that are flagged enabled or actually deliver power, so a Venus without solar doesn't get four 0 W rows.
+const getActiveMppts = (attrs: StateAttributes) => [
+    { label: 'PV 1', power: attrs.MPPT1Power, enabled: attrs.MPPT1Enabled },
+    { label: 'PV 2', power: attrs.MPPT2Power, enabled: attrs.MPPT2Enabled },
+    { label: 'PV 3', power: attrs.MPPT3Power, enabled: attrs.MPPT3Enabled },
+    { label: 'PV 4', power: attrs.MPPT4Power, enabled: attrs.MPPT4Enabled },
+].filter(mppt => mppt.enabled === true || (mppt.power !== undefined && mppt.power > 0));
 
 const ReadingRow = ({ label, value, icon, isLast = false }: { label: string, value: string, icon?: React.ReactNode, isLast?: boolean }) => (
     <Box display="flex" justifyContent="space-between" alignItems="center" py={1.5} sx={{ borderBottom: isLast ? 'none' : '1px solid', borderColor: 'rgba(0,0,0,0.05)' }}>
@@ -137,6 +148,50 @@ export const StateWidget = () => {
                                 <ReadingRow label="Backup Load" value={formatW(attrs.BackupLoadPower)} icon={<OutletIcon fontSize="small" />} isLast />
                             </Box>
                         </Box>
+
+                        {(() => {
+                            const mppts = getActiveMppts(attrs);
+
+                            if (mppts.length === 0) {
+                                return null;
+                            }
+
+                            const total = mppts.reduce((sum, mppt) => sum + (mppt.power ?? 0), 0);
+
+                            return (
+                                <>
+                                    <Divider />
+
+                                    <Box>
+                                        <Box display="flex" alignItems="center" gap={1} mb={1}>
+                                            <SolarPowerIcon fontSize="small" color="primary" />
+                                            <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
+                                                SOLAR INPUT
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ px: 1 }}>
+                                            {mppts.map((mppt, idx) => (
+                                                <ReadingRow
+                                                    key={mppt.label}
+                                                    label={mppt.label}
+                                                    value={formatW(mppt.power)}
+                                                    icon={<SolarPowerIcon fontSize="small" />}
+                                                    isLast={mppts.length === 1 && idx === 0}
+                                                />
+                                            ))}
+                                            {mppts.length > 1 && (
+                                                <ReadingRow
+                                                    label="PV Total"
+                                                    value={formatW(Math.round(total * 10) / 10)}
+                                                    icon={<SolarPowerIcon fontSize="small" />}
+                                                    isLast
+                                                />
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </>
+                            );
+                        })()}
 
                         <Divider />
 
