@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 470" width="620" height="470" role="img" aria-label="The OTA firmware update widget in venuscontrol">
+  <rect width="620" height="470" rx="16" fill="#0B1220"/>
+  <text x="30" y="36" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="400" fill="#6E6E6E">Illustration · Firmware Update (OTA)</text>
+  <rect x="30" y="54" width="560" height="384" rx="14" fill="#141D33" stroke="#22304F" stroke-width="1"/>
+  <text x="58" y="96" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="18" font-weight="600" fill="#EAF0FA">Firmware Update (OTA)</text>
+  <text x="58" y="120" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Over Bluetooth — Control/EMS, BMS, MPPT and Micro-Inverter.</text>
+  <rect x="58" y="142" width="504" height="58" rx="8" fill="#0F1729" stroke="#22304F" stroke-width="1"/>
+  <text x="74" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#38BDF8">Firmware file</text>
+  <text x="74" y="187" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="400" fill="#EAF0FA">VNSD-0_EMS_V150.bin</text>
+  <rect x="430" y="156" width="116" height="30" rx="15" fill="#2E86FF" fill-opacity="0.18"/>
+  <rect x="430" y="156" width="116" height="30" rx="15" fill="none" stroke="#2E86FF" stroke-width="1"/>
+  <text x="488" y="176" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#38BDF8" text-anchor="middle">Choose file</text>
+  <rect x="58" y="214" width="150" height="28" rx="14" fill="#22C55E" fill-opacity="0.14"/>
+  <rect x="58" y="214" width="150" height="28" rx="14" fill="none" stroke="#22C55E" stroke-width="1"/>
+  <text x="133" y="233" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="600" fill="#22C55E" text-anchor="middle">Model: Venus D</text>
+  <rect x="218" y="214" width="190" height="28" rx="14" fill="#22C55E" fill-opacity="0.14"/>
+  <rect x="218" y="214" width="190" height="28" rx="14" fill="none" stroke="#22C55E" stroke-width="1"/>
+  <text x="313" y="233" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="600" fill="#22C55E" text-anchor="middle">Component: Control/EMS</text>
+  <text x="58" y="268" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">The file is analysed before anything is sent: model and</text>
+  <text x="58" y="287" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">component are read out of the image and checked against</text>
+  <text x="58" y="306" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">the connected device.</text>
+  <rect x="58" y="326" width="504" height="10" rx="5" fill="#0F1729"/>
+  <rect x="58" y="326" width="312" height="10" rx="5" fill="#38BDF8"/>
+  <text x="58" y="358" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Transferring — 62 %</text>
+  <text x="562" y="358" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#6C7C99" text-anchor="end">block 1984 / 3200</text>
+  <rect x="58" y="376" width="504" height="34" rx="6" fill="#F59E0B" fill-opacity="0.1"/>
+  <circle cx="78" cy="393" r="7" fill="none" stroke="#F59E0B" stroke-width="1.6"/>
+  <path d="M78 389v5M78 396h.01" stroke="#F59E0B" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="96" y="397" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="400" fill="#F59E0B">Do not close this tab while the transfer is running.</text>
+</svg>

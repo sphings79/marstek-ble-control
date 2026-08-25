@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 500" width="1160" height="500" role="img" aria-label="How venuscontrol talks to a Marstek Venus storage">
+  <rect width="1160" height="500" rx="16" fill="#0B1220"/>
+  <text x="34" y="40" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="14" font-weight="400" fill="#6E6E6E">Everything below stays on your own hardware — no Marstek cloud involved</text>
+  <rect x="40" y="96" width="268" height="150" rx="14" fill="#141D33" stroke="#22304F" stroke-width="1"/>
+  <rect x="40" y="96" width="268" height="4" rx="2" fill="#2E86FF"/>
+  <text x="60" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#EAF0FA">Your browser</text>
+  <text x="60" y="158" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Chrome / Edge on desktop</text>
+  <text x="60" y="177" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Chrome on Android</text>
+  <text x="60" y="196" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Bluefy on iOS / iPadOS</text>
+  <text x="60" y="214" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">venuscontrol — a static page,</text>
+  <text x="60" y="231" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">nothing is sent to a server</text>
+  <rect x="446" y="96" width="268" height="150" rx="14" fill="#141D33" stroke="#22304F" stroke-width="1"/>
+  <rect x="446" y="96" width="268" height="4" rx="2" fill="#22C55E"/>
+  <text x="466" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#EAF0FA">Marstek Venus A / D</text>
+  <text x="466" y="158" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Battery storage</text>
+  <text x="466" y="177" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">BLE name MST_VNSA / MST_VNSD</text>
+  <text x="466" y="200" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">Work mode · power limits · DoD</text>
+  <text x="466" y="217" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">peak shaving · OTA · local API</text>
+  <path d="M308 160H446" stroke="#2E86FF" stroke-width="3" stroke-linecap="round"/>
+  <path d="M435 154l9 6-9 6" stroke="#2E86FF" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="377.0" y="146" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#2E86FF" text-anchor="middle">Web Bluetooth (BLE)</text>
+  <text x="377" y="190" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11.5" font-weight="400" fill="#6C7C99" text-anchor="middle">no app · no account</text>
+  <rect x="446" y="316" width="268" height="140" rx="14" fill="#141D33" stroke="#22304F" stroke-width="1"/>
+  <rect x="446" y="316" width="268" height="4" rx="2" fill="#F59E0B"/>
+  <text x="466" y="356" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#EAF0FA">Shelly Pro 3EM (emulated)</text>
+  <text x="466" y="378" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Any device on the LAN that answers</text>
+  <text x="466" y="397" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">the battery's UDP broadcast</text>
+  <text x="466" y="428" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">port 1010 · plain text reply is enough</text>
+  <path d="M580 316V246" stroke="#F59E0B" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 6"/>
+  <path d="M574 257l6-9 6 9" stroke="#F59E0B" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="596" y="288" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#F59E0B">UDP 1010 — grid power readings</text>
+  <rect x="852" y="96" width="268" height="150" rx="14" fill="#141D33" stroke="#22304F" stroke-width="1"/>
+  <rect x="852" y="96" width="268" height="4" rx="2" fill="#38BDF8"/>
+  <text x="872" y="136" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#EAF0FA">Home Assistant</text>
+  <text x="872" y="158" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">Monitoring and automation</text>
+  <text x="872" y="177" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#93A3BD">over Modbus TCP</text>
+  <text x="872" y="200" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">venuscontrol sets it up,</text>
+  <text x="872" y="217" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#6C7C99">Home Assistant reads it</text>
+  <path d="M714 160H852" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M841 154l9 6-9 6" stroke="#38BDF8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="783.0" y="146" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#38BDF8" text-anchor="middle">Modbus TCP</text>
+  <rect x="852" y="316" width="268" height="140" rx="14" fill="#141D33" stroke="#22304F" stroke-width="1"/>
+  <rect x="852" y="316" width="268" height="4" rx="2" fill="#EF4444"/>
+  <text x="872" y="356" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="600" fill="#6C7C99">Marstek cloud</text>
+  <text x="872" y="380" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#6C7C99">Not used. Not required.</text>
+  <text x="872" y="400" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#6C7C99">No account, no telemetry,</text>
+  <text x="872" y="419" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#6C7C99">no remote control of your battery.</text>
+  <path d="M872 351L1043 351" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
