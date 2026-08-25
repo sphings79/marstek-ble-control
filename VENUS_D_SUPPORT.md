@@ -30,15 +30,25 @@ RuntimeInfo builder function, in the sibling "Marstek Venus D FW Debug" project'
 | `0x29` | `TotalEnergyIn` (u32 × 10 → Wh) | `totalCharge` (u32 ÷ 100 → kWh) — same |
 | `0x2D` | `TotalEnergyOut` (u32 × 10 → Wh) | `totalDischarge` (u32 ÷ 100 → kWh) — same |
 
-This is strong (though not conclusive) evidence that the STATE payload - and by extension the
-whole command protocol - is shared across the Venus product line, not just coincidentally
-similar. It has NOT been tested against a real, connected Venus D device.
+This was strong (though at the time not conclusive) evidence that the STATE payload - and by
+extension the whole command protocol - is shared across the Venus product line, not just
+coincidentally similar.
 
-## What is NOT yet verified
+> **Status update: this is now confirmed on real hardware.** Venus D support has been tested
+> against a real, connected Venus D device. VNS and BMS OTA updates have additionally been
+> reported working by users. The paragraphs below were written before that testing; what
+> remains genuinely unverified is listed under "What is still unverified".
 
-- **Every command besides STATE/DEVICE_INFO.** WorkMode settings, CT readings, Battery Modules
-  State, Toggles, etc. haven't been individually cross-checked against decompiled Venus D
-  firmware - only inferred from protocol similarity.
+## What is still unverified
+
+The connection, the STATE payload and the widgets built on them work against real Venus D
+hardware. What has *not* been individually cross-checked against decompiled Venus D firmware is
+narrower than it was:
+
+- **Commands besides STATE/DEVICE_INFO at the firmware level.** WorkMode settings, CT readings,
+  Battery Modules State, Toggles and the rest behave correctly on a live device, but their byte
+  layouts were inferred from protocol similarity rather than read out of decompiled Venus D
+  firmware. A field that is never exercised in normal use could still be wrong.
 - **Numeric tuning parameters in `VenusDView`:**
   - Power limit options (`800/1200/1500/2000/2500` W) - the 2500 W ceiling is FW-confirmed
     (Venus D Modbus write registers `42020`/`42021`, documented range 0-2500 W; also the
@@ -49,9 +59,6 @@ similar. It has NOT been tested against a real, connected Venus D device.
   - UPS/schedule support (`scheduleItemUPSSupported={true}`) - assumed available based on
     Venus D having a physical backup/off-grid relay (`IO_RELAY_OFFGRID`, confirmed via Ghidra
     analysis of the Micro/inverter firmware's GPIO map), not from a live BLE test.
-
-A `VenusDView`-level `Alert` banner reflects this: it tells the user the support is new and
-not yet hardware-confirmed.
 
 ## Related work
 
