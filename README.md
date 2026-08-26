@@ -246,6 +246,15 @@ device view.
 If this helped you get your storage off the cloud, a **star** on the repository is genuinely
 appreciated — it helps other Venus owners find it. Thanks!
 
+---
+
+## ☕ Support
+
+These tools are built and maintained in my free time, and they stay free, open and cloud-free.
+If one of them saved you an afternoon, you can [buy me a coffee](https://buymeacoffee.com/sphings).
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-sphings-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=000000)](https://buymeacoffee.com/sphings)
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
