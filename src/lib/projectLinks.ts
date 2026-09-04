@@ -1,6 +1,6 @@
 // Shared project/related links, used by both the page Footer and the mobile hamburger menu.
 
-export const GITHUB_REPO = 'https://github.com/sphings79/venuscontrol';
+export const GITHUB_REPO = 'https://github.com/sphings79/marstek-ble-control';
 export const UPSTREAM_REPO = 'https://github.com/Hypfer/venuscontrol';
 
 export const PROJECT_LINKS: { label: string; href: string }[] = [

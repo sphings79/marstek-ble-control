@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="venuscontrol — cloud-free Web Bluetooth control panel for Marstek Venus battery storage" width="100%">
+<img src="docs/assets/banner.svg" alt="Marstek BLE Control — cloud-free Web Bluetooth control panel for Marstek Venus battery storage" width="100%">
 
-# venuscontrol — Venus D Edition
+# Marstek BLE Control — Venus A / D / E 3.0
 
 **Set up and control a Marstek Venus storage from your browser, over Bluetooth. No app, no account, no cloud.**
 
 [![Web Bluetooth](https://img.shields.io/badge/Web%20Bluetooth-Chrome%20%C2%B7%20Edge%20%C2%B7%20Bluefy-2E86FF.svg?style=flat-square)](#browser-support)
-[![Marstek Venus](https://img.shields.io/badge/Marstek-Venus%20A%20%C2%B7%20Venus%20D-22C55E.svg?style=flat-square)](#supported-devices)
+[![Marstek Venus](https://img.shields.io/badge/Marstek-Venus%20A%20%C2%B7%20D%20%C2%B7%20E%203.0-22C55E.svg?style=flat-square)](#supported-devices)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
 [![Cloud-free](https://img.shields.io/badge/cloud-not%20required-22C55E.svg?style=flat-square)](#what-stays-local)
 
@@ -22,8 +22,8 @@
 ## What this is
 
 A Marstek Venus battery normally expects you to go through the Marstek app and the Marstek cloud
-to change anything about it. **venuscontrol** takes that detour out: it is a single static web page
-that talks to the battery **directly over Bluetooth Low Energy** using the browser's
+to change anything about it. **Marstek BLE Control** takes that detour out: it is a single static
+web page that talks to the battery **directly over Bluetooth Low Energy** using the browser's
 [Web Bluetooth](https://developer.mozilla.org/docs/Web/API/Web_Bluetooth_API) API.
 
 Open the page, hit connect, pick your storage — you are talking to the device. Nothing is
@@ -33,20 +33,24 @@ every command goes straight from your browser to the battery.
 This is a **fork and continued development of
 [Hypfer/venuscontrol](https://github.com/Hypfer/venuscontrol)**, which targets the Venus A. All
 credit for the original tool and the reverse-engineering groundwork goes to Hypfer. This fork adds
-**Marstek Venus D support**, **OTA firmware updates** and a number of extra controls.
+**Venus D and Venus E 3.0 support**, **OTA firmware updates** and a number of extra controls.
+
+> **Unofficial project. Not affiliated with, endorsed by, or supported by Marstek.**
+> "Marstek" and "Venus" are trademarks of their respective owner and are used here only to describe
+> which hardware this tool talks to.
 
 ---
 
 ## How it fits together
 
 <div align="center">
-<img src="docs/assets/architecture.svg" alt="venuscontrol architecture: browser talks to the Venus battery over Web Bluetooth, an emulated Shelly Pro 3EM feeds grid readings over UDP 1010, and Home Assistant reads the battery over Modbus TCP — the Marstek cloud is not involved" width="100%">
+<img src="docs/assets/architecture.svg" alt="Marstek BLE Control architecture: browser talks to the Venus battery over Web Bluetooth, an emulated Shelly Pro 3EM feeds grid readings over UDP 1010, and Home Assistant reads the battery over Modbus TCP — the Marstek cloud is not involved" width="100%">
 </div>
 
 The interesting part is what is **not** in that picture. Running a Venus cloud-free needs three
 things, and none of them is a Marstek service:
 
-1. **A way to configure the battery** — that is venuscontrol, over Bluetooth.
+1. **A way to configure the battery** — that is Marstek BLE Control, over Bluetooth.
 2. **A grid power source** — the battery wants a Shelly Pro 3EM. It is happy with anything on your
    LAN that answers its UDP broadcast (see [the Shelly trick](#the-shelly-trick) below).
 3. **A way to monitor it** — Modbus TCP into Home Assistant or anything else that speaks Modbus.
@@ -56,8 +60,15 @@ things, and none of them is a Marstek service:
 ## What's new in this fork
 
 - ✅ **Marstek Venus D support** — tested on real hardware
-- 🔄 **OTA firmware updates over Bluetooth** — Control/EMS, BMS, MPPT and Micro-Inverter modules
-  (VNS and BMS updates confirmed working by users)
+- ✅ **Marstek Venus E 3.0 support** (`MST_VNSE3_*`) — own dashboard without PV/MPPT, without the
+  multi-module battery view and without surplus feed-in, since its firmware implements none of
+  them. Not yet tested on real hardware.
+- 🔄 **OTA firmware updates over Bluetooth** — for Venus A, D and E 3.0; Control/EMS, BMS, MPPT and
+  Micro-Inverter modules (VNS and BMS updates confirmed working by users on a Venus D). The
+  firmware's own validation logic was verified to be identical across all three models.
+- 🛡️ **Model detection for firmware files** — warns before flashing another model's image, based on
+  the `VNSA`/`VNSD`/`VNSE` tag embedded in every image; verified against all 27 Venus images in the
+  firmware archive
 - ⚡ **Device Power Class** selection (800 / 2200 / 2500 W)
 - 📉 **Peak Shaving** — cap grid draw at a configurable threshold
 - 🎚️ **Self-Consumption Power Offset** — bias the controller to target a grid power other than 0 W
@@ -87,7 +98,7 @@ than flashed.
 ## The app
 
 <div align="center">
-<img height="640" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" alt="venuscontrol running on a phone: state of charge, battery and grid power, work mode and the other control widgets">
+<img height="640" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" alt="Marstek BLE Control running on a phone: state of charge, battery and grid power, work mode and the other control widgets">
 </div>
 
 ---
@@ -96,8 +107,9 @@ than flashed.
 
 | Device | BLE name | Status |
 |---|---|---|
-| Marstek Venus A | `MST_VNSA_xxxx` | Supported (from upstream) |
-| Marstek Venus D | `MST_VNSD_xxxx` | Supported — the focus of this fork |
+| Marstek Venus A | `MST_VNSA_xxxx` | Supported (from upstream), plus OTA and the extra controls |
+| Marstek Venus D | `MST_VNSD_xxxx` | Supported — the focus of this fork, confirmed on real hardware |
+| Marstek Venus E 3.0 | `MST_VNSE3_xxxx` | Supported, but not yet tested on real hardware |
 
 Other Venus models fall back to a generic device view, which shows what can be read but does not
 offer the model-specific controls.
@@ -206,7 +218,7 @@ HTTPS.
 ## FAQ
 
 **Do I have to give up the Marstek app?**
-No. venuscontrol changes settings on the device; the app keeps working. The point is that you no
+No. Marstek BLE Control changes settings on the device; the app keeps working. The point is that you no
 longer *need* the app or its cloud for the settings covered here.
 
 **Does my battery have to be online for this?**
@@ -215,7 +227,7 @@ battery. It works with the battery's WiFi disabled entirely.
 
 **Why Bluetooth and not the local API?**
 The on-device API has to be switched on first, and there is no way to do that except over
-Bluetooth or via the cloud app. venuscontrol has a toggle for it.
+Bluetooth or via the cloud app. Marstek BLE Control has a toggle for it.
 
 **Can I brick my battery with the OTA function?**
 A failed firmware flash can leave a module in a bad state, as with any firmware update. The tool

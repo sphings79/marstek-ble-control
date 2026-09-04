@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="venuscontrol — cloudfreie Web-Bluetooth-Steuerung für Marstek-Venus-Speicher" width="100%">
+<img src="docs/assets/banner.svg" alt="Marstek BLE Control — cloudfreie Web-Bluetooth-Steuerung für Marstek-Venus-Speicher" width="100%">
 
-# venuscontrol — Venus D Edition
+# Marstek BLE Control — Venus A / D / E 3.0
 
 **Marstek-Venus-Speicher direkt aus dem Browser einrichten und steuern, über Bluetooth. Ohne App, ohne Konto, ohne Cloud.**
 
 [![Web Bluetooth](https://img.shields.io/badge/Web%20Bluetooth-Chrome%20%C2%B7%20Edge%20%C2%B7%20Bluefy-2E86FF.svg?style=flat-square)](#browser-unterstützung)
-[![Marstek Venus](https://img.shields.io/badge/Marstek-Venus%20A%20%C2%B7%20Venus%20D-22C55E.svg?style=flat-square)](#unterstützte-geräte)
+[![Marstek Venus](https://img.shields.io/badge/Marstek-Venus%20A%20%C2%B7%20D%20%C2%B7%20E%203.0-22C55E.svg?style=flat-square)](#unterstützte-geräte)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=flat-square)](LICENSE)
 [![Cloudfrei](https://img.shields.io/badge/Cloud-nicht%20nötig-22C55E.svg?style=flat-square)](#was-lokal-bleibt)
 
@@ -22,7 +22,7 @@
 ## Worum es geht
 
 Ein Marstek-Venus-Speicher erwartet normalerweise, dass man für jede Änderung über die
-Marstek-App und die Marstek-Cloud geht. **venuscontrol** streicht diesen Umweg: Es ist eine
+Marstek-App und die Marstek-Cloud geht. **Marstek BLE Control** streicht diesen Umweg: Es ist eine
 einzelne statische Webseite, die **direkt über Bluetooth Low Energy** mit dem Speicher spricht —
 über die [Web-Bluetooth-API](https://developer.mozilla.org/docs/Web/API/Web_Bluetooth_API) des
 Browsers.
@@ -34,21 +34,25 @@ aus statischen Dateien, und jeder Befehl geht direkt vom Browser an die Batterie
 Dies ist ein **Fork und die Weiterentwicklung von
 [Hypfer/venuscontrol](https://github.com/Hypfer/venuscontrol)**, das auf die Venus A zielt. Das
 Verdienst am ursprünglichen Werkzeug und an der Reverse-Engineering-Grundlage liegt vollständig bei
-Hypfer. Dieser Fork ergänzt **Unterstützung für die Marstek Venus D**, **OTA-Firmware-Updates** und
-eine Reihe zusätzlicher Steuerungen.
+Hypfer. Dieser Fork ergänzt **Unterstützung für Venus D und Venus E 3.0**, **OTA-Firmware-Updates**
+und eine Reihe zusätzlicher Steuerungen.
+
+> **Inoffizielles Projekt. Weder mit Marstek verbunden noch von Marstek unterstützt oder
+> genehmigt.** „Marstek" und „Venus" sind Marken des jeweiligen Inhabers und werden hier nur
+> verwendet, um zu beschreiben, mit welcher Hardware dieses Werkzeug spricht.
 
 ---
 
 ## Wie das zusammenspielt
 
 <div align="center">
-<img src="docs/assets/architecture.svg" alt="venuscontrol-Architektur: Der Browser spricht über Web Bluetooth mit dem Venus-Speicher, ein emulierter Shelly Pro 3EM liefert die Netzleistung über UDP 1010, und Home Assistant liest den Speicher über Modbus TCP — die Marstek-Cloud ist nicht beteiligt" width="100%">
+<img src="docs/assets/architecture.svg" alt="Marstek BLE Control – Architektur: Der Browser spricht über Web Bluetooth mit dem Venus-Speicher, ein emulierter Shelly Pro 3EM liefert die Netzleistung über UDP 1010, und Home Assistant liest den Speicher über Modbus TCP — die Marstek-Cloud ist nicht beteiligt" width="100%">
 </div>
 
 Das Interessante an dem Bild ist, was **nicht** darin vorkommt. Für einen cloudfreien Betrieb
 braucht es drei Dinge, und keines davon ist ein Marstek-Dienst:
 
-1. **Eine Möglichkeit, den Speicher zu konfigurieren** — das ist venuscontrol, über Bluetooth.
+1. **Eine Möglichkeit, den Speicher zu konfigurieren** — das ist Marstek BLE Control, über Bluetooth.
 2. **Eine Quelle für die Netzleistung** — die Batterie möchte einen Shelly Pro 3EM. Sie gibt sich
    mit allem zufrieden, was im LAN auf ihren UDP-Broadcast antwortet (siehe
    [der Shelly-Trick](#der-shelly-trick)).
@@ -60,8 +64,15 @@ braucht es drei Dinge, und keines davon ist ein Marstek-Dienst:
 ## Was dieser Fork ergänzt
 
 - ✅ **Unterstützung der Marstek Venus D** — an echter Hardware getestet
-- 🔄 **OTA-Firmware-Updates über Bluetooth** — Control/EMS, BMS, MPPT und Micro-Inverter
-  (VNS- und BMS-Updates von Nutzern bestätigt)
+- ✅ **Unterstützung der Marstek Venus E 3.0** (`MST_VNSE3_*`) — eigene Ansicht ohne PV/MPPT, ohne
+  Mehrmodul-Batterieansicht und ohne Überschusseinspeisung, weil die Firmware nichts davon
+  implementiert. Noch nicht an echter Hardware getestet.
+- 🔄 **OTA-Firmware-Updates über Bluetooth** — für Venus A, D und E 3.0; Control/EMS, BMS, MPPT und
+  Micro-Inverter (VNS- und BMS-Updates von Nutzern an einer Venus D bestätigt). Die Prüflogik der
+  Firmware ist bei allen drei Modellen nachweislich identisch.
+- 🛡️ **Modellerkennung für Firmware-Dateien** — warnt, bevor das Abbild eines anderen Modells
+  geflasht wird, anhand des in jedem Abbild eingebetteten `VNSA`/`VNSD`/`VNSE`-Tags; gegen alle 27
+  Venus-Abbilder im Firmware-Archiv geprüft
 - ⚡ **Geräteleistungsklasse** wählbar (800 / 2200 / 2500 W)
 - 📉 **Peak Shaving** — Netzbezug auf einen einstellbaren Schwellwert begrenzen
 - 🎚️ **Offset für den Eigenverbrauch** — den Regler auf eine andere Netzleistung als 0 W ziehen
@@ -92,7 +103,7 @@ gemeldet statt geflasht.
 ## Die App
 
 <div align="center">
-<img height="640" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" alt="venuscontrol auf einem Smartphone: Ladezustand, Batterie- und Netzleistung, Work Mode und die weiteren Steuerungs-Widgets">
+<img height="640" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" alt="Marstek BLE Control auf einem Smartphone: Ladezustand, Batterie- und Netzleistung, Work Mode und die weiteren Steuerungs-Widgets">
 </div>
 
 ---
@@ -101,8 +112,9 @@ gemeldet statt geflasht.
 
 | Gerät | BLE-Name | Status |
 |---|---|---|
-| Marstek Venus A | `MST_VNSA_xxxx` | Unterstützt (aus dem Upstream-Projekt) |
-| Marstek Venus D | `MST_VNSD_xxxx` | Unterstützt — der Schwerpunkt dieses Forks |
+| Marstek Venus A | `MST_VNSA_xxxx` | Unterstützt (aus dem Upstream-Projekt), dazu OTA und die zusätzlichen Steuerungen |
+| Marstek Venus D | `MST_VNSD_xxxx` | Unterstützt — der Schwerpunkt dieses Forks, an echter Hardware bestätigt |
+| Marstek Venus E 3.0 | `MST_VNSE3_xxxx` | Unterstützt, aber noch nicht an echter Hardware getestet |
 
 Andere Venus-Modelle landen in einer generischen Geräteansicht: Sie zeigt, was sich auslesen lässt,
 bietet aber keine modellspezifischen Steuerungen.
@@ -211,7 +223,7 @@ Webhost mit HTTPS.
 ## Häufige Fragen
 
 **Muss ich auf die Marstek-App verzichten?**
-Nein. venuscontrol ändert Einstellungen am Gerät, die App funktioniert weiter. Der Punkt ist, dass
+Nein. Marstek BLE Control ändert Einstellungen am Gerät, die App funktioniert weiter. Der Punkt ist, dass
 man App und Cloud für die hier abgedeckten Einstellungen nicht mehr *braucht*.
 
 **Muss die Batterie dafür online sein?**
@@ -220,7 +232,7 @@ Batterie. Es funktioniert auch mit komplett deaktiviertem WLAN der Batterie.
 
 **Warum Bluetooth und nicht die lokale API?**
 Die geräteeigene API muss erst eingeschaltet werden, und das geht nur über Bluetooth oder über die
-Cloud-App. venuscontrol hat einen Schalter dafür.
+Cloud-App. Marstek BLE Control hat einen Schalter dafür.
 
 **Kann ich mir mit der OTA-Funktion die Batterie zerschießen?**
 Ein fehlgeschlagenes Firmware-Update kann ein Modul in einen schlechten Zustand bringen, wie bei
