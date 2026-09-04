@@ -1,30 +1,22 @@
-/// <reference types="web-bluetooth" />
-
 import { VenusPacket } from "./VenusPacket";
 import semaphore from 'semaphore';
 import {COMMAND_ID} from "./VenusConst.ts";
+import { ConnectionState } from "./ConnectionState";
+import type { Transport, TransportKind } from "./transport/Transport";
+import { WebBluetoothTransport } from "./transport/WebBluetoothTransport";
 
-export const SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb';
-export const TX_UUID = '0000ff01-0000-1000-8000-00805f9b34fb';
-export const RX_UUID = '0000ff02-0000-1000-8000-00805f9b34fb';
-
-export const ConnectionState = Object.freeze({
-    IDLE: "IDLE",
-    SCANNING: "SCANNING",
-    CONNECTING: "CONNECTING",
-    CONNECTED: "CONNECTED",
-    DISCONNECTED: "DISCONNECTED",
-    ERROR: "ERROR"
-});
-export type ConnectionState = (typeof ConnectionState)[keyof typeof ConnectionState];
+export { ConnectionState };
+export { SERVICE_UUID, TX_UUID, RX_UUID } from "./transport/WebBluetoothTransport";
 
 type PacketListener = (packet: VenusPacket) => void;
 
+/**
+ * Owns the Marstek protocol on top of a byte pipe: frame reassembly, packet dispatch, the
+ * periodic STATE poll and the TX mutex. Everything device-facing lives behind a Transport, so the
+ * same manager drives a direct Web Bluetooth link or an ESP32 bridge without knowing which.
+ */
 export class BLEConnectionManager {
-    public device: BluetoothDevice | null = null;
-
-    private txChar: BluetoothRemoteGATTCharacteristic | null = null;
-    private rxChar: BluetoothRemoteGATTCharacteristic | null = null;
+    private readonly transport: Transport;
 
     public onStateChange: (state: ConnectionState, msg?: string) => void = () => {};
     public onRSSI: (rssi: number) => void = () => {};
@@ -36,7 +28,7 @@ export class BLEConnectionManager {
     public onRawNotification: (bytes: Uint8Array) => void = () => {};
 
     private listeners: Map<number, PacketListener[]> = new Map();
-    
+
     private pollTimer: ReturnType<typeof setTimeout> | null = null;
     private txMutex = semaphore(1);
 
@@ -52,7 +44,56 @@ export class BLEConnectionManager {
     private rxAssembly: number[] = [];
     private rxAssemblyTimer: ReturnType<typeof setTimeout> | null = null;
 
-    constructor() {}
+    constructor(transport: Transport = new WebBluetoothTransport()) {
+        this.transport = transport;
+        this.transport.setCallbacks({
+            onNotify: (bytes) => {
+                // Always fire the raw hook first - OTA (and anything else speaking a non-VenusPacket
+                // frame shape) needs to see every notification, not just ones that parse as VenusPacket.
+                this.onRawNotification(bytes);
+
+                // Feed the reassembler, which buffers across notifications and dispatches complete
+                // VenusPacket frames (see feedReassembler). This transparently handles responses that
+                // span multiple BLE notifications and the 2-byte "Transition HM" framing.
+                this.feedReassembler(bytes);
+            },
+            onStateChange: (state, msg) => {
+                // Clear any stale bytes before the transport starts delivering notifications.
+                if (state === ConnectionState.CONNECTING) {
+                    this.resetReassembler();
+                }
+
+                this.onStateChange(state, msg);
+
+                if (state === ConnectionState.CONNECTED) {
+                    this.doPoll();
+                }
+            },
+            onRssi: (rssi) => this.onRSSI(rssi),
+            onDisconnected: () => {
+                this.stopPolling();
+                this.resetReassembler();
+                this.onStateChange(ConnectionState.DISCONNECTED);
+            },
+        });
+    }
+
+    /** How this manager reaches the device - callers scale their timeouts by it (see OtaManager). */
+    public get transportKind(): TransportKind {
+        return this.transport.kind;
+    }
+
+    /**
+     * BLE advertised name of the connected device. Drives model detection (which dashboard is
+     * shown) and the OTA model-mismatch guard, so it must survive any transport change.
+     */
+    public get deviceName(): string | undefined {
+        return this.transport.deviceName;
+    }
+
+    public get isConnected(): boolean {
+        return this.transport.isConnected;
+    }
 
     public subscribe(commandId: number, callback: PacketListener) {
         if (!this.listeners.has(commandId)) {
@@ -194,11 +235,11 @@ export class BLEConnectionManager {
         this.dispatchPacket(new VenusPacket(cmd as COMMAND_ID, payload));
     }
 
-    private log(msg: string, data?: any) {
+    private log(msg: string, data?: unknown) {
         console.log(`[BLEConnectionManager] ${msg}`, data || '');
     }
 
-    private error(msg: string, err?: any) {
+    private error(msg: string, err?: unknown) {
         console.error(`[BLEConnectionManager] ${msg}`, err || '');
     }
 
@@ -210,7 +251,7 @@ export class BLEConnectionManager {
     }
 
     private async doPoll() {
-        if (!this.device?.gatt?.connected) {
+        if (!this.transport.isConnected) {
             return;
         }
 
@@ -219,7 +260,7 @@ export class BLEConnectionManager {
         } catch (err) {
             console.warn("Poll failed", err);
         }
-        
+
         this.pollTimer = setTimeout(() => this.doPoll(), 5_000);
     }
 
@@ -228,129 +269,27 @@ export class BLEConnectionManager {
             clearTimeout(this.pollTimer);
             this.pollTimer = null;
         }
-            
+
         this.doPoll();
     }
 
     async scanAndConnect() {
-        if (!navigator.bluetooth) {
-            this.error("Web Bluetooth not supported");
-            return;
-        }
-
-        this.onStateChange(ConnectionState.SCANNING);
-        this.log("Starting Scan...");
-
-        try {
-            this.device = await navigator.bluetooth.requestDevice({
-                filters: [{ namePrefix: 'MST_' }],
-                optionalServices: [SERVICE_UUID]
-            });
-
-            this.log("Device selected:", this.device.name);
-
-            this.device.addEventListener('gattserverdisconnected', this.handleDisconnect);
-
-            if (this.device.watchAdvertisements) {
-                this.log("Starting RSSI watch...");
-                this.device.addEventListener('advertisementreceived', (event) => {
-                    this.onRSSI(event.rssi ?? -100);
-                });
-                await this.device.watchAdvertisements();
-            }
-
-            await this.connectGATT();
-        } catch (err: any) {
-            if (err.name === 'NotFoundError') {
-                this.log("User cancelled scan");
-                this.onStateChange(ConnectionState.IDLE);
-            } else {
-                this.error("Scan Error", err);
-                this.onStateChange(ConnectionState.ERROR, err.message);
-            }
-        }
+        await this.transport.scanAndConnect();
     }
 
     async reconnect() {
-        if (!this.device) {
-            this.error("Cannot reconnect: No device instance.");
-            return;
-        }
-        this.log("Attempting Reconnect...");
-        try {
-            await this.connectGATT();
-        } catch (err: any) {
-            this.error("Reconnect Failed", err);
-            this.onStateChange(ConnectionState.ERROR, "Reconnection failed: " + err.message);
-        }
+        await this.transport.reconnect();
     }
 
     disconnect() {
         this.log("Disconnecting...");
         this.stopPolling();
 
-        if (this.device && this.device.gatt?.connected) {
-            this.device.gatt.disconnect();
-        } else {
-            this.handleDisconnect();
-        }
-    }
-
-    private async connectGATT() {
-        if (!this.device) return;
-
-        this.onStateChange(ConnectionState.CONNECTING);
-        this.log("Connecting to GATT Server...");
-
-        try {
-            const server = await this.device.gatt?.connect();
-            if (!server || !server.connected) {
-                // noinspection ExceptionCaughtLocallyJS
-                throw new Error("GATT Server connection failed immediately.");
-            }
-            this.log("GATT Connected");
-
-            this.log(`Getting Service ${SERVICE_UUID}...`);
-            const service = await server.getPrimaryService(SERVICE_UUID);
-
-            this.log(`Getting TX Characteristic ${TX_UUID}...`);
-            this.txChar = await service.getCharacteristic(TX_UUID);
-
-            this.log(`Getting RX Characteristic ${RX_UUID}...`);
-            this.rxChar = await service.getCharacteristic(RX_UUID);
-
-            this.log("Starting Notifications on RX...");
-            this.resetReassembler();
-            await this.rxChar.startNotifications();
-            this.rxChar.addEventListener('characteristicvaluechanged', (e: any) => {
-                const bytes = new Uint8Array(e.target.value.buffer, e.target.value.byteOffset, e.target.value.byteLength);
-
-                // Always fire the raw hook first - OTA (and anything else speaking a non-VenusPacket
-                // frame shape) needs to see every notification, not just ones that parse as VenusPacket.
-                this.onRawNotification(bytes);
-
-                // Feed the reassembler, which buffers across notifications and dispatches complete
-                // VenusPacket frames (see feedReassembler). This transparently handles responses that
-                // span multiple BLE notifications and the 2-byte "Transition HM" framing.
-                this.feedReassembler(bytes);
-            });
-
-            this.log("Connection Fully Established.");
-            this.onStateChange(ConnectionState.CONNECTED);
-
-            this.doPoll();
-
-        } catch (err: any) {
-            this.error("Connection Sequence Failed", err);
-            if (this.device?.gatt?.connected) {
-                this.device.gatt.disconnect();
-            }
-            throw err;
-        }
+        this.transport.disconnect();
     }
 
     async sendPacket(cmd: COMMAND_ID, payload?: Uint8Array) {
-        if (!this.txChar || !this.device?.gatt?.connected) {
+        if (!this.transport.isConnected) {
             this.error("Cannot send: Not connected");
 
             throw new Error("Not connected");
@@ -359,56 +298,43 @@ export class BLEConnectionManager {
         const p = new VenusPacket(cmd, payload);
         const raw = p.toBytes();
 
-        return new Promise<void>((resolve, reject) => {
-            this.txMutex.take(async () => {
-                try {
-                    if (!this.txChar || !this.device?.gatt?.connected) {
-                        // noinspection ExceptionCaughtLocallyJS
-                        throw new Error("Disconnected while waiting for lock");
-                    }
-                    
-                    this.log(`TX: Cmd 0x${cmd.toString(16)}`, raw);
-
-                    await this.txChar.writeValue(raw as BufferSource);
-                    resolve();
-                } catch (err) {
-                    this.error("Write Failed", err);
-                    reject(err);
-                } finally {
-                    // Might be nonsensical, but let's give the firmware some time maybe
-                    setTimeout(() => {
-                        this.txMutex.leave();
-                    }, 25);
-                }
-            });
-        });
+        return this.writeLocked(raw, true, `TX: Cmd 0x${cmd.toString(16)}`);
     }
 
     /**
-     * Write raw, pre-built bytes directly to the TX characteristic, bypassing VenusPacket
-     * framing entirely. Used by OTA, which speaks a different frame format. Shares the same
-     * mutex as sendPacket() so OTA writes and regular command writes never interleave.
+     * Write raw, pre-built bytes directly to the device, bypassing VenusPacket framing entirely.
+     * Used by OTA, which speaks a different frame format. Shares the same mutex as sendPacket()
+     * so OTA writes and regular command writes never interleave.
      */
     async sendRaw(bytes: Uint8Array) {
-        if (!this.txChar || !this.device?.gatt?.connected) {
+        if (!this.transport.isConnected) {
             this.error("Cannot send raw: Not connected");
             throw new Error("Not connected");
         }
 
+        return this.writeLocked(bytes, false);
+    }
+
+    private writeLocked(bytes: Uint8Array, withResponse: boolean, logLine?: string) {
         return new Promise<void>((resolve, reject) => {
             this.txMutex.take(async () => {
                 try {
-                    if (!this.txChar || !this.device?.gatt?.connected) {
+                    if (!this.transport.isConnected) {
                         // noinspection ExceptionCaughtLocallyJS
                         throw new Error("Disconnected while waiting for lock");
                     }
 
-                    await this.txChar.writeValueWithoutResponse(bytes as BufferSource);
+                    if (logLine) {
+                        this.log(logLine, bytes);
+                    }
+
+                    await this.transport.send(bytes, withResponse);
                     resolve();
                 } catch (err) {
-                    this.error("Raw Write Failed", err);
+                    this.error(withResponse ? "Write Failed" : "Raw Write Failed", err);
                     reject(err);
                 } finally {
+                    // Might be nonsensical, but let's give the firmware some time maybe
                     setTimeout(() => {
                         this.txMutex.leave();
                     }, 25);
@@ -431,14 +357,4 @@ export class BLEConnectionManager {
         this.resetReassembler();
         this.pollState();
     }
-
-    private handleDisconnect = () => {
-        this.log("Device Disconnected Event fired");
-        this.stopPolling();
-        this.resetReassembler();
-
-        this.txChar = null;
-        this.rxChar = null;
-        this.onStateChange(ConnectionState.DISCONNECTED);
-    };
 }

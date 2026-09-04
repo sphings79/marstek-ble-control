@@ -43,8 +43,8 @@ export const BLEProvider = ({ children }: { children: React.ReactNode }) => {
                 setError(msg);
             }
 
-            if (state === ConnectionState.CONNECTED && mgr.device) {
-                setDeviceInfo(parseDeviceName(mgr.device.name || "Unknown"));
+            if (state === ConnectionState.CONNECTED) {
+                setDeviceInfo(parseDeviceName(mgr.deviceName || "Unknown"));
             }
         };
 

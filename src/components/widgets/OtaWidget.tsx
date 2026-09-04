@@ -55,7 +55,7 @@ export const OtaWidget = () => {
 
     const needsConfirmation = () => {
         if (!analysis) return false;
-        const { mismatch } = detectModelMismatch(analysis, manager.device?.name);
+        const { mismatch } = detectModelMismatch(analysis, manager.deviceName);
         return mismatch || analysis.componentGuess.component === 'Micro/Inverter' || analysis.componentGuess.component === 'MPPT';
     };
 
@@ -87,7 +87,7 @@ export const OtaWidget = () => {
     };
 
     const { mismatch, connectedModel } = analysis
-        ? detectModelMismatch(analysis, manager.device?.name)
+        ? detectModelMismatch(analysis, manager.deviceName)
         : { mismatch: false, connectedModel: 'Unknown' };
 
     const isNonEmsComponent = analysis?.componentGuess.component === 'Micro/Inverter' || analysis?.componentGuess.component === 'MPPT';
