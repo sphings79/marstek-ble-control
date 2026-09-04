@@ -10,12 +10,14 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useBLE } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { OtaManager, OtaPhase, analyzeFirmwareForOta, detectModelMismatch, type OtaAnalysis, type OtaProgress } from '../../lib/ota/OtaManager';
+import { TransportKind } from '../../lib/transport/Transport';
 
 const MAX_LOG_LINES = 300;
 
 export const OtaWidget = () => {
     const { manager, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
+    const overBridge = manager.transportKind === TransportKind.BRIDGE;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const otaManagerRef = useRef<OtaManager | null>(null);
@@ -118,6 +120,16 @@ export const OtaWidget = () => {
                     Experimental and reverse-engineered. Can permanently brick the device. Only
                     proceed if you have a recovery plan and understand the risk.
                 </Alert>
+
+                {overBridge && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        You are connected through the ESP32 bridge. Every one of the thousands of
+                        firmware chunks now crosses your network as well, so a WiFi dropout or a
+                        stalled bridge can abort the update and leave a module unusable. Timeouts
+                        are raised for this, but a direct Bluetooth connection is still the safer
+                        way to flash. Keep the bridge powered and on a stable network.
+                    </Alert>
+                )}
 
                 <input
                     ref={fileInputRef}

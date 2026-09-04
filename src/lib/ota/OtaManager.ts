@@ -7,6 +7,7 @@ import {
     buildTransitionHmFrame,
     decodeIncomingFrame,
 } from './OtaFrameCodec';
+import { otaTimingsFor, type OtaTimings } from './OtaTimings';
 import {
     computeFirmwareChecksum,
     detectConnectedDeviceModel,
@@ -84,9 +85,11 @@ export function detectModelMismatch(analysis: OtaAnalysis, connectedDeviceName: 
 
 export class OtaManager {
     private manager: BLEConnectionManager;
+    private readonly timings: OtaTimings;
 
     constructor(manager: BLEConnectionManager) {
         this.manager = manager;
+        this.timings = otaTimingsFor(manager.transportKind);
     }
 
     private log(onLog: (msg: string) => void, msg: string) {
@@ -133,7 +136,7 @@ export class OtaManager {
 
         await this.manager.sendRaw(buildTransitionHmFrame(0x10, [0xaa]));
 
-        const ack = await this.waitForAck(0x00, 3000);
+        const ack = await this.waitForAck(0x00, this.timings.activateAckMs);
         if (!ack.ok) {
             throw new Error(`Activation failed: ${ack.reason}`);
         }
@@ -144,7 +147,7 @@ export class OtaManager {
     }
 
     private async discover(otaTypeFlag: number, onLog: (msg: string) => void): Promise<void> {
-        const maxRetries = 3;
+        const maxRetries = this.timings.discoverAttempts;
         let lastAck: Ack | null = null;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -153,7 +156,7 @@ export class OtaManager {
             const probeFrame = buildOtaFrame(0x3A, new Uint8Array([0x10, 0xd7, 0x00, otaTypeFlag, 0xaa, 0xbb]));
             try {
                 await this.manager.sendRaw(probeFrame);
-                lastAck = await this.waitForAck(0x3A, 2000);
+                lastAck = await this.waitForAck(0x3A, this.timings.discoverAckMs);
                 if (lastAck.ok) {
                     this.log(onLog, `✅ 0x3A handshake successful on attempt ${attempt}`);
                     return;
@@ -163,7 +166,7 @@ export class OtaManager {
             }
 
             if (attempt < maxRetries) {
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, this.timings.discoverRetryGapMs));
             }
         }
 
@@ -174,7 +177,7 @@ export class OtaManager {
         this.log(onLog, `📏 Sending firmware size (${size} bytes) + checksum 0x${(checksum >>> 0).toString(16)}...`);
 
         await this.manager.sendRaw(buildSizeFrame(size, checksum));
-        const ack = await this.waitForAck(0x50, 5000);
+        const ack = await this.waitForAck(0x50, this.timings.sizeAckMs);
         if (!ack.ok) {
             throw new Error(`Size ACK failed: ${ack.reason}`);
         }
@@ -202,19 +205,19 @@ export class OtaManager {
 
             let sent = false;
             let retryCount = 0;
-            while (!sent && retryCount < 3) {
+            while (!sent && retryCount < this.timings.chunkRetries) {
                 try {
                     await this.manager.sendRaw(buildDataFrame(offset, chunk));
-                    const ack = await this.waitForAck(0x51, 1500);
+                    const ack = await this.waitForAck(0x51, this.timings.chunkAckMs);
                     if (!ack.ok) {
                         throw new Error(ack.reason ?? 'chunk ack failed');
                     }
                     sent = true;
                 } catch (err) {
                     retryCount++;
-                    this.log(onLog, `Retry ${retryCount}/3 for chunk ${chunkIndex + 1}: ${(err as Error).message}`);
-                    if (retryCount >= 3) {
-                        throw new Error(`Failed to send chunk ${chunkIndex + 1} after 3 retries`);
+                    this.log(onLog, `Retry ${retryCount}/${this.timings.chunkRetries} for chunk ${chunkIndex + 1}: ${(err as Error).message}`);
+                    if (retryCount >= this.timings.chunkRetries) {
+                        throw new Error(`Failed to send chunk ${chunkIndex + 1} after ${this.timings.chunkRetries} retries`);
                     }
                     await new Promise(r => setTimeout(r, 100));
                 }
@@ -236,7 +239,7 @@ export class OtaManager {
         this.log(onLog, 'Finalizing OTA update...');
 
         await this.manager.sendRaw(buildFinishFrame());
-        const ack = await this.waitForAck(0x52, 3000);
+        const ack = await this.waitForAck(0x52, this.timings.finalizeAckMs);
         if (!ack.ok) {
             throw new Error(`Finalize ACK failed: ${ack.reason}`);
         }
