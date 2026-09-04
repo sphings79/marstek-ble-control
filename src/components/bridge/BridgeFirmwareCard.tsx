@@ -8,6 +8,9 @@ import {
     fetchBridgeVersion, uploadBridgeFirmware, waitForBridge,
     type BridgeVersion, type UpdateTarget,
 } from '../../lib/bridge/BridgeUpdate';
+import {
+    fetchLatestRelease, installFromUrl, isOutdated, type BridgeRelease,
+} from '../../lib/bridge/BridgeReleases';
 
 type Phase = 'idle' | 'uploading' | 'restarting' | 'done' | 'failed';
 
@@ -29,9 +32,11 @@ export const BridgeFirmwareCard = () => {
     const [phase, setPhase] = useState<Phase>('idle');
     const [percent, setPercent] = useState(0);
     const [message, setMessage] = useState<string | null>(null);
+    const [release, setRelease] = useState<BridgeRelease | null>(null);
 
     useEffect(() => {
         void fetchBridgeVersion().then(setVersion);
+        void fetchLatestRelease().then(setRelease);
     }, []);
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>, target: UpdateTarget) => {
@@ -64,6 +69,33 @@ export const BridgeFirmwareCard = () => {
     };
 
     const busy = phase === 'uploading' || phase === 'restarting';
+    const updateAvailable = release && isOutdated(version?.version, release.tag);
+
+    const installRelease = async (target: UpdateTarget) => {
+        const url = target === 'web' ? release?.webUrl : release?.firmwareUrl;
+        if (!url) return;
+
+        setPhase('uploading');
+        setPercent(0);
+        setMessage(null);
+
+        try {
+            // The bridge downloads it itself, so there is no progress to report from here - only
+            // the wait, and then whether it came back.
+            await installFromUrl(url, target);
+
+            setPhase('restarting');
+            const back = await waitForBridge();
+            setPhase(back ? 'done' : 'failed');
+            setVersion(back ? await fetchBridgeVersion() : version);
+            setMessage(back
+                ? 'Restarted and back.'
+                : 'The bridge accepted it but has not answered again yet.');
+        } catch (err) {
+            setPhase('failed');
+            setMessage((err as Error).message);
+        }
+    };
 
     return (
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -87,6 +119,31 @@ export const BridgeFirmwareCard = () => {
 
                     {message && (
                         <Alert severity={phase === 'done' ? 'success' : 'error'}>{message}</Alert>
+                    )}
+
+                    {updateAvailable && (
+                        <Alert
+                            severity="info"
+                            action={release.url
+                                ? <Button size="small" href={release.url} target="_blank" rel="noopener noreferrer">
+                                      Changelog
+                                  </Button>
+                                : undefined}
+                        >
+                            <strong>{release.name}</strong> is available.
+                        </Alert>
+                    )}
+
+                    {updateAvailable && release.firmwareUrl && (
+                        <Button variant="contained" onClick={() => void installRelease('firmware')} disabled={busy} fullWidth>
+                            Install {release.tag} firmware
+                        </Button>
+                    )}
+
+                    {updateAvailable && release.webUrl && (
+                        <Button variant="contained" onClick={() => void installRelease('web')} disabled={busy} fullWidth>
+                            Install {release.tag} interface
+                        </Button>
                     )}
 
                     <input
@@ -125,7 +182,8 @@ export const BridgeFirmwareCard = () => {
                     )}
 
                     <Typography variant="caption" color="text.secondary">
-                        Firmware is written to the spare slot and only booted once it is complete,
+                        Releases are downloaded by the bridge itself; the files below are for
+                        installing a build by hand. Firmware is written to the spare slot and only booted once it is complete,
                         so a failed upload changes nothing. The interface has no spare copy - if
                         that upload breaks off, the bridge serves no page until you retry.
                     </Typography>
