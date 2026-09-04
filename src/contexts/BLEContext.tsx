@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { BLEConnectionManager, ConnectionState } from '../lib/BLEConnectionManager';
+import type { Transport } from '../lib/transport/Transport';
 import {type DeviceInfo, parseDeviceName} from '../lib/DeviceUtils';
 import { VenusPacket } from '../lib/VenusPacket';
 import {VenusRegistry} from "../lib/payloads/VenusPayloads.ts";
@@ -22,10 +23,15 @@ interface BLEContextType {
 
 const BLEContext = createContext<BLEContextType | null>(null);
 
-export const BLEProvider = ({ children }: { children: React.ReactNode }) => {
+/**
+ * `transport` is chosen once, before the provider mounts: Web Bluetooth when the app is served
+ * from the hosted site, the WebSocket bridge when it is served by an ESP32. Leaving it out keeps
+ * the Web Bluetooth default.
+ */
+export const BLEProvider = ({ transport, children }: { transport?: Transport; children: React.ReactNode }) => {
     const managerRef = useRef<BLEConnectionManager | null>(null);
     if (!managerRef.current) {
-        managerRef.current = new BLEConnectionManager();
+        managerRef.current = new BLEConnectionManager(transport);
     }
 
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.IDLE);

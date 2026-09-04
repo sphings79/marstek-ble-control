@@ -1,0 +1,103 @@
+import { sha256 } from '@noble/hashes/sha2.js';
+import { hmac } from '@noble/hashes/hmac.js';
+import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
+
+import { bridgeUrl } from './BridgeApi';
+
+/**
+ * Login against the bridge without ever putting the password on the wire.
+ *
+ * The bridge serves over plain http:// - it has no certificate and, as decided, is not going to
+ * pretend otherwise with a self-signed one. That rules out `crypto.subtle`, which browsers only
+ * expose in secure contexts, hence @noble/hashes.
+ *
+ * Shape: the bridge stores `key = SHA-256(salt || password)`. To log in it hands out that salt
+ * plus a single-use nonce; the client answers `HMAC-SHA-256(key, nonce)`. Someone listening on the
+ * LAN learns a salt, a nonce and one HMAC over them - none of which can be replayed against the
+ * next nonce, and none of which yields the password.
+ *
+ * What this does NOT protect:
+ * - The session cookie afterwards is readable on the wire. Stealing it grants control until it
+ *   expires; it does not reveal the password.
+ * - Claiming an unclaimed bridge sends the derived key once, in the clear. There is no way around
+ *   that short of a PAKE, which is far out of scope here. It is bounded: it happens exactly once,
+ *   and only within the claim window right after boot.
+ *
+ * Anyone who needs actual confidentiality on their network wants a VPN or a separate VLAN, and the
+ * README says so.
+ */
+
+export interface Challenge {
+    salt: string;
+    nonce: string;
+}
+
+function deriveKey(saltHex: string, password: string): Uint8Array {
+    const salt = hexToBytes(saltHex);
+    const pw = utf8ToBytes(password);
+
+    const input = new Uint8Array(salt.length + pw.length);
+    input.set(salt, 0);
+    input.set(pw, salt.length);
+
+    return sha256(input);
+}
+
+async function postJson(path: string, body: unknown): Promise<Response> {
+    return fetch(bridgeUrl(path).href, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+}
+
+/** Set the admin password on a bridge that does not have one yet. */
+export async function claimBridge(password: string): Promise<void> {
+    const response = await fetch(bridgeUrl('api/auth/challenge').href, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+        throw new Error('Bridge refused to start claiming');
+    }
+
+    const { salt } = await response.json() as Challenge;
+    const claim = await postJson('api/auth/claim', {
+        salt,
+        key: bytesToHex(deriveKey(salt, password)),
+    });
+
+    if (!claim.ok) {
+        throw new Error(claim.status === 409
+            ? 'This bridge has already been claimed. Reset it to set a new password.'
+            : 'Claiming the bridge failed');
+    }
+}
+
+/** Log in. On success the bridge sets the session cookie itself. */
+export async function loginToBridge(password: string): Promise<void> {
+    const response = await fetch(bridgeUrl('api/auth/challenge').href, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+        throw new Error('Bridge did not hand out a challenge');
+    }
+
+    const { salt, nonce } = await response.json() as Challenge;
+    const key = deriveKey(salt, password);
+    const proof = bytesToHex(hmac(sha256, key, hexToBytes(nonce)));
+
+    const login = await postJson('api/auth/login', { nonce, response: proof });
+
+    if (!login.ok) {
+        throw new Error(login.status === 429
+            ? 'Too many attempts. Wait a moment before trying again.'
+            : 'Wrong password');
+    }
+}
+
+export async function logoutFromBridge(): Promise<void> {
+    await postJson('api/auth/logout', {});
+}
