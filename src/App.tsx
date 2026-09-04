@@ -11,6 +11,7 @@ import { VenusEView } from './components/views/VenusEView';
 import { GenericDeviceView } from './components/views/GenericDeviceView';
 import { BridgeAuthView } from './components/bridge/BridgeAuthView';
 import { BridgeScannerView } from './components/bridge/BridgeScannerView';
+import { BridgeFirmwareCard } from './components/bridge/BridgeFirmwareCard';
 import { probeBridge, type BridgeInfo } from './lib/bridge/BridgeApi';
 import { BridgeTransport } from './lib/transport/BridgeTransport';
 
@@ -69,6 +70,12 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
                 <VenusEView />
             ) : (
                 <GenericDeviceView />
+            )}
+
+            {bridge && (
+                <Box sx={{ p: 2, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+                    <BridgeFirmwareCard />
+                </Box>
             )}
 
             {/* On mobile the hamburger menu already carries the project links, so the page footer

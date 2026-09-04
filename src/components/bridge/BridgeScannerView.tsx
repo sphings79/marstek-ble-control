@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-    Alert, Button, Chip, CircularProgress, List, ListItemButton, ListItemText, Stack, Typography
+    Alert, Box, Button, Chip, CircularProgress, List, ListItemButton, ListItemText, Stack, Typography
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
 import BluetoothSearchingIcon from '@mui/icons-material/BluetoothSearching';
 
 import { BridgeCard } from './BridgeCard';
+import { BridgeFirmwareCard } from './BridgeFirmwareCard';
 import { ConnectionState } from '../../lib/ConnectionState';
 import type { BridgeDevice, BridgeTransport } from '../../lib/transport/BridgeTransport';
 
@@ -122,6 +123,12 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
                 >
                     {bound ? 'Scan for another device' : 'Scan'}
                 </Button>
+
+                {/* Also here, not just on the dashboard: a bridge that cannot reach the storage is
+                    exactly when a firmware fix is most likely to be the thing that is needed. */}
+                <Box mt={2}>
+                    <BridgeFirmwareCard />
+                </Box>
             </Stack>
         </BridgeCard>
     );
