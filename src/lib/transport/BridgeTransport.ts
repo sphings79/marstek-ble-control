@@ -57,6 +57,19 @@ export class BridgeTransport implements Transport {
         onDisconnected: noop,
     };
 
+    private wifiRssi: number | null = null;
+    private wifiListeners = new Set<(rssi: number | null) => void>();
+
+    /**
+     * Subscribe to the bridge's own WiFi signal strength. A relayed frame crosses two radio links,
+     * and the WiFi one is the harder to notice from the browser. Returns an unsubscribe function.
+     */
+    public onWifiRssi(listener: (rssi: number | null) => void): () => void {
+        this.wifiListeners.add(listener);
+        listener(this.wifiRssi);
+        return () => { this.wifiListeners.delete(listener); };
+    }
+
     private scanListeners = new Set<(devices: BridgeDevice[]) => void>();
 
     /** Subscribe to scan results for the device picker. Returns an unsubscribe function. */
@@ -223,6 +236,12 @@ export class BridgeTransport implements Transport {
                 if (typeof msg.deviceName === 'string') this.boundDeviceName = msg.deviceName;
                 if (typeof msg.address === 'string') this.boundAddress = msg.address;
                 if (typeof msg.rssi === 'number') this.callbacks.onRssi(msg.rssi);
+
+                const wifi = typeof msg.wifiRssi === 'number' ? msg.wifiRssi : null;
+                if (wifi !== this.wifiRssi) {
+                    this.wifiRssi = wifi;
+                    this.wifiListeners.forEach(listener => listener(wifi));
+                }
 
                 const next = STATE_MAP[msg.state as BridgeState];
                 if (next) {

@@ -15,6 +15,10 @@ import { probeBridge, type BridgeInfo } from './lib/bridge/BridgeApi';
 import { BridgeTransport } from './lib/transport/BridgeTransport';
 
 const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
+    const [wifiRssi, setWifiRssi] = useState<number | null>(null);
+
+    useEffect(() => bridge?.onWifiRssi(setWifiRssi), [bridge]);
+
     const {
         connectionState,
         deviceInfo,
@@ -50,6 +54,7 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
                 deviceInfo={deviceInfo}
                 status={connectionState}
                 rssi={rssi}
+                wifiRssi={wifiRssi}
                 onDisconnect={disconnect}
                 onReconnect={reconnect}
             />
