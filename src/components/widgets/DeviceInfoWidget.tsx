@@ -15,7 +15,16 @@ import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
 
-export const DeviceInfoWidget = () => {
+interface Props {
+    /**
+     * Whether the device has an MPPT/PV stage at all. Venus E 3.0 has none: its Control FW's
+     * device-info string ends at `inv_ver=%d` and carries no `mppt_v` key, so the row would
+     * always read "--".
+     */
+    showMppt?: boolean;
+}
+
+export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
     const { sendPacket, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -158,7 +167,9 @@ export const DeviceInfoWidget = () => {
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <InfoRow label="VNS FW (Microinverter)" value={data.data.get('inv_ver')} icon={<PowerIcon fontSize="small"/>} />
-                                        <InfoRow label="MPPT FW" value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
+                                        {showMppt && (
+                                            <InfoRow label="MPPT FW" value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
+                                        )}
                                         <InfoRow label="Communication Module" value={data.data.get('fc_ver')} icon={<MemoryIcon fontSize="small"/>} />
                                     </Grid>
                                 </Grid>

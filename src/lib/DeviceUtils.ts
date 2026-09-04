@@ -23,6 +23,11 @@ export const parseDeviceName = (name: string): DeviceInfo => {
         case "VNSD":
             info.modelName = "Venus D";
             break;
+        // Venus E 3.0 advertises as MST_VNSE3_xxxx (Control FW: AT+QBLENAME=MST_VNSE3_%c%c%c%c)
+        // and reports dev type VNSE3-0.
+        case "VNSE3":
+            info.modelName = "Venus E 3.0";
+            break;
     }
 
     if (parts[2]) {

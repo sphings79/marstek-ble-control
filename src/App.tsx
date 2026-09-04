@@ -6,6 +6,7 @@ import { DeviceTopBar } from './components/DeviceTopBar';
 import { Footer } from './components/Footer';
 import { VenusAView } from './components/views/VenusAView';
 import { VenusDView } from './components/views/VenusDView';
+import { VenusEView } from './components/views/VenusEView';
 import { GenericDeviceView } from './components/views/GenericDeviceView';
 
 const MainLayout = () => {
@@ -45,6 +46,8 @@ const MainLayout = () => {
                 <VenusAView />
             ) : deviceInfo.modelName === "Venus D" ? (
                 <VenusDView />
+            ) : deviceInfo.modelName === "Venus E 3.0" ? (
+                <VenusEView />
             ) : (
                 <GenericDeviceView />
             )}

@@ -16,7 +16,18 @@ import { SurplusFeedInControlPayload } from "../../lib/payloads/SurplusFeedInCon
 import { BluetoothControlPayload } from "../../lib/payloads/BluetoothControlPayload.ts";
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
 
-export const TogglesWidget = () => {
+interface Props {
+    /**
+     * Whether the device supports surplus feed-in at all. Venus E 3.0 does not: its Control FW
+     * contains neither the `[BLE] Set val = %d, full_en = %d.` handler log nor the MQTT
+     * `Set surplus electricity` counterpart, both of which Venus A and Venus D have. Without
+     * this the row would render as "Not supported by the current FW version", which would
+     * wrongly suggest a firmware update could enable it.
+     */
+    showSurplusFeedIn?: boolean;
+}
+
+export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -145,23 +156,25 @@ export const TogglesWidget = () => {
                             />
                         </ListItem>
 
-                        <ListItem divider>
-                            <ListItemIcon>
-                                <CurrencyExchangeIcon color={surplusFeedInOn && surplusFeedInSupported ? "warning" : "disabled"} />
-                            </ListItemIcon>
-                            <ListItemText
-                                primary="Surplus Feed-in"
-                                secondary={!surplusFeedInSupported ? "Not supported by the current FW version" : "Feed excess solar energy back into the grid when the battery is full"}
-                                sx={{ mr: 2 }}
-                            />
-                            <Switch
-                                edge="end"
-                                checked={!!surplusFeedInOn}
-                                onChange={handleSurplusFeedInToggle}
-                                disabled={!isConnected || !surplusFeedInSupported || surplusFeedInBusy}
-                                color="warning"
-                            />
-                        </ListItem>
+                        {showSurplusFeedIn && (
+                            <ListItem divider>
+                                <ListItemIcon>
+                                    <CurrencyExchangeIcon color={surplusFeedInOn && surplusFeedInSupported ? "warning" : "disabled"} />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Surplus Feed-in"
+                                    secondary={!surplusFeedInSupported ? "Not supported by the current FW version" : "Feed excess solar energy back into the grid when the battery is full"}
+                                    sx={{ mr: 2 }}
+                                />
+                                <Switch
+                                    edge="end"
+                                    checked={!!surplusFeedInOn}
+                                    onChange={handleSurplusFeedInToggle}
+                                    disabled={!isConnected || !surplusFeedInSupported || surplusFeedInBusy}
+                                    color="warning"
+                                />
+                            </ListItem>
+                        )}
 
                         <ListItem divider>
                             <ListItemIcon>

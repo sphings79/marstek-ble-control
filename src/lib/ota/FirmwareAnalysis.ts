@@ -9,7 +9,7 @@
  * verification against 6 real Venus D + 4 real Venus E 3.0 firmware files).
  */
 
-export type VenusModel = 'Venus D' | 'Venus E' | 'Unknown';
+export type VenusModel = 'Venus A' | 'Venus D' | 'Venus E 3.0' | 'Unknown';
 
 export interface ModelGuess {
     model: VenusModel;
@@ -39,51 +39,80 @@ function findAsciiSignature(bytes: Uint8Array, asciiStr: string): number {
 }
 
 /**
+ * Content signature tags, in the order they are probed. Marstek embeds a short ASCII
+ * model-family tag in every firmware component: the Control firmware carries its own type
+ * string ("VNSA-0", "VNSD-0", "VNSEE3-0") at ~0x18xx, BMS/Micro carry a single tag near the
+ * end of the image.
+ */
+const MODEL_SIGNATURES: readonly { readonly tag: string; readonly model: VenusModel }[] = [
+    { tag: 'VNSA', model: 'Venus A' },
+    { tag: 'VNSD', model: 'Venus D' },
+    { tag: 'VNSE', model: 'Venus E 3.0' },
+];
+
+/** Filename fallbacks, using Marstek's OTA package naming conventions. */
+const MODEL_FILENAME_HINTS: readonly { readonly needle: string; readonly model: VenusModel }[] = [
+    { needle: 'vnsa', model: 'Venus A' },
+    { needle: 'va_inv', model: 'Venus A' },
+    { needle: 'vnsd', model: 'Venus D' },
+    { needle: 'vd_inv', model: 'Venus D' },
+    { needle: 'vnse', model: 'Venus E 3.0' },
+    { needle: 'ac_app', model: 'Venus E 3.0' },
+];
+
+/**
  * Best-effort guess of which Marstek Venus model a firmware file targets.
  *
- * Primary signal: Marstek embeds a short ASCII model-family tag in every firmware component -
- * "VNSD" (Venus D) or "VNSE" (Venus E). Verified against 6 real Venus D and 4 real Venus E 3.0
- * .bin files (Control/Micro/BMS for both). Control firmware for either model can contain BOTH
- * tags (likely part of a cross-model compatibility/version table near the end of flash), but
- * the tag matching the firmware's own model consistently appears much earlier (~0x18xx) than
- * the other model's tag (~0x55xx-0x59xx) in every sample checked - so whichever tag occurs at
- * the lowest offset wins.
+ * Primary signal: the embedded ASCII model tag. Control firmware for any model also contains a
+ * cross-model family table near the end of flash ("VNSEE3\0\0VNSA\0\0\0\0VNSD\0\0\0\0HMG",
+ * ~0x52xx-0x59xx), so several tags can be present at once. The tag matching the firmware's own
+ * model consistently appears much earlier (~0x18xx) in every sample checked - so whichever tag
+ * occurs at the lowest offset wins.
  *
- * Fallback signal: filename, using Marstek's OTA package naming conventions.
+ * Verified against all 22 Venus .bin files in the firmware archive (Control/BMS/Micro for
+ * VNSA-0, VNSD-0 and VNSE3-0). Note that without the "VNSA" probe a Venus A Control image is
+ * actively misdetected as Venus E, because the family table lists "VNSE" 16 bytes before
+ * "VNSD".
  *
- * NOTE: no Venus A firmware samples have been checked against this signature scheme - it may
- * use a different or additional tag ("VNSA"?) not accounted for here.
+ * Fallback signal: filename.
+ *
+ * NOTE: the one archive sample without any tag is an early Venus E 3.0 BMS image (bms v106),
+ * which falls through to the filename check. Venus E Gen 1/2 has never been sampled at all.
  */
 export function detectFirmwareTargetModel(fileName: string, bytes: Uint8Array): ModelGuess {
     const name = (fileName || '').toLowerCase();
 
-    const vnsdOffset = findAsciiSignature(bytes, 'VNSD');
-    const vnseOffset = findAsciiSignature(bytes, 'VNSE');
+    const hits = MODEL_SIGNATURES
+        .map(sig => ({ ...sig, offset: findAsciiSignature(bytes, sig.tag) }))
+        .filter(hit => hit.offset !== -1)
+        .sort((a, b) => a.offset - b.offset);
 
-    if (vnsdOffset !== -1 && (vnseOffset === -1 || vnsdOffset < vnseOffset)) {
-        const suffix = vnseOffset !== -1 ? ` (before "VNSE" at 0x${vnseOffset.toString(16)})` : '';
-        return { model: 'Venus D', reason: `"VNSD" signature at offset 0x${vnsdOffset.toString(16)}${suffix}` };
-    }
-    if (vnseOffset !== -1) {
-        const suffix = vnsdOffset !== -1 ? ` (before "VNSD" at 0x${vnsdOffset.toString(16)})` : '';
-        return { model: 'Venus E', reason: `"VNSE" signature at offset 0x${vnseOffset.toString(16)}${suffix}` };
+    if (hits.length > 0) {
+        const [winner, ...rest] = hits;
+        const others = rest.map(hit => `"${hit.tag}" at 0x${hit.offset.toString(16)}`).join(', ');
+        const suffix = others ? ` (before ${others})` : '';
+        return { model: winner.model, reason: `"${winner.tag}" signature at offset 0x${winner.offset.toString(16)}${suffix}` };
     }
 
-    if (name.includes('vnsd') || name.includes('vd_inv')) {
-        return { model: 'Venus D', reason: `filename contains "${name.includes('vnsd') ? 'VNSD' : 'vd_inv'}"` };
-    }
-    if (name.includes('vnse') || name.includes('ac_app')) {
-        return { model: 'Venus E', reason: `filename contains "${name.includes('vnse') ? 'VNSE' : 'ac_app'}"` };
+    const hint = MODEL_FILENAME_HINTS.find(candidate => name.includes(candidate.needle));
+    if (hint) {
+        return { model: hint.model, reason: `filename contains "${hint.needle}"` };
     }
 
     return { model: 'Unknown', reason: 'no filename or content signature matched' };
 }
 
-/** Guess the connected device's model from its BLE advertised name. */
+/**
+ * Guess the connected device's model from its BLE advertised name. The names come from the
+ * Control firmware's own `AT+QBLENAME=MST_<type>_%c%c%c%c` string: MST_VNSA_xxxx, MST_VNSD_xxxx
+ * and MST_VNSE3_xxxx. ("ACCP" belongs to the never-sampled Venus E Gen 1/2 and is not claimed
+ * here.)
+ */
 export function detectConnectedDeviceModel(deviceName: string | undefined | null): VenusModel {
     const name = deviceName || '';
+    if (name.includes('VNSA')) return 'Venus A';
     if (name.includes('VNSD')) return 'Venus D';
-    if (name.includes('ACCP')) return 'Venus E';
+    if (name.includes('VNSE3')) return 'Venus E 3.0';
     return 'Unknown';
 }
 
@@ -136,7 +165,7 @@ export function detectFirmwareComponentType(bytes: Uint8Array): ComponentGuess {
         return { component: 'MPPT', otaTypeFlag: 0x02, reason: 'ends with 0x22 0x22 trailer -> device validate expects type=2, magic=0x2222' };
     }
     if (last1 === 0xFF && last2 === 0xFF) {
-        return { component: 'Control/EMS', otaTypeFlag: 0x00, reason: 'ends with erased-flash 0xFF padding -> device validate expects type=0 (also requires OTA_Is_VNSD_Model()/VNSD-VNSE match)' };
+        return { component: 'Control/EMS', otaTypeFlag: 0x00, reason: 'ends with erased-flash 0xFF padding -> device validate expects type=0 (also requires the device-side model check to pass)' };
     }
     return { component: 'Unknown', otaTypeFlag: 0x00, reason: `unrecognized trailer (0x${last2.toString(16).padStart(2, '0')} 0x${last1.toString(16).padStart(2, '0')}) - defaulting to type=0 (EMS)` };
 }

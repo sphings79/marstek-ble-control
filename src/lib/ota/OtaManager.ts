@@ -260,7 +260,7 @@ export class OtaManager {
         } else if (c === 'MPPT') {
             this.log(onLog, '  2. MPPT signature check failed - device expected magic 0x2222 with type flag 0x02');
         } else {
-            this.log(onLog, '  2. EMS/Control check failed - device expected magic 0x0000/0xFFFF with type flag 0x00, and OTA_Is_VNSD_Model()/VNSD-VNSE match');
+            this.log(onLog, '  2. EMS/Control check failed - device expected magic 0x0000/0xFFFF with type flag 0x00, and its own model check to pass');
         }
         this.log(onLog, `OTA type flag sent: 0x${analysis.componentGuess.otaTypeFlag.toString(16).padStart(2, '0')} (component: ${c})`);
 
