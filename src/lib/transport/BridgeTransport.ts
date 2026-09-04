@@ -116,10 +116,16 @@ export class BridgeTransport implements Transport {
         this.sendControl({ t: 'scan', seconds });
     }
 
-    /** Pin the bridge to a device. Survives reboots on the bridge side. */
-    async bind(address: string) {
+    /**
+     * Pin the bridge to a device. Survives reboots on the bridge side.
+     *
+     * The name goes along because it decides which dashboard is shown and guards firmware updates
+     * against the wrong model. The bridge reads it from the device itself as well, so this is
+     * belt and braces rather than the only source.
+     */
+    async bind(address: string, name?: string) {
         await this.openSocket();
-        this.sendControl({ t: 'bind', address });
+        this.sendControl({ t: 'bind', address, name });
     }
 
     async send(bytes: Uint8Array, withResponse: boolean) {

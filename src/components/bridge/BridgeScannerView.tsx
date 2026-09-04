@@ -52,7 +52,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
 
     const pick = async (device: BridgeDevice) => {
         try {
-            await bridge.bind(device.address);
+            await bridge.bind(device.address, device.name);
             setDevices(null);
             onConnect();
         } catch (err) {
