@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { BLEConnectionManager, ConnectionState } from '../lib/BLEConnectionManager';
-import type { Transport } from '../lib/transport/Transport';
+import { TransportKind, type Transport } from '../lib/transport/Transport';
 import {type DeviceInfo, parseDeviceName} from '../lib/DeviceUtils';
 import { VenusPacket } from '../lib/VenusPacket';
 import {VenusRegistry} from "../lib/payloads/VenusPayloads.ts";
@@ -9,6 +9,8 @@ import {COMMAND_ID} from "../lib/VenusConst.ts";
 
 interface BLEContextType {
     manager: BLEConnectionManager;
+    /** True when this session reaches the storage through an ESP32 bridge. */
+    viaBridge: boolean;
     connectionState: ConnectionState;
     deviceInfo: DeviceInfo | null;
     rssi: number | null;
@@ -33,6 +35,10 @@ export const BLEProvider = ({ transport, children }: { transport?: Transport; ch
     if (!managerRef.current) {
         managerRef.current = new BLEConnectionManager(transport);
     }
+
+    // From the prop rather than the manager: it says the same thing and is available without
+    // reaching into the ref during render.
+    const viaBridge = transport?.kind === TransportKind.BRIDGE;
 
     const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.IDLE);
     const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
@@ -84,6 +90,7 @@ export const BLEProvider = ({ transport, children }: { transport?: Transport; ch
     return (
         <BLEContext.Provider value={{
             manager: managerRef.current!,
+            viaBridge,
             connectionState,
             deviceInfo,
             rssi,

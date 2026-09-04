@@ -4,23 +4,26 @@ import {
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
 
-import { fetchBridgeVersion, uploadBridgeFirmware, waitForBridge, type BridgeVersion, type UpdateTarget } from '../../lib/bridge/BridgeUpdate';
+import {
+    fetchBridgeVersion, uploadBridgeFirmware, waitForBridge,
+    type BridgeVersion, type UpdateTarget,
+} from '../../lib/bridge/BridgeUpdate';
 
 type Phase = 'idle' | 'uploading' | 'restarting' | 'done' | 'failed';
 
 /**
  * Firmware for the ESP32 bridge itself.
  *
- * Deliberately kept apart from the storage's own OTA widget, in wording and in looks. Confusing
- * the two would mean sending an ESP32 image to a battery or the other way round, and only one of
- * those two mistakes is recoverable with a USB cable.
- *
- * Reachable whether or not the storage is connected, because a broken Bluetooth link is exactly
- * when a firmware fix is most likely to be what is needed.
+ * Built like the other dashboard widgets so it sits in the grid rather than beside it, but with a
+ * slate header instead of the OTA card's red one. That difference is the point: confusing the two
+ * means sending an ESP32 image to a battery or the reverse, and only one of those is recoverable
+ * with a USB cable.
  */
 export const BridgeFirmwareCard = () => {
-    const fileInput = useRef<HTMLInputElement>(null);
-    const [target, setTarget] = useState<UpdateTarget>('firmware');
+    // One input per target rather than one shared input plus a state variable saying what it is
+    // for. The pairing is then structural instead of something that has to stay in step.
+    const firmwareInput = useRef<HTMLInputElement>(null);
+    const webInput = useRef<HTMLInputElement>(null);
 
     const [version, setVersion] = useState<BridgeVersion | null>(null);
     const [phase, setPhase] = useState<Phase>('idle');
@@ -31,7 +34,7 @@ export const BridgeFirmwareCard = () => {
         void fetchBridgeVersion().then(setVersion);
     }, []);
 
-    const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFile = async (event: React.ChangeEvent<HTMLInputElement>, target: UpdateTarget) => {
         const file = event.target.files?.[0];
         event.target.value = '';
         if (!file) return;
@@ -49,10 +52,10 @@ export const BridgeFirmwareCard = () => {
             if (back) {
                 setPhase('done');
                 setVersion(await fetchBridgeVersion());
-                setMessage('The bridge restarted and is back.');
+                setMessage('Restarted and back.');
             } else {
                 setPhase('failed');
-                setMessage('The image was accepted, but the bridge has not come back. Check it before assuming the worst - it may simply be slow to rejoin WiFi.');
+                setMessage('The image was accepted, but the bridge has not answered again yet. It may just be slow to rejoin WiFi.');
             }
         } catch (err) {
             setPhase('failed');
@@ -63,35 +66,51 @@ export const BridgeFirmwareCard = () => {
     const busy = phase === 'uploading' || phase === 'restarting';
 
     return (
-        <Paper elevation={3} sx={{ p: 0, overflow: 'hidden' }}>
+        <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'grey.800', color: 'common.white', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <RouterIcon />
-                <Box>
-                    <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>Bridge Firmware</Typography>
-                    <Typography variant="caption">The ESP32, not the storage</Typography>
-                </Box>
+                <Typography variant="h6" fontWeight="bold">Bridge Firmware</Typography>
             </Box>
 
-            <Box sx={{ p: 3 }}>
-                <Stack spacing={2}>
-                    <Alert severity="info" sx={{ textAlign: 'left' }}>
-                        This updates the <strong>bridge</strong>. Firmware for the storage itself goes
-                        through the OTA card on the dashboard instead - the two are not
-                        interchangeable.
-                    </Alert>
+            <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                    Updates the <strong>ESP32 bridge</strong>, not the storage. Firmware for the
+                    battery goes through the red OTA card.
+                </Alert>
 
+                <Stack spacing={2}>
                     {version && (
-                        <Typography variant="body2" color="text.secondary">
-                            Running <strong>{version.version}</strong> from slot <code>{version.slot}</code>,
-                            built {version.built}, ESP-IDF {version.idf}
+                        <Typography variant="caption" color="text.secondary" display="block">
+                            {version.version} · slot {version.slot} · {version.built}
                         </Typography>
                     )}
 
                     {message && (
-                        <Alert severity={phase === 'done' ? 'success' : 'error'} sx={{ textAlign: 'left' }}>
-                            {message}
-                        </Alert>
+                        <Alert severity={phase === 'done' ? 'success' : 'error'}>{message}</Alert>
                     )}
+
+                    <input
+                        ref={firmwareInput}
+                        type="file"
+                        accept=".bin"
+                        style={{ display: 'none' }}
+                        onChange={(e) => void handleFile(e, 'firmware')}
+                    />
+                    <input
+                        ref={webInput}
+                        type="file"
+                        accept=".bin"
+                        style={{ display: 'none' }}
+                        onChange={(e) => void handleFile(e, 'web')}
+                    />
+
+                    <Button variant="outlined" onClick={() => firmwareInput.current?.click()} disabled={busy} fullWidth>
+                        Firmware
+                    </Button>
+
+                    <Button variant="outlined" onClick={() => webInput.current?.click()} disabled={busy} fullWidth>
+                        Web Interface
+                    </Button>
 
                     {busy && (
                         <Box>
@@ -100,43 +119,15 @@ export const BridgeFirmwareCard = () => {
                                 value={percent}
                             />
                             <Typography variant="caption" color="text.secondary">
-                                {phase === 'restarting' ? 'Restarting, waiting for it to come back...' : `Uploading ${percent}%`}
+                                {phase === 'restarting' ? 'Restarting...' : `Uploading ${percent}%`}
                             </Typography>
                         </Box>
                     )}
 
-                    <input
-                        ref={fileInput}
-                        type="file"
-                        accept=".bin"
-                        style={{ display: 'none' }}
-                        onChange={(e) => void handleFile(e)}
-                    />
-
-                    <Button
-                        variant="outlined"
-                        onClick={() => { setTarget('firmware'); fileInput.current?.click(); }}
-                        disabled={busy}
-                        sx={{ textTransform: 'none' }}
-                    >
-                        Update firmware (marstek-ble-bridge.bin)
-                    </Button>
-
-                    <Button
-                        variant="outlined"
-                        onClick={() => { setTarget('web'); fileInput.current?.click(); }}
-                        disabled={busy}
-                        sx={{ textTransform: 'none' }}
-                    >
-                        Update this interface (web.bin)
-                    </Button>
-
                     <Typography variant="caption" color="text.secondary">
-                        Firmware goes into the slot the bridge is not running from and is only
-                        booted once it has arrived complete, so a failed upload changes nothing.
-                        The interface has no second copy: it is replaced in place, and if that
-                        upload breaks off the bridge serves nothing until you try again. Its API
-                        keeps answering either way, so a retry is always possible.
+                        Firmware is written to the spare slot and only booted once it is complete,
+                        so a failed upload changes nothing. The interface has no spare copy - if
+                        that upload breaks off, the bridge serves no page until you retry.
                     </Typography>
                 </Stack>
             </Box>

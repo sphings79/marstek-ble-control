@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-    Alert, Box, Button, Chip, CircularProgress, List, ListItemButton, ListItemText, Stack, Typography
+    Alert, Button, Chip, CircularProgress, List, ListItemButton, ListItemText, Stack, Typography
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
 import BluetoothSearchingIcon from '@mui/icons-material/BluetoothSearching';
@@ -39,6 +39,11 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
         setScanning(false);
     }), [bridge]);
 
+    // Open the socket on arrival rather than waiting for a click. The bridge announces the device
+    // it is bound to as soon as anything connects, and without that this screen claims no storage
+    // has been selected even when one has been for weeks.
+    useEffect(() => { void bridge.hello(); }, [bridge]);
+
     const rescan = async () => {
         setScanning(true);
         setScanError(null);
@@ -70,6 +75,10 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
             description={bound
                 ? 'Reached through the ESP32 bridge instead of your browser\'s Bluetooth.'
                 : 'The bridge is not paired with a storage yet. Scan and pick one.'}
+            /* Also offered here, not just on the dashboard: a bridge that cannot reach the storage
+               is exactly when a firmware fix is most likely to be what is needed, and hiding it
+               behind a working connection would hide it whenever it matters. */
+            below={<BridgeFirmwareCard />}
         >
             <Stack spacing={2}>
                 {error && <Alert severity="error" sx={{ textAlign: 'left' }}>{error}</Alert>}
@@ -123,12 +132,6 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
                 >
                     {bound ? 'Scan for another device' : 'Scan'}
                 </Button>
-
-                {/* Also here, not just on the dashboard: a bridge that cannot reach the storage is
-                    exactly when a firmware fix is most likely to be the thing that is needed. */}
-                <Box mt={2}>
-                    <BridgeFirmwareCard />
-                </Box>
             </Stack>
         </BridgeCard>
     );

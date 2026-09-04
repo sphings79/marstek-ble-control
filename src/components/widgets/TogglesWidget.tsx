@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Paper, Typography, Box, Switch, CircularProgress, List, ListItem, ListItemIcon, ListItemText
+    Paper, Typography, Box, Switch, CircularProgress, List, ListItem, ListItemIcon, ListItemText,
+    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button
 } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import BoltIcon from '@mui/icons-material/Bolt';
@@ -28,7 +30,7 @@ interface Props {
 }
 
 export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
-    const { sendPacket, connectionState, pollState } = useBLE();
+    const { sendPacket, connectionState, pollState, viaBridge } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
     const stateData = useVenusData(COMMAND_ID.STATE);
@@ -37,6 +39,7 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
     const [backupPowerBusy, setBackupPowerBusy] = useState(false);
     const [surplusFeedInBusy, setSurplusFeedInBusy] = useState(false);
     const [bluetoothControlBusy, setBluetoothControlBusy] = useState(false);
+    const [confirmBluetoothOff, setConfirmBluetoothOff] = useState(false);
 
     const hasState = !!stateData;
 
@@ -105,11 +108,24 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
         }
     };
 
-    const handleBluetoothControlToggle = async (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    const handleBluetoothControlToggle = (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
         if (!isConnected || bluetoothControlBusy) {
             return;
         }
 
+        // Switching it off is the one toggle here that cannot be undone from this page: the very
+        // connection carrying the command is the one being cut. Turning it back on needs physical
+        // access to the storage.
+        if (!checked) {
+            setConfirmBluetoothOff(true);
+            return;
+        }
+
+        void setBluetoothEnabled(true);
+    };
+
+    const setBluetoothEnabled = async (checked: boolean) => {
+        setConfirmBluetoothOff(false);
         setBluetoothControlBusy(true);
         try {
             const payload = new BluetoothControlPayload(checked);
@@ -219,6 +235,37 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                     </List>
                 )}
             </Box>
+
+            <Dialog open={confirmBluetoothOff} onClose={() => setConfirmBluetoothOff(false)}>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <WarningAmberIcon color="warning" />
+                    Switch Bluetooth off?
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ mb: 2 }}>
+                        This command travels over the very connection it switches off. Once it takes
+                        effect the storage stops accepting Bluetooth connections, and this page
+                        cannot bring it back.
+                    </DialogContentText>
+                    <DialogContentText sx={{ mb: 2 }}>
+                        Getting back in means <strong>power-cycling the storage</strong>, which
+                        makes it reachable again for ten minutes.
+                    </DialogContentText>
+                    {viaBridge && (
+                        <DialogContentText>
+                            You are connected through the ESP32 bridge, so Bluetooth is the only way
+                            it reaches the storage - the bridge goes deaf with it, wherever it is
+                            installed.
+                        </DialogContentText>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmBluetoothOff(false)} color="inherit">Cancel</Button>
+                    <Button onClick={() => void setBluetoothEnabled(false)} color="warning" variant="contained">
+                        Switch it off
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Paper>
     );
 };

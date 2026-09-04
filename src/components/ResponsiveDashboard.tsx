@@ -8,6 +8,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
+import { useBLE } from '../contexts/BLEContext';
+import { BridgeFirmwareCard } from './bridge/BridgeFirmwareCard';
 
 export interface WidgetGroup {
     key: string;
@@ -27,11 +29,22 @@ interface Props {
  *   default landing view, so keep the essentials there. The project/related links sit at the
  *   bottom of the Drawer (mirroring the page Footer).
  */
-export const ResponsiveDashboard = ({ groups }: Props) => {
+export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const [activeKey, setActiveKey] = useState(groups[0]?.key);
+    const { viaBridge } = useBLE();
     const [drawerOpen, setDrawerOpen] = useState(false);
+
+    // The bridge is not part of any storage's feature set, so no model view declares it. It is
+    // added here instead of in each of them: the rule "if we are reached through a bridge, its
+    // firmware belongs in the System group" holds for every model, present and future.
+    const groups = viaBridge
+        ? modelGroups.map(group => group.key === 'system'
+            ? { ...group, widgets: [...group.widgets, <BridgeFirmwareCard key="bridge-fw" />] }
+            : group)
+        : modelGroups;
+
+    const [activeKey, setActiveKey] = useState(groups[0]?.key);
 
     if (!isMobile) {
         return (

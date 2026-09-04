@@ -57,6 +57,7 @@ export class BridgeTransport implements Transport {
         onDisconnected: noop,
     };
 
+    private mtu: number | null = null;
     private wifiRssi: number | null = null;
     private wifiListeners = new Set<(rssi: number | null) => void>();
 
@@ -121,6 +122,16 @@ export class BridgeTransport implements Transport {
         } else {
             this.handleSocketGone();
         }
+    }
+
+    /**
+     * Open the socket without asking the bridge to do anything.
+     *
+     * Connecting is enough to learn which storage it is bound to and what state it is in, which a
+     * screen needs before the user has clicked anything.
+     */
+    async hello() {
+        await this.openSocket();
     }
 
     /** Ask the bridge to scan for reachable devices; results arrive via onScanResults(). */
@@ -236,6 +247,14 @@ export class BridgeTransport implements Transport {
                 if (typeof msg.deviceName === 'string') this.boundDeviceName = msg.deviceName;
                 if (typeof msg.address === 'string') this.boundAddress = msg.address;
                 if (typeof msg.rssi === 'number') this.callbacks.onRssi(msg.rssi);
+
+                // 23 is the Bluetooth default and means no MTU exchange happened, which caps every
+                // notification at 20 bytes. Worth seeing when a storage that answers over Web
+                // Bluetooth stays silent through the bridge.
+                if (typeof msg.mtu === 'number' && msg.mtu !== this.mtu) {
+                    this.mtu = msg.mtu;
+                    this.log(`Negotiated MTU: ${msg.mtu} bytes${msg.mtu <= 23 ? ' (no exchange happened)' : ''}`);
+                }
 
                 const wifi = typeof msg.wifiRssi === 'number' ? msg.wifiRssi : null;
                 if (wifi !== this.wifiRssi) {
