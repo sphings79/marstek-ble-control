@@ -242,6 +242,7 @@ device view.
 
 ## Related projects
 
+- 📡 **Out of Bluetooth range?** [sphings79/marstek-ble-bridge](https://github.com/sphings79/marstek-ble-bridge) — an ESP32 that relays the storage's Bluetooth link over your network and serves this app from its own flash. [Flash it in your browser](https://sphings79.github.io/marstek-ble-bridge/).
 - 🌐 **More projects and tools:** [sphings-dev.de](https://sphings-dev.de/)
 - 📦 **Firmware archive for Marstek Venus devices:** [sphings79/marstek-firmware-archiv](https://github.com/sphings79/marstek-firmware-archiv)
 - 🛡️ **Firmware backup / checker tool:** [marstek-fw-checker](https://sphings-dev.de/marstek/marstek-fw-checker/) — grab a copy of a firmware image and contribute it to the archive. Note: firmware can only be backed up while it is still pending, i.e. **before it has been installed** — once flashed, it can no longer be extracted.

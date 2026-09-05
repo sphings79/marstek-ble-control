@@ -248,6 +248,7 @@ generischen Geräteansicht.
 
 ## Verwandte Projekte
 
+- 📡 **Außerhalb der Bluetooth-Reichweite?** [sphings79/marstek-ble-bridge](https://github.com/sphings79/marstek-ble-bridge) — ein ESP32, der die Bluetooth-Verbindung des Speichers über dein Netzwerk weiterreicht und diese App aus seinem eigenen Flash ausliefert. [Im Browser flashen](https://sphings79.github.io/marstek-ble-bridge/).
 - 🌐 **Weitere Projekte und Tools:** [sphings-dev.de](https://sphings-dev.de/)
 - 📦 **Firmware-Archiv für Marstek-Venus-Geräte:** [sphings79/marstek-firmware-archiv](https://github.com/sphings79/marstek-firmware-archiv)
 - 🛡️ **Firmware-Backup / Checker:** [marstek-fw-checker](https://sphings-dev.de/marstek/marstek-fw-checker/) — eine Kopie eines Firmware-Abbilds ziehen und zum Archiv beitragen. Hinweis: Eine Firmware lässt sich nur sichern, solange sie noch aussteht, also **bevor sie installiert wurde** — nach dem Flashen kommt man nicht mehr heran.
