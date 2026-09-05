@@ -209,7 +209,11 @@ export class BridgeTransport implements Transport {
 
     private sendControl(msg: Record<string, unknown>) {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+            // Silence here meant a press of Connect could do nothing at all, with no console
+            // entry and nothing on screen. Whatever the cause, a button that appears to do
+            // nothing is the worst of the possible outcomes.
             this.error('Cannot send control message: socket not open', msg);
+            this.callbacks.onStateChange(ConnectionState.ERROR, 'Lost the bridge connection - reload the page');
             return;
         }
         this.socket.send(JSON.stringify(msg));

@@ -98,6 +98,46 @@ export async function loginToBridge(password: string): Promise<void> {
     }
 }
 
+/**
+ * Change the password.
+ *
+ * Answers a fresh challenge with the *old* key before sending the new one, so a session cookie
+ * picked up off the network is not on its own enough to lock the owner out - which is the one
+ * consequence of a readable cookie that could not simply be undone.
+ *
+ * The salt is new too, and generated here. `crypto.getRandomValues` is available in insecure
+ * contexts; only `crypto.subtle` is not, which is why the hashing goes through @noble/hashes.
+ */
+export async function changeBridgePassword(current: string, next: string): Promise<void> {
+    const response = await fetch(bridgeUrl('api/auth/challenge').href, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+        throw new Error('Bridge did not hand out a challenge');
+    }
+
+    const { salt, nonce } = await response.json() as Challenge;
+    const proof = bytesToHex(hmac(sha256, deriveKey(salt, current), hexToBytes(nonce)));
+
+    const freshSalt = new Uint8Array(16);
+    crypto.getRandomValues(freshSalt);
+    const freshSaltHex = bytesToHex(freshSalt);
+
+    const change = await postJson('api/auth/password', {
+        nonce,
+        response: proof,
+        salt: freshSaltHex,
+        key: bytesToHex(deriveKey(freshSaltHex, next)),
+    });
+
+    if (!change.ok) {
+        throw new Error(change.status === 429
+            ? 'Too many attempts. Wait a moment before trying again.'
+            : 'The current password was not accepted');
+    }
+}
+
 export async function logoutFromBridge(): Promise<void> {
     await postJson('api/auth/logout', {});
 }

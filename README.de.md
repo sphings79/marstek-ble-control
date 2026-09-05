@@ -103,8 +103,17 @@ gemeldet statt geflasht.
 ## Die App
 
 <div align="center">
-<img height="640" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" alt="Marstek BLE Control auf einem Smartphone: Ladezustand, Batterie- und Netzleistung, Work Mode und die weiteren Steuerungs-Widgets">
+<img alt="Marstek BLE Control auf einem Smartphone: Ladezustand, Batterie- und Netzleistung, Energiestatistik und die Gerätedetails" src="docs/assets/dashboard-mobile.png" height="640">
 </div>
+
+<details>
+<summary>The whole panel on a desktop</summary>
+
+<div align="center">
+<img alt="Das vollständige Bedienfeld: Zustand, Geräteinfo, Schalter, Work Mode, Leistungsgrenzen, Peak Shaving, Modulzustände, Entladetiefe, Stromwandler, lokale API, Gerätezeit, Werksreset und OTA" src="docs/assets/dashboard-desktop.png" width="100%">
+</div>
+
+</details>
 
 ---
 

@@ -98,8 +98,17 @@ than flashed.
 ## The app
 
 <div align="center">
-<img height="640" src="https://github.com/user-attachments/assets/4b7f0019-0526-41d0-9d26-fb07061e5b72" alt="Marstek BLE Control running on a phone: state of charge, battery and grid power, work mode and the other control widgets">
+<img alt="Marstek BLE Control on a phone: state of charge, battery and grid power, energy statistics and the device details" src="docs/assets/dashboard-mobile.png" height="640">
 </div>
+
+<details>
+<summary>The whole panel on a desktop</summary>
+
+<div align="center">
+<img alt="The full control panel: state, device info, toggles, work mode, power limits, peak shaving, module states, depth of discharge, current transformer, local API, device time, factory reset and OTA" src="docs/assets/dashboard-desktop.png" width="100%">
+</div>
+
+</details>
 
 ---
 

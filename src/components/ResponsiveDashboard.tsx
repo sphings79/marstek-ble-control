@@ -10,6 +10,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
 import { useBLE } from '../contexts/BLEContext';
 import { BridgeFirmwareCard } from './bridge/BridgeFirmwareCard';
+import { BridgeSecurityCard } from './bridge/BridgeSecurityCard';
 
 export interface WidgetGroup {
     key: string;
@@ -40,7 +41,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
     // firmware belongs in the System group" holds for every model, present and future.
     const groups = viaBridge
         ? modelGroups.map(group => group.key === 'system'
-            ? { ...group, widgets: [...group.widgets, <BridgeFirmwareCard key="bridge-fw" />] }
+            ? { ...group, widgets: [...group.widgets, <BridgeFirmwareCard key="bridge-fw" />, <BridgeSecurityCard key="bridge-pw" />] }
             : group)
         : modelGroups;
 
