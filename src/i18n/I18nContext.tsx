@@ -15,6 +15,9 @@ export const I18nProvider = ({ children }: { children: ReactNode }) => {
     const [language, setLanguageState] = useState<Language>(() => {
         const initial = initialLanguage();
         setActiveLanguage(initial);
+        // Set here rather than only on a change: the browser needs it to hyphenate, and German
+        // compound labels rely on that from the first paint.
+        document.documentElement.lang = initial;
         return initial;
     });
 

@@ -82,13 +82,31 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
                 borderColor: 'rgba(0,0,0,0.05)'
             }}
         >
-            <Box display="flex" alignItems="center" gap={1.5}>
-                {icon && <Box color="text.secondary" sx={{ opacity: 0.7 }}>{icon}</Box>}
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+            {/* The label wraps, the value never does. Some labels are half as long again in
+                German and used to run straight into the value; breaking the value instead turns
+                a firmware version of 150 into "15" and "0" on two lines. */}
+            <Box display="flex" alignItems="center" gap={1.5} sx={{ minWidth: 0 }}>
+                {icon && <Box color="text.secondary" sx={{ opacity: 0.7, flexShrink: 0 }}>{icon}</Box>}
+                {/* German compounds - "Kommunikationsmodul" - carry no break opportunity and
+                    would otherwise run straight over the value. Hyphenation handles it properly
+                    where the browser can; breaking anywhere is the fallback that at least keeps
+                    the two apart. */}
+                <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    fontWeight={500}
+                    sx={{ hyphens: 'auto', overflowWrap: 'anywhere' }}
+                >
                     {label}
                 </Typography>
             </Box>
-            <Typography variant="body2" fontFamily="monospace" fontWeight="bold" color="text.primary">
+            <Typography
+                variant="body2"
+                fontFamily="monospace"
+                fontWeight="bold"
+                color="text.primary"
+                sx={{ ml: 2, textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}
+            >
                 {value || '--'}
             </Typography>
         </Box>
