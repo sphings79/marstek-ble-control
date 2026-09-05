@@ -17,7 +17,7 @@ import { BackupPowerControlPayload } from "../../lib/payloads/BackupPowerControl
 import { SurplusFeedInControlPayload } from "../../lib/payloads/SurplusFeedInControlPayload";
 import { BluetoothControlPayload } from "../../lib/payloads/BluetoothControlPayload.ts";
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 
 interface Props {
     /**

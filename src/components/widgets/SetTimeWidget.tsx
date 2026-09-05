@@ -5,6 +5,7 @@ import {
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
 import { SetTimePayload } from '../../lib/payloads/SetTimePayload';
@@ -18,6 +19,7 @@ const toLocalInputValue = (d: Date): string =>
  * local wall-clock time (which is what the schedules run on).
  */
 export const SetTimeWidget = () => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -47,19 +49,19 @@ export const SetTimeWidget = () => {
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'secondary.dark', color: 'secondary.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AccessTimeIcon />
                 <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
-                    Device Time
+                    {t('time.title')}
                 </Typography>
             </Box>
 
             <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 {!isConnected ? (
                     <Box display="flex" flexGrow={1} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
                         <TextField
-                            label="Date & time"
+                            label={t('time.field')}
                             type="datetime-local"
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
@@ -69,7 +71,7 @@ export const SetTimeWidget = () => {
                         />
                         <Stack direction="row" spacing={1}>
                             <Button variant="outlined" onClick={resetToNow} fullWidth>
-                                Now
+                                {t('time.now')}
                             </Button>
                             <Button
                                 variant="contained"
@@ -78,11 +80,11 @@ export const SetTimeWidget = () => {
                                 fullWidth
                                 startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}
                             >
-                                {busy ? 'Setting...' : 'Set clock'}
+                                {t(busy ? 'time.setting' : 'time.set')}
                             </Button>
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
-                            Sets the device RTC (BLE cmd 0x0B). Uses your browser's local time.
+                            {t('time.note')}
                         </Typography>
                     </Stack>
                 )}

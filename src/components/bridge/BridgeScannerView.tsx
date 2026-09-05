@@ -9,6 +9,7 @@ import { BridgeCard } from './BridgeCard';
 import { BridgeFirmwareCard } from './BridgeFirmwareCard';
 import { ConnectionState } from '../../lib/ConnectionState';
 import type { BridgeDevice, BridgeTransport } from '../../lib/transport/BridgeTransport';
+import { useT } from '../../i18n/i18n';
 
 interface Props {
     bridge: BridgeTransport;
@@ -27,6 +28,7 @@ interface Props {
  * claim the battery's only BLE slot.
  */
 export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) => {
+    const t = useT();
     const [devices, setDevices] = useState<BridgeDevice[] | null>(null);
     const [scanning, setScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
@@ -71,10 +73,8 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
             icon={scanning
                 ? <BluetoothSearchingIcon sx={{ fontSize: 60, color: 'primary.main' }} />
                 : <RouterIcon sx={{ fontSize: 60, color: 'primary.main' }} />}
-            title={bound ?? 'No device selected'}
-            description={bound
-                ? 'Reached through the ESP32 bridge instead of your browser\'s Bluetooth.'
-                : 'The bridge is not paired with a storage yet. Scan and pick one.'}
+            title={bound ?? t('bridgeScan.noneSelected')}
+            description={t(bound ? 'bridgeScan.boundDesc' : 'bridgeScan.unboundDesc')}
             /* Also offered here, not just on the dashboard: a bridge that cannot reach the storage
                is exactly when a firmware fix is most likely to be what is needed, and hiding it
                behind a working connection would hide it whenever it matters. */
@@ -86,8 +86,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
 
                 {devices && devices.length === 0 && !scanning && (
                     <Alert severity="warning" sx={{ textAlign: 'left' }}>
-                        The bridge did not see any Marstek device. Move it closer to the storage, or
-                        check that nothing else is holding the battery's Bluetooth connection.
+                        {t('bridgeScan.noDevice')}
                     </Alert>
                 )}
 
@@ -105,7 +104,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
                 {scanning && (
                     <Stack alignItems="center" spacing={1} py={1}>
                         <CircularProgress size={24} />
-                        <Typography variant="caption" color="text.secondary">Bridge is scanning...</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('bridgeScan.scanning')}</Typography>
                     </Stack>
                 )}
 
@@ -118,7 +117,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
                         fullWidth
                         sx={{ py: 1.5, fontWeight: 'bold', textTransform: 'none', fontSize: '1.1rem' }}
                     >
-                        {status === ConnectionState.CONNECTING ? 'Connecting...' : 'Connect'}
+                        {t(status === ConnectionState.CONNECTING ? 'bridgeScan.connecting' : 'bridgeScan.connect')}
                     </Button>
                 )}
 
@@ -130,7 +129,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
                     fullWidth
                     sx={{ py: 1.5, fontWeight: 'bold', textTransform: 'none' }}
                 >
-                    {bound ? 'Scan for another device' : 'Scan'}
+                    {t(bound ? 'bridgeScan.rescan' : 'bridgeScan.scan')}
                 </Button>
             </Stack>
         </BridgeCard>

@@ -5,7 +5,7 @@ import {
 import TuneIcon from '@mui/icons-material/Tune';
 
 import { useBLE } from '../../contexts/BLEContext';
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
 import { SelfControlPowerOffsetPayload } from '../../lib/payloads/SelfControlPowerOffsetPayload';

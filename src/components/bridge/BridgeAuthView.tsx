@@ -5,6 +5,7 @@ import KeyOutlinedIcon from '@mui/icons-material/KeyOutlined';
 
 import { BridgeCard } from './BridgeCard';
 import { claimBridge, loginToBridge } from '../../lib/bridge/BridgeAuth';
+import { useT } from '../../i18n/i18n';
 
 interface Props {
     /** False while the bridge still has no password - then this screen sets one. */
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export const BridgeAuthView = ({ claimed, onAuthenticated }: Props) => {
+    const t = useT();
     const [password, setPassword] = useState('');
     const [confirmation, setConfirmation] = useState('');
     const [busy, setBusy] = useState(false);
@@ -43,17 +45,13 @@ export const BridgeAuthView = ({ claimed, onAuthenticated }: Props) => {
             icon={claiming
                 ? <KeyOutlinedIcon sx={{ fontSize: 60, color: 'primary.main' }} />
                 : <LockOutlinedIcon sx={{ fontSize: 60, color: 'primary.main' }} />}
-            title={claiming ? 'Set a password' : 'Bridge locked'}
-            description={claiming
-                ? 'This bridge has no password yet. Pick one now - it protects everything the bridge can do to your storage, including factory reset and firmware updates.'
-                : 'Enter the password for this bridge to continue.'}
+            title={t(claiming ? 'auth.claimTitle' : 'auth.lockedTitle')}
+            description={t(claiming ? 'auth.claimDesc' : 'auth.lockedDesc')}
         >
             <Stack spacing={2} component="form" onSubmit={(e) => { e.preventDefault(); if (canSubmit) void submit(); }}>
                 {claiming && (
                     <Alert severity="info" sx={{ textAlign: 'left' }}>
-                        The bridge talks to your browser over plain HTTP, so the password itself is
-                        never sent - but the connection is not encrypted. Do not expose the bridge to
-                        the internet; use a VPN if you need access from outside.
+                        {t('auth.plainHttp')}
                     </Alert>
                 )}
 
@@ -61,11 +59,11 @@ export const BridgeAuthView = ({ claimed, onAuthenticated }: Props) => {
 
                 <TextField
                     type="password"
-                    label="Password"
+                    label={t('auth.password')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     error={tooShort}
-                    helperText={tooShort ? 'At least 8 characters' : ' '}
+                    helperText={tooShort ? t('auth.tooShort') : ' '}
                     autoFocus
                     fullWidth
                     autoComplete={claiming ? 'new-password' : 'current-password'}
@@ -74,11 +72,11 @@ export const BridgeAuthView = ({ claimed, onAuthenticated }: Props) => {
                 {claiming && (
                     <TextField
                         type="password"
-                        label="Repeat password"
+                        label={t('auth.repeat')}
                         value={confirmation}
                         onChange={(e) => setConfirmation(e.target.value)}
                         error={mismatch}
-                        helperText={mismatch ? 'Does not match' : ' '}
+                        helperText={mismatch ? t('auth.mismatch') : ' '}
                         fullWidth
                         autoComplete="new-password"
                     />
@@ -92,7 +90,7 @@ export const BridgeAuthView = ({ claimed, onAuthenticated }: Props) => {
                     fullWidth
                     sx={{ py: 1.5, fontWeight: 'bold', textTransform: 'none', fontSize: '1.1rem' }}
                 >
-                    {busy ? 'Please wait...' : claiming ? 'Set password' : 'Unlock'}
+                    {busy ? t('auth.wait') : t(claiming ? 'auth.setPassword' : 'auth.unlock')}
                 </Button>
             </Stack>
         </BridgeCard>

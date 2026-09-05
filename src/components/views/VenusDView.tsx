@@ -55,13 +55,13 @@ import { SelfControlPowerOffsetWidget } from "../widgets/SelfControlPowerOffsetW
 const groups: WidgetGroup[] = [
     {
         key: 'overview',
-        label: 'Overview',
+        labelKey: 'group.overview',
         icon: <DashboardIcon />,
         widgets: [<StateWidget />, <DeviceInfoWidget />],
     },
     {
         key: 'power',
-        label: 'Power & Modes',
+        labelKey: 'group.power',
         icon: <BoltIcon />,
         widgets: [
             <TogglesWidget />,
@@ -76,19 +76,19 @@ const groups: WidgetGroup[] = [
     },
     {
         key: 'battery',
-        label: 'Battery',
+        labelKey: 'group.battery',
         icon: <BatteryChargingFullIcon />,
         widgets: [<BatteryModulesStateWidget />, <DepthOfDischargeWidget />],
     },
     {
         key: 'meter',
-        label: 'Meter (CT)',
+        labelKey: 'group.meter',
         icon: <ElectricMeterIcon />,
         widgets: [<CTWidget />],
     },
     {
         key: 'system',
-        label: 'System & Firmware',
+        labelKey: 'group.system',
         icon: <SettingsIcon />,
         widgets: [<LocalApiWidget />, <SetTimeWidget />, <FactoryResetWidget />, <OtaWidget />],
     },

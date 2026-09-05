@@ -14,7 +14,7 @@ import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputCompone
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 
 interface Props {
     /**

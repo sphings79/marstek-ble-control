@@ -1,4 +1,5 @@
 import { bridgeUrl } from './BridgeApi';
+import { translate } from '../../i18n/i18n';
 
 const RELEASES_API = 'https://api.github.com/repos/sphings79/marstek-ble-bridge/releases/latest';
 
@@ -85,6 +86,6 @@ export async function installFromUrl(url: string, target: 'firmware' | 'web'): P
         } catch {
             // Keep the status code.
         }
-        throw new Error(`The bridge could not install it: ${detail}`);
+        throw new Error(translate('err.installFailed', { detail }));
     }
 }

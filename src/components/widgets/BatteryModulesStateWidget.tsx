@@ -8,6 +8,7 @@ import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
 import BoltIcon from '@mui/icons-material/Bolt';
 
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
 import {EvStation} from "@mui/icons-material";
@@ -15,6 +16,7 @@ import {EvStation} from "@mui/icons-material";
 const REQUEST_PAYLOAD = new Uint8Array([0x01]);
 
 export const BatteryModulesStateWidget = () => {
+    const t = useT();
     const { sendPacket, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -41,25 +43,25 @@ export const BatteryModulesStateWidget = () => {
         switch (status) {
             case 2:
                 return {
-                    label: "Discharging",
+                    label: t('modules.discharging'),
                     icon: <EvStation fontSize="inherit" />,
                     color: "warning.main"
                 };
             case 1:
                 return {
-                    label: "Charging",
+                    label: t('modules.charging'),
                     icon: <BoltIcon fontSize="inherit" />,
                     color: "success.main"
                 };
             case 0:
                 return {
-                    label: "Running",
+                    label: t('modules.running'),
                     icon: null,
                     color: "text.main"
                 };
             default:
                 return {
-                    label: `Unknown (0x${status.toString(16)})`,
+                    label: t('modules.unknown', { code: status.toString(16) }),
                     icon: null,
                     color: "text.secondary"
                 };
@@ -70,10 +72,10 @@ export const BatteryModulesStateWidget = () => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'primary.dark', color: 'primary.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ViewModuleIcon />
-                <Typography variant="h6" fontWeight="bold">Module States</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('modules.title')}</Typography>
                 {data && (
                     <Chip
-                        label={`${data.moduleCount} Module(s)`}
+                        label={t('modules.count', { count: data.moduleCount })}
                         size="small"
                         color="primary"
                         sx={{ ml: 'auto', bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
@@ -84,12 +86,12 @@ export const BatteryModulesStateWidget = () => {
             <Box sx={{ p: 2, flexGrow: 1, overflowY: 'auto' }}>
                 {!isConnected ? (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : !data ? (
                     <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" height="100%">
                         <CircularProgress size={24} />
-                        <Typography variant="caption" display="block" mt={1}>Reading Modules...</Typography>
+                        <Typography variant="caption" display="block" mt={1}>{t('modules.reading')}</Typography>
                     </Box>
                 ) : (
                     <Grid container spacing={2}>
@@ -110,7 +112,7 @@ export const BatteryModulesStateWidget = () => {
                                             <Box display="flex" alignItems="center" gap={1} pl={mod.status === 1 ? 1 : 0}>
                                                 <BatteryChargingFullIcon color={mod.soc > 20 ? "success" : "warning"} fontSize="small" />
                                                 <Typography variant="subtitle2" fontWeight="bold">
-                                                    Module #{mod.index}
+                                                    {t('modules.module', { index: mod.index })}
                                                 </Typography>
                                             </Box>
                                             <Typography variant="body2" fontWeight="bold" fontFamily="monospace">
@@ -126,7 +128,7 @@ export const BatteryModulesStateWidget = () => {
                                         />
 
                                         <Box display="flex" justifyContent="space-between" alignItems="center" pl={mod.status === 1 ? 1 : 0}>
-                                            <Stack direction="row" spacing={1} alignItems="center" title="Temperature">
+                                            <Stack direction="row" spacing={1} alignItems="center" title={t('modules.temperature')}>
                                                 <ThermostatIcon fontSize="small" color="action" />
                                                 <Typography variant="caption" color="text.secondary">
                                                     {mod.temperature.toFixed(1)}°C

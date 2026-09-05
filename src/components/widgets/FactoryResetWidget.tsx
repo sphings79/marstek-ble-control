@@ -10,11 +10,13 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/i18n';
 import { FactoryResetPayload, FactoryResetType } from '../../lib/payloads/FactoryResetPayload';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
 
 export const FactoryResetWidget = () => {
+    const t = useT();
     const { sendPacket, disconnect, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -38,7 +40,7 @@ export const FactoryResetWidget = () => {
             await sendPacket(COMMAND_ID.FACTORY_RESET, new FactoryResetPayload(selectedType).toBytes());
 
             setToast({
-                msg: "Factory reset command sent. Disconnecting...",
+                msg: t('reset.sent'),
                 severity: 'info'
             });
 
@@ -48,7 +50,7 @@ export const FactoryResetWidget = () => {
 
         } catch (err) {
             console.error(err);
-            setToast({ msg: "Failed to send factory reset command.", severity: 'error' });
+            setToast({ msg: t('reset.failed'), severity: 'error' });
         }
     };
 
@@ -56,7 +58,7 @@ export const FactoryResetWidget = () => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'error.main', color: 'error.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <DeleteSweepIcon />
-                <Typography variant="h6" fontWeight="bold">Factory Reset</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('reset.title')}</Typography>
             </Box>
             
             <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -72,7 +74,7 @@ export const FactoryResetWidget = () => {
                             disabled={!isConnected}
                             sx={{ justifyContent: 'flex-start', py: 1.5 }}
                         >
-                            Factory Reset and Keep Data
+                            {t('reset.keepData')}
                         </Button>
                     </Box>
 
@@ -87,7 +89,7 @@ export const FactoryResetWidget = () => {
                             disabled={!isConnected}
                             sx={{ justifyContent: 'flex-start', py: 1.5 }}
                         >
-                            Factory Reset
+                            {t('reset.full')}
                         </Button>
                     </Box>
                 </Stack>
@@ -96,19 +98,19 @@ export const FactoryResetWidget = () => {
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <WarningAmberIcon color={selectedType === FactoryResetType.FULL ? "error" : "warning"} />
-                    Confirm Reset
+                    {t('reset.confirmTitle')}
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText>
                         {selectedType === FactoryResetType.SETTINGS_ONLY
-                            ? "This will reset all device settings to default values."
-                            : "This will reset EVERYTHING including historical energy statistics."}
+                            ? t('reset.confirmKeep')
+                            : t('reset.confirmFull')}
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)} color="inherit">Cancel</Button>
+                    <Button onClick={() => setDialogOpen(false)} color="inherit">{t('common.cancel')}</Button>
                     <Button onClick={confirmReset} color={selectedType === FactoryResetType.FULL ? "error" : "warning"} variant="contained">
-                        Confirm
+                        {t('reset.confirm')}
                     </Button>
                 </DialogActions>
             </Dialog>

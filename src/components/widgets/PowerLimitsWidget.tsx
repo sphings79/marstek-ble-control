@@ -11,7 +11,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 import { DischargePowerLimitControlPayload } from '../../lib/payloads/DischargePowerLimitControlPayload';
 import { ChargePowerLimitControlPayload } from '../../lib/payloads/ChargePowerLimitControlPayload';
 import { DevicePowerClassControlPayload, DEVICE_POWER_CLASS_OPTIONS } from '../../lib/payloads/DevicePowerClassControlPayload';

@@ -9,7 +9,7 @@ import BrowserNotSupportedIcon from '@mui/icons-material/BrowserNotSupported';
 
 import { ConnectionState } from '../lib/BLEConnectionManager';
 import { Footer } from './Footer';
-import { useT } from '../i18n/I18nContext';
+import { useT } from '../i18n/i18n';
 
 interface Props {
     onScan: () => void;

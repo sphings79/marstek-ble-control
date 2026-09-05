@@ -5,8 +5,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import { ConnectionState } from '../lib/BLEConnectionManager';
 import type { DeviceInfo } from "../lib/DeviceUtils.ts";
-import { useT } from '../i18n/I18nContext';
-import type { StringKey } from '../i18n/I18nContext';
+import { useT } from '../i18n/i18n';
+import type { StringKey } from '../i18n/i18n';
 
 interface Props {
     deviceInfo: DeviceInfo;

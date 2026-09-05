@@ -14,7 +14,7 @@ import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID, INVERTER_STATE } from "../../lib/VenusConst.ts";
 import type { StateAttributes } from '../../lib/payloads/StatePayload';
-import { useT, type Translate } from '../../i18n/I18nContext';
+import { useT, type Translate } from '../../i18n/i18n';
 
 const getInverterStateLabel = (t: Translate, state?: number) => {
     switch (state) {

@@ -3,6 +3,7 @@ import { hmac } from '@noble/hashes/hmac.js';
 import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 
 import { bridgeUrl } from './BridgeApi';
+import { translate } from '../../i18n/i18n';
 
 /**
  * Login against the bridge without ever putting the password on the wire.
@@ -59,7 +60,7 @@ export async function claimBridge(password: string): Promise<void> {
         headers: { 'Accept': 'application/json' },
     });
     if (!response.ok) {
-        throw new Error('Bridge refused to start claiming');
+        throw new Error(translate('err.claimRefused'));
     }
 
     const { salt } = await response.json() as Challenge;
@@ -69,9 +70,7 @@ export async function claimBridge(password: string): Promise<void> {
     });
 
     if (!claim.ok) {
-        throw new Error(claim.status === 409
-            ? 'This bridge has already been claimed. Reset it to set a new password.'
-            : 'Claiming the bridge failed');
+        throw new Error(translate(claim.status === 409 ? 'err.alreadyClaimed' : 'err.claimFailed'));
     }
 }
 
@@ -82,7 +81,7 @@ export async function loginToBridge(password: string): Promise<void> {
         headers: { 'Accept': 'application/json' },
     });
     if (!response.ok) {
-        throw new Error('Bridge did not hand out a challenge');
+        throw new Error(translate('err.noChallenge'));
     }
 
     const { salt, nonce } = await response.json() as Challenge;
@@ -92,9 +91,7 @@ export async function loginToBridge(password: string): Promise<void> {
     const login = await postJson('api/auth/login', { nonce, response: proof });
 
     if (!login.ok) {
-        throw new Error(login.status === 429
-            ? 'Too many attempts. Wait a moment before trying again.'
-            : 'Wrong password');
+        throw new Error(translate(login.status === 429 ? 'err.tooManyAttempts' : 'err.wrongPassword'));
     }
 }
 
@@ -114,7 +111,7 @@ export async function changeBridgePassword(current: string, next: string): Promi
         headers: { 'Accept': 'application/json' },
     });
     if (!response.ok) {
-        throw new Error('Bridge did not hand out a challenge');
+        throw new Error(translate('err.noChallenge'));
     }
 
     const { salt, nonce } = await response.json() as Challenge;
@@ -132,9 +129,7 @@ export async function changeBridgePassword(current: string, next: string): Promi
     });
 
     if (!change.ok) {
-        throw new Error(change.status === 429
-            ? 'Too many attempts. Wait a moment before trying again.'
-            : 'The current password was not accepted');
+        throw new Error(translate(change.status === 429 ? 'err.tooManyAttempts' : 'err.wrongCurrentPassword'));
     }
 }
 

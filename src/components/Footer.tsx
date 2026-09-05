@@ -1,7 +1,7 @@
 import { Box, Link, Typography, Stack } from '@mui/material';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
-import { useT } from '../i18n/I18nContext';
+import { useT } from '../i18n/i18n';
 import { LanguageSwitch } from './LanguageSwitch';
 
 export const Footer = () => {

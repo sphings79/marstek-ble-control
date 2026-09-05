@@ -5,7 +5,7 @@ import {
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
 import { useBLE } from '../../contexts/BLEContext';
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
 import { PeakShavingControlPayload } from '../../lib/payloads/PeakShavingControlPayload';

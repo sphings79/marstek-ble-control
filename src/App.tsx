@@ -13,7 +13,7 @@ import { BridgeAuthView } from './components/bridge/BridgeAuthView';
 import { BridgeScannerView } from './components/bridge/BridgeScannerView';
 import { probeBridge, type BridgeInfo } from './lib/bridge/BridgeApi';
 import { BridgeTransport } from './lib/transport/BridgeTransport';
-import { useT } from './i18n/I18nContext';
+import { useT } from './i18n/i18n';
 
 const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
     const [wifiRssi, setWifiRssi] = useState<number | null>(null);

@@ -1,6 +1,6 @@
 import { ToggleButton, ToggleButtonGroup } from '@mui/material';
 
-import { useI18n, type Language } from '../i18n/I18nContext';
+import { useI18n, type Language } from '../i18n/i18n';
 
 /**
  * Two languages, so two buttons rather than a dropdown: the choice is visible and one click away,

@@ -11,6 +11,7 @@ import {
 import {
     fetchLatestRelease, installFromUrl, isOutdated, type BridgeRelease,
 } from '../../lib/bridge/BridgeReleases';
+import { useT } from '../../i18n/i18n';
 
 type Phase = 'idle' | 'uploading' | 'restarting' | 'done' | 'failed';
 
@@ -23,6 +24,7 @@ type Phase = 'idle' | 'uploading' | 'restarting' | 'done' | 'failed';
  * with a USB cable.
  */
 export const BridgeFirmwareCard = () => {
+    const t = useT();
     // One input per target rather than one shared input plus a state variable saying what it is
     // for. The pairing is then structural instead of something that has to stay in step.
     const firmwareInput = useRef<HTMLInputElement>(null);
@@ -57,10 +59,10 @@ export const BridgeFirmwareCard = () => {
             if (back) {
                 setPhase('done');
                 setVersion(await fetchBridgeVersion());
-                setMessage('Restarted and back.');
+                setMessage(t('bridgeFw.back'));
             } else {
                 setPhase('failed');
-                setMessage('The image was accepted, but the bridge has not answered again yet. It may just be slow to rejoin WiFi.');
+                setMessage(t('bridgeFw.noAnswerUpload'));
             }
         } catch (err) {
             setPhase('failed');
@@ -94,9 +96,7 @@ export const BridgeFirmwareCard = () => {
             const back = await waitForBridge();
             setPhase(back ? 'done' : 'failed');
             setVersion(back ? await fetchBridgeVersion() : version);
-            setMessage(back
-                ? 'Restarted and back.'
-                : 'The bridge accepted it but has not answered again yet.');
+            setMessage(t(back ? 'bridgeFw.back' : 'bridgeFw.noAnswer'));
         } catch (err) {
             setPhase('failed');
             setMessage((err as Error).message);
@@ -107,13 +107,13 @@ export const BridgeFirmwareCard = () => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'grey.800', color: 'common.white', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <RouterIcon />
-                <Typography variant="h6" fontWeight="bold">Bridge Firmware</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('bridgeFw.title')}</Typography>
             </Box>
 
             <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                    Updates the <strong>ESP32 bridge</strong>, not the storage. Firmware for the
-                    battery goes through the red OTA card.
+                    {t('bridgeFw.notStorage.1')} <strong>{t('bridgeFw.notStorage.strong')}</strong>
+                    {t('bridgeFw.notStorage.2')}
                 </Alert>
 
                 <Stack spacing={2}>
@@ -132,11 +132,11 @@ export const BridgeFirmwareCard = () => {
                             severity="info"
                             action={release.url
                                 ? <Button size="small" href={release.url} target="_blank" rel="noopener noreferrer">
-                                      Changelog
+                                      {t('bridgeFw.changelog')}
                                   </Button>
                                 : undefined}
                         >
-                            <strong>{release.name}</strong> is available.
+                            <strong>{release.name}</strong> {t('bridgeFw.available')}
                         </Alert>
                     )}
 
@@ -147,7 +147,7 @@ export const BridgeFirmwareCard = () => {
                             disabled={busy}
                             fullWidth
                         >
-                            {outdated ? `Install ${release.tag} firmware` : `Reinstall ${release.tag} firmware`}
+                            {t(outdated ? 'bridgeFw.install' : 'bridgeFw.reinstall', { tag: release.tag })}
                         </Button>
                     )}
 
@@ -158,7 +158,7 @@ export const BridgeFirmwareCard = () => {
                             disabled={busy}
                             fullWidth
                         >
-                            Install {release.tag} interface
+                            {t('bridgeFw.installWeb', { tag: release.tag })}
                         </Button>
                     )}
 
@@ -178,11 +178,11 @@ export const BridgeFirmwareCard = () => {
                     />
 
                     <Button variant="outlined" onClick={() => firmwareInput.current?.click()} disabled={busy} fullWidth>
-                        Firmware
+                        {t('bridgeFw.firmware')}
                     </Button>
 
                     <Button variant="outlined" onClick={() => webInput.current?.click()} disabled={busy} fullWidth>
-                        Web Interface
+                        {t('bridgeFw.webInterface')}
                     </Button>
 
                     {busy && (
@@ -192,16 +192,13 @@ export const BridgeFirmwareCard = () => {
                                 value={percent}
                             />
                             <Typography variant="caption" color="text.secondary">
-                                {phase === 'restarting' ? 'Restarting...' : `Uploading ${percent}%`}
+                                {phase === 'restarting' ? t('bridgeFw.restarting') : t('bridgeFw.uploading', { percent })}
                             </Typography>
                         </Box>
                     )}
 
                     <Typography variant="caption" color="text.secondary">
-                        Releases are downloaded by the bridge itself; the files below are for
-                        installing a build by hand. Firmware is written to the spare slot and only booted once it is complete,
-                        so a failed upload changes nothing. The interface has no spare copy - if
-                        that upload breaks off, the bridge serves no page until you retry.
+                        {t('bridgeFw.note')}
                     </Typography>
                 </Stack>
             </Box>

@@ -11,7 +11,7 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID, CT_TYPE, CT_MODE, PHASE } from '../../lib/VenusConst';
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 import { CTTypeControlPayload } from '../../lib/payloads/CTTypeControlPayload';
 import { CTModeControlPayload } from '../../lib/payloads/CTModeControlPayload';
 

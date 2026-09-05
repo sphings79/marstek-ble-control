@@ -19,8 +19,8 @@ import { COMMAND_ID, MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT, WORK_MODE, MANUAL_MODE_S
 import { SetWorkModePayload } from '../../lib/payloads/SetWorkModePayload.ts';
 import { ManualWorkModeSlotControlPayload } from '../../lib/payloads/ManualWorkModeSlotControlPayload.ts';
 import type {WorkModeSetting} from "../../lib/payloads/GetWorkModeSettingsPayload.ts";
-import { useT } from '../../i18n/I18nContext';
-import type { StringKey } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
+import type { StringKey } from '../../i18n/i18n';
 
 const REQUEST_PAYLOAD = new Uint8Array([0x01]);
 

@@ -2,6 +2,7 @@
 
 import { ConnectionState } from '../ConnectionState';
 import { TransportKind, type Transport, type TransportCallbacks } from './Transport';
+import { translate } from '../../i18n/i18n';
 
 export const SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb';
 export const TX_UUID = '0000ff01-0000-1000-8000-00805f9b34fb';
@@ -96,7 +97,7 @@ export class WebBluetoothTransport implements Transport {
             await this.connectGATT();
         } catch (err) {
             this.error("Reconnect Failed", err);
-            this.callbacks.onStateChange(ConnectionState.ERROR, "Reconnection failed: " + (err as Error).message);
+            this.callbacks.onStateChange(ConnectionState.ERROR, translate('err.reconnectFailed', { detail: (err as Error).message }));
         }
     }
 
@@ -120,7 +121,7 @@ export class WebBluetoothTransport implements Transport {
             const server = await this.device.gatt?.connect();
             if (!server || !server.connected) {
                 // noinspection ExceptionCaughtLocallyJS
-                throw new Error("GATT Server connection failed immediately.");
+                throw new Error(translate('err.gattFailed'));
             }
             this.log("GATT Connected");
 
@@ -154,7 +155,7 @@ export class WebBluetoothTransport implements Transport {
 
     async send(bytes: Uint8Array, withResponse: boolean) {
         if (!this.txChar || !this.isConnected) {
-            throw new Error("Not connected");
+            throw new Error(translate('err.notConnected'));
         }
 
         if (withResponse) {

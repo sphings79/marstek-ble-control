@@ -5,6 +5,7 @@ import {
 import LockIcon from '@mui/icons-material/Lock';
 
 import { changeBridgePassword } from '../../lib/bridge/BridgeAuth';
+import { useT } from '../../i18n/i18n';
 
 /**
  * Change the bridge's password.
@@ -14,6 +15,7 @@ import { changeBridgePassword } from '../../lib/bridge/BridgeAuth';
  * to discover on the day you need it.
  */
 export const BridgeSecurityCard = () => {
+    const t = useT();
     const [current, setCurrent] = useState('');
     const [next, setNext] = useState('');
     const [repeat, setRepeat] = useState('');
@@ -35,10 +37,7 @@ export const BridgeSecurityCard = () => {
             setCurrent('');
             setNext('');
             setRepeat('');
-            setMessage({
-                ok: true,
-                text: 'Changed. Every session has ended, this one included - reload and log in again.',
-            });
+            setMessage({ ok: true, text: t('bridgePw.done') });
         } catch (err) {
             setMessage({ ok: false, text: (err as Error).message });
         } finally {
@@ -50,7 +49,7 @@ export const BridgeSecurityCard = () => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'grey.800', color: 'common.white', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <LockIcon />
-                <Typography variant="h6" fontWeight="bold">Bridge Password</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('bridgePw.title')}</Typography>
             </Box>
 
             <Box sx={{ p: 3, flexGrow: 1 }}>
@@ -58,7 +57,7 @@ export const BridgeSecurityCard = () => {
                     {message && <Alert severity={message.ok ? 'success' : 'error'}>{message.text}</Alert>}
 
                     <TextField
-                        label="Current password"
+                        label={t('bridgePw.current')}
                         type="password"
                         value={current}
                         onChange={(e) => setCurrent(e.target.value)}
@@ -69,7 +68,7 @@ export const BridgeSecurityCard = () => {
                     />
 
                     <TextField
-                        label="New password"
+                        label={t('bridgePw.new')}
                         type="password"
                         value={next}
                         onChange={(e) => setNext(e.target.value)}
@@ -78,11 +77,11 @@ export const BridgeSecurityCard = () => {
                         fullWidth
                         autoComplete="new-password"
                         error={tooShort}
-                        helperText={tooShort ? 'At least eight characters.' : ' '}
+                        helperText={tooShort ? t('bridgePw.tooShort') : ' '}
                     />
 
                     <TextField
-                        label="Repeat new password"
+                        label={t('bridgePw.repeat')}
                         type="password"
                         value={repeat}
                         onChange={(e) => setRepeat(e.target.value)}
@@ -91,7 +90,7 @@ export const BridgeSecurityCard = () => {
                         fullWidth
                         autoComplete="new-password"
                         error={mismatch}
-                        helperText={mismatch ? 'These do not match.' : ' '}
+                        helperText={mismatch ? t('bridgePw.mismatch') : ' '}
                     />
 
                     <Button
@@ -100,13 +99,11 @@ export const BridgeSecurityCard = () => {
                         disabled={busy || !ready}
                         fullWidth
                     >
-                        Change password
+                        {t('bridgePw.submit')}
                     </Button>
 
                     <Typography variant="caption" color="text.secondary">
-                        The current password is proved to the bridge before the new one is accepted,
-                        so someone who picked your session cookie off the network cannot use it to
-                        shut you out. Neither password is sent.
+                        {t('bridgePw.note')}
                     </Typography>
                 </Stack>
             </Box>

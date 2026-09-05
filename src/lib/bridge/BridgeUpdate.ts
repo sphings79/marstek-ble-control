@@ -1,4 +1,5 @@
 import { bridgeUrl } from './BridgeApi';
+import { translate } from '../../i18n/i18n';
 
 export interface BridgeVersion {
     version: string;
@@ -56,14 +57,14 @@ export function uploadBridgeFirmware(
             if (request.status >= 200 && request.status < 300) {
                 resolve();
             } else if (request.status === 401) {
-                reject(new Error('The bridge rejected the session - log in again.'));
+                reject(new Error(translate('err.sessionRejected')));
             } else {
-                reject(new Error(request.responseText || `Bridge refused the image (HTTP ${request.status})`));
+                reject(new Error(request.responseText || translate('err.imageRefused', { status: request.status })));
             }
         };
 
-        request.onerror = () => reject(new Error('Connection to the bridge failed during upload'));
-        request.onabort = () => reject(new Error('Upload cancelled'));
+        request.onerror = () => reject(new Error(translate('err.uploadFailed')));
+        request.onabort = () => reject(new Error(translate('err.uploadCancelled')));
 
         request.send(file);
     });

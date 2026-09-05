@@ -5,6 +5,7 @@ import {
 import LanIcon from '@mui/icons-material/Lan';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
 import { LocalApiControlPayload } from '../../lib/payloads/LocalApiControlPayload';
@@ -16,6 +17,7 @@ import { LocalApiControlPayload } from '../../lib/payloads/LocalApiControlPayloa
  * This is the local API - NOT Modbus TCP (Modbus cannot be toggled).
  */
 export const LocalApiWidget = () => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -42,23 +44,23 @@ export const LocalApiWidget = () => {
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'secondary.dark', color: 'secondary.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <LanIcon />
                 <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
-                    Local API
+                    {t('localApi.title')}
                 </Typography>
             </Box>
 
             <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 {!isConnected ? (
                     <Box display="flex" flexGrow={1} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
                         <FormControlLabel
                             control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
-                            label={enabled ? 'Enabled' : 'Disabled'}
+                            label={t(enabled ? 'common.enabled' : 'common.disabled')}
                         />
                         <TextField
-                            label="Port"
+                            label={t('localApi.port')}
                             type="number"
                             value={port}
                             onChange={(e) => setPort(Number(e.target.value))}
@@ -73,10 +75,10 @@ export const LocalApiWidget = () => {
                             fullWidth
                             startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}
                         >
-                            {busy ? 'Applying...' : 'Apply'}
+                            {t(busy ? 'common.applying' : 'common.apply')}
                         </Button>
                         <Typography variant="caption" color="text.secondary">
-                            Local UDP JSON-RPC API (default port 30000). This is not Modbus TCP.
+                            {t('localApi.note')}
                         </Typography>
                     </Stack>
                 )}

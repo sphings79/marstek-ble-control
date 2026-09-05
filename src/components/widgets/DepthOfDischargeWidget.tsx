@@ -6,7 +6,7 @@ import BatterySaverIcon from '@mui/icons-material/BatterySaver';
 import BlockIcon from '@mui/icons-material/Block';
 
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
-import { useT } from '../../i18n/I18nContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { DepthOfDischargeControlPayload } from '../../lib/payloads/DepthOfDischargeControlPayload';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";

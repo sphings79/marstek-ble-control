@@ -4,6 +4,7 @@ import {COMMAND_ID} from "./VenusConst.ts";
 import { ConnectionState } from "./ConnectionState";
 import type { Transport, TransportKind } from "./transport/Transport";
 import { WebBluetoothTransport } from "./transport/WebBluetoothTransport";
+import { translate } from '../i18n/i18n';
 
 export { ConnectionState };
 export { SERVICE_UUID, TX_UUID, RX_UUID } from "./transport/WebBluetoothTransport";
@@ -292,7 +293,7 @@ export class BLEConnectionManager {
         if (!this.transport.isConnected) {
             this.error("Cannot send: Not connected");
 
-            throw new Error("Not connected");
+            throw new Error(translate('err.notConnected'));
         }
 
         const p = new VenusPacket(cmd, payload);
@@ -309,7 +310,7 @@ export class BLEConnectionManager {
     async sendRaw(bytes: Uint8Array) {
         if (!this.transport.isConnected) {
             this.error("Cannot send raw: Not connected");
-            throw new Error("Not connected");
+            throw new Error(translate('err.notConnected'));
         }
 
         return this.writeLocked(bytes, false);
@@ -321,7 +322,7 @@ export class BLEConnectionManager {
                 try {
                     if (!this.transport.isConnected) {
                         // noinspection ExceptionCaughtLocallyJS
-                        throw new Error("Disconnected while waiting for lock");
+                        throw new Error(translate('err.disconnectedWaiting'));
                     }
 
                     if (logLine) {

@@ -8,6 +8,7 @@ import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { OtaManager, OtaPhase, analyzeFirmwareForOta, detectModelMismatch, type OtaAnalysis, type OtaProgress } from '../../lib/ota/OtaManager';
 import { TransportKind } from '../../lib/transport/Transport';
@@ -15,6 +16,7 @@ import { TransportKind } from '../../lib/transport/Transport';
 const MAX_LOG_LINES = 300;
 
 export const OtaWidget = () => {
+    const t = useT();
     const { manager, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
     const overBridge = manager.transportKind === TransportKind.BRIDGE;
@@ -95,13 +97,13 @@ export const OtaWidget = () => {
     const isNonEmsComponent = analysis?.componentGuess.component === 'Micro/Inverter' || analysis?.componentGuess.component === 'MPPT';
 
     const phaseLabel: Record<string, string> = {
-        [OtaPhase.ACTIVATING]: 'Activating upgrade mode...',
-        [OtaPhase.DISCOVERING]: 'Discovering OTA channel...',
-        [OtaPhase.SENDING_SIZE]: 'Sending firmware size...',
-        [OtaPhase.TRANSFERRING]: 'Transferring firmware...',
-        [OtaPhase.FINALIZING]: 'Finalizing...',
-        [OtaPhase.SUCCESS]: 'Update complete - device will restart',
-        [OtaPhase.FAILED]: 'Failed',
+        [OtaPhase.ACTIVATING]: t('ota.phase.activating'),
+        [OtaPhase.DISCOVERING]: t('ota.phase.discovering'),
+        [OtaPhase.SENDING_SIZE]: t('ota.phase.sendingSize'),
+        [OtaPhase.TRANSFERRING]: t('ota.phase.transferring'),
+        [OtaPhase.FINALIZING]: t('ota.phase.finalizing'),
+        [OtaPhase.SUCCESS]: t('ota.phase.success'),
+        [OtaPhase.FAILED]: t('ota.phase.failed'),
     };
 
     const percent = progress && progress.totalChunks > 0
@@ -112,22 +114,17 @@ export const OtaWidget = () => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'error.dark', color: 'error.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <SystemUpdateAltIcon />
-                <Typography variant="h6" fontWeight="bold">Firmware Update (OTA)</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('ota.title')}</Typography>
             </Box>
 
             <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Alert severity="error" sx={{ mb: 2 }}>
-                    Experimental and reverse-engineered. Can permanently brick the device. Only
-                    proceed if you have a recovery plan and understand the risk.
+                    {t('ota.risk')}
                 </Alert>
 
                 {overBridge && (
                     <Alert severity="warning" sx={{ mb: 2 }}>
-                        You are connected through the ESP32 bridge. Every one of the thousands of
-                        firmware chunks now crosses your network as well, so a WiFi dropout or a
-                        stalled bridge can abort the update and leave a module unusable. Timeouts
-                        are raised for this, but a direct Bluetooth connection is still the safer
-                        way to flash. Keep the bridge powered and on a stable network.
+                        {t('ota.bridgeWarning')}
                     </Alert>
                 )}
 
@@ -146,29 +143,33 @@ export const OtaWidget = () => {
                         onClick={() => fileInputRef.current?.click()}
                         disabled={!isConnected || running}
                     >
-                        Select Firmware File
+                        {t('ota.selectFile')}
                     </Button>
 
                     {analysis && (
                         <Box>
                             <Typography variant="body2" fontWeight="bold">{analysis.fileName}</Typography>
                             <Typography variant="caption" color="text.secondary" display="block">
-                                {analysis.size.toLocaleString()} bytes - checksum 0x{(analysis.checksum >>> 0).toString(16).padStart(8, '0')}
+                                {t('ota.fileInfo', {
+                                    size: analysis.size.toLocaleString(),
+                                    checksum: (analysis.checksum >>> 0).toString(16).padStart(8, '0'),
+                                })}
                             </Typography>
                             <Stack direction="row" spacing={1} mt={1}>
-                                <Chip size="small" label={`Model: ${analysis.modelGuess.model}`} color={mismatch ? 'error' : 'default'} />
-                                <Chip size="small" label={`Component: ${analysis.componentGuess.component}`} color={isNonEmsComponent ? 'warning' : 'default'} />
+                                <Chip size="small" label={t('ota.model', { model: analysis.modelGuess.model })} color={mismatch ? 'error' : 'default'} />
+                                <Chip size="small" label={t('ota.component', { component: analysis.componentGuess.component })} color={isNonEmsComponent ? 'warning' : 'default'} />
                             </Stack>
                             {mismatch && (
                                 <Alert severity="error" sx={{ mt: 1 }}>
-                                    Model mismatch: this file looks like {analysis.modelGuess.model}, connected
-                                    device looks like {connectedModel}.
+                                    {t('ota.mismatch', { file: analysis.modelGuess.model, device: String(connectedModel) })}
                                 </Alert>
                             )}
                             {isNonEmsComponent && (
                                 <Alert severity="warning" sx={{ mt: 1 }}>
-                                    {analysis.componentGuess.component} firmware - uses OTA type flag 0x{analysis.componentGuess.otaTypeFlag.toString(16).padStart(2, '0')},
-                                    verified via static analysis of the Control firmware, not yet confirmed on real hardware.
+                                    {t('ota.nonEms', {
+                                        component: analysis.componentGuess.component,
+                                        flag: analysis.componentGuess.otaTypeFlag.toString(16).padStart(2, '0'),
+                                    })}
                                 </Alert>
                             )}
                         </Box>
@@ -180,7 +181,7 @@ export const OtaWidget = () => {
                         onClick={startClicked}
                         disabled={!isConnected || !analysis || running}
                     >
-                        Start OTA Update
+                        {t('ota.start')}
                     </Button>
 
                     {progress && (
@@ -213,31 +214,29 @@ export const OtaWidget = () => {
             <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <WarningAmberIcon color="warning" />
-                    Confirm Firmware Update
+                    {t('ota.confirmTitle')}
                 </DialogTitle>
                 <DialogContent>
                     {mismatch && (
                         <DialogContentText sx={{ mb: 2 }}>
-                            This firmware file looks like it is for <strong>{analysis?.modelGuess.model}</strong>, but the
-                            connected device looks like <strong>{connectedModel}</strong>. Flashing firmware built for a
-                            different model can permanently brick the device. This is only a best-effort filename/content
-                            check, not a guarantee.
+                            {t('ota.confirmMismatch.1')} <strong>{analysis?.modelGuess.model}</strong>
+                            {t('ota.confirmMismatch.2')} <strong>{connectedModel}</strong>
+                            {t('ota.confirmMismatch.3')}
                         </DialogContentText>
                     )}
                     {isNonEmsComponent && (
                         <DialogContentText>
-                            This file looks like <strong>{analysis?.componentGuess.component}</strong> firmware, not
-                            Control/EMS. This tool will send OTA type flag 0x{analysis?.componentGuess.otaTypeFlag.toString(16).padStart(2, '0')},
-                            which per Ghidra analysis of the Control MCU's validation function is what it expects for
-                            this component - the Control MCU should relay it to the physical chip over CAN on its own.
-                            This has NOT yet been confirmed by an actual successful flash.
+                            {t('ota.confirmNonEms.1')} <strong>{analysis?.componentGuess.component}</strong>{' '}
+                            {t('ota.confirmNonEms.2', {
+                                flag: analysis?.componentGuess.otaTypeFlag.toString(16).padStart(2, '0') ?? '',
+                            })}
                         </DialogContentText>
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)} color="inherit">Cancel</Button>
+                    <Button onClick={() => setConfirmOpen(false)} color="inherit">{t('common.cancel')}</Button>
                     <Button onClick={() => void runOta()} color="error" variant="contained">
-                        I understand, continue
+                        {t('ota.continue')}
                     </Button>
                 </DialogActions>
             </Dialog>

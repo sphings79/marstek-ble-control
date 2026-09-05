@@ -8,13 +8,19 @@ import MenuIcon from '@mui/icons-material/Menu';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
+import { useT, type StringKey } from '../i18n/i18n';
+import { LanguageSwitch } from './LanguageSwitch';
 import { useBLE } from '../contexts/BLEContext';
 import { BridgeFirmwareCard } from './bridge/BridgeFirmwareCard';
 import { BridgeSecurityCard } from './bridge/BridgeSecurityCard';
 
 export interface WidgetGroup {
     key: string;
-    label: string;
+    /**
+     * Looked up rather than stored, because the groups are module-level constants in each view
+     * and would otherwise be built once, in whatever language happened to be active at import.
+     */
+    labelKey: StringKey;
     icon: ReactNode;
     widgets: ReactNode[];
 }
@@ -31,6 +37,7 @@ interface Props {
  *   bottom of the Drawer (mirroring the page Footer).
  */
 export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
+    const t = useT();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { viaBridge } = useBLE();
@@ -79,17 +86,17 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                     borderColor: 'divider',
                 }}
             >
-                <IconButton onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+                <IconButton onClick={() => setDrawerOpen(true)} aria-label={t('nav.openMenu')}>
                     <MenuIcon />
                 </IconButton>
-                <Typography variant="subtitle1" fontWeight="bold">{active?.label}</Typography>
+                <Typography variant="subtitle1" fontWeight="bold">{active ? t(active.labelKey) : ''}</Typography>
             </Box>
 
             <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
                 <Box sx={{ width: 270, height: '100%', display: 'flex', flexDirection: 'column' }} role="presentation">
                     <Box sx={{ px: 2, py: 2 }}>
-                        <Typography variant="h6" fontWeight="bold">Menu</Typography>
-                        <Typography variant="caption" color="text.secondary">Pick a section</Typography>
+                        <Typography variant="h6" fontWeight="bold">{t('nav.menu')}</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('nav.pickSection')}</Typography>
                     </Box>
                     <Divider />
                     <List>
@@ -100,7 +107,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                                 onClick={() => { setActiveKey(g.key); setDrawerOpen(false); }}
                             >
                                 <ListItemIcon sx={{ minWidth: 40 }}>{g.icon}</ListItemIcon>
-                                <ListItemText primary={g.label} />
+                                <ListItemText primary={t(g.labelKey)} />
                             </ListItemButton>
                         ))}
                     </List>
@@ -116,7 +123,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                                 rel="noopener noreferrer"
                             >
                                 <ListItemIcon sx={{ minWidth: 36 }}><StarBorderIcon fontSize="small" /></ListItemIcon>
-                                <ListItemText primary="Star on GitHub" primaryTypographyProps={{ fontWeight: 'bold' }} />
+                                <ListItemText primary={t('footer.star')} primaryTypographyProps={{ fontWeight: 'bold' }} />
                             </ListItemButton>
 
                             {PROJECT_LINKS.map(l => (
@@ -134,12 +141,16 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                         </List>
                         <Box sx={{ px: 2, py: 1.5 }}>
                             <Typography variant="caption" color="text.secondary" display="block">
-                                Community fork of{' '}
+                                {t('footer.forkOf')}{' '}
                                 <Link href={UPSTREAM_REPO} target="_blank" rel="noopener noreferrer" underline="hover">
                                     Hypfer/venuscontrol
                                 </Link>
-                                {' '}· not affiliated with Marstek
+                                {' '}· {t('footer.notAffiliated')}
                             </Typography>
+                        </Box>
+
+                        <Box sx={{ px: 2, pb: 2 }}>
+                            <LanguageSwitch />
                         </Box>
                     </Box>
                 </Box>

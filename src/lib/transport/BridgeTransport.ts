@@ -1,6 +1,7 @@
 import { ConnectionState } from '../ConnectionState';
 import { bridgeUrl } from '../bridge/BridgeApi';
 import { TransportKind, type Transport, type TransportCallbacks } from './Transport';
+import { translate } from '../../i18n/i18n';
 
 /** One device the bridge saw while scanning. */
 export interface BridgeDevice {
@@ -154,7 +155,7 @@ export class BridgeTransport implements Transport {
 
     async send(bytes: Uint8Array, withResponse: boolean) {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-            throw new Error('Not connected');
+            throw new Error(translate('err.notConnected'));
         }
 
         const frame = new Uint8Array(bytes.length + 1);
@@ -181,7 +182,7 @@ export class BridgeTransport implements Transport {
         socket.addEventListener('close', () => this.handleSocketGone());
         socket.addEventListener('error', () => {
             this.error('WebSocket error');
-            this.callbacks.onStateChange(ConnectionState.ERROR, 'Bridge connection failed');
+            this.callbacks.onStateChange(ConnectionState.ERROR, translate('err.bridgeConnectionFailed'));
         });
 
         return this.socketReady();
@@ -194,7 +195,7 @@ export class BridgeTransport implements Transport {
 
         return new Promise((resolve, reject) => {
             const onOpen = () => { cleanup(); resolve(); };
-            const onFail = () => { cleanup(); reject(new Error('Bridge connection failed')); };
+            const onFail = () => { cleanup(); reject(new Error(translate('err.bridgeConnectionFailed'))); };
             const cleanup = () => {
                 socket.removeEventListener('open', onOpen);
                 socket.removeEventListener('error', onFail);
@@ -213,7 +214,7 @@ export class BridgeTransport implements Transport {
             // entry and nothing on screen. Whatever the cause, a button that appears to do
             // nothing is the worst of the possible outcomes.
             this.error('Cannot send control message: socket not open', msg);
-            this.callbacks.onStateChange(ConnectionState.ERROR, 'Lost the bridge connection - reload the page');
+            this.callbacks.onStateChange(ConnectionState.ERROR, translate('err.bridgeLost'));
             return;
         }
         this.socket.send(JSON.stringify(msg));
@@ -285,7 +286,7 @@ export class BridgeTransport implements Transport {
             }
             case 'error':
                 this.error(`Bridge reported ${msg.code}: ${msg.msg}`);
-                this.callbacks.onStateChange(ConnectionState.ERROR, String(msg.msg ?? 'Bridge error'));
+                this.callbacks.onStateChange(ConnectionState.ERROR, String(msg.msg ?? translate('err.bridgeGeneric')));
                 break;
             default:
                 this.log('Ignoring unknown control message', msg);
