@@ -6,6 +6,7 @@ import BatterySaverIcon from '@mui/icons-material/BatterySaver';
 import BlockIcon from '@mui/icons-material/Block';
 
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/I18nContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { DepthOfDischargeControlPayload } from '../../lib/payloads/DepthOfDischargeControlPayload';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const DepthOfDischargeWidget = ({ min = 30, max = 88 }: Props) => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -94,23 +96,23 @@ export const DepthOfDischargeWidget = ({ min = 30, max = 88 }: Props) => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'info.main', color: 'info.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BatterySaverIcon />
-                <Typography variant="h6" fontWeight="bold">Depth of Discharge</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('dod.title')}</Typography>
             </Box>
 
             <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 {isSyncing ? (
                     <Box textAlign="center">
                         <CircularProgress size={24} />
-                        <Typography variant="caption" display="block" mt={1}>Syncing...</Typography>
+                        <Typography variant="caption" display="block" mt={1}>{t('common.syncing')}</Typography>
                     </Box>
                 ) : !isSupported && isConnected ? (
                     <Box textAlign="center" color="text.secondary" px={2}>
                         <BlockIcon sx={{ fontSize: 40, opacity: 0.5, mb: 1 }} />
                         <Typography variant="body2" fontWeight="500">
-                            Not Available
+                            {t('dod.notAvailable')}
                         </Typography>
                         <Typography variant="caption" display="block">
-                            This feature is not supported by the current firmware version.
+                            {t('dod.notSupported')}
                         </Typography>
                     </Box>
                 ) : (
@@ -132,12 +134,12 @@ export const DepthOfDischargeWidget = ({ min = 30, max = 88 }: Props) => {
                             )}
 
                             <Typography variant="body1" fontWeight="500">
-                                Max DoD
+                                {t('dod.maxDod')}
                             </Typography>
 
                             <Fade in={!isDragging}>
                                 <Typography variant="caption" color="text.secondary">
-                                    {reservePercentage}% Reserved for Emergency Power
+                                    {t('dod.reserved', { percent: reservePercentage })}
                                 </Typography>
                             </Fade>
                         </Box>

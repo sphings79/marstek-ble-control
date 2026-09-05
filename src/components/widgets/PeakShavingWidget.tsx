@@ -5,6 +5,7 @@ import {
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/I18nContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
 import { PeakShavingControlPayload } from '../../lib/payloads/PeakShavingControlPayload';
@@ -17,6 +18,7 @@ import { PeakShavingControlPayload } from '../../lib/payloads/PeakShavingControl
  * so this is a fire-and-forget control: set the values and press Apply.
  */
 export const PeakShavingWidget = () => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -43,23 +45,23 @@ export const PeakShavingWidget = () => {
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'secondary.dark', color: 'secondary.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <TrendingDownIcon />
                 <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
-                    Peak Shaving
+                    {t('peak.title')}
                 </Typography>
             </Box>
 
             <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 {!isConnected ? (
                     <Box display="flex" flexGrow={1} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
                         <FormControlLabel
                             control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
-                            label={enabled ? 'Enabled' : 'Disabled'}
+                            label={t(enabled ? 'common.enabled' : 'common.disabled')}
                         />
                         <TextField
-                            label="Peak power (W)"
+                            label={t('peak.power')}
                             type="number"
                             value={power}
                             onChange={(e) => setPower(Number(e.target.value))}
@@ -75,10 +77,10 @@ export const PeakShavingWidget = () => {
                             fullWidth
                             startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}
                         >
-                            {busy ? 'Applying...' : 'Apply'}
+                            {t(busy ? 'common.applying' : 'common.apply')}
                         </Button>
                         <Typography variant="caption" color="text.secondary">
-                            Caps grid power at the configured threshold (firmware v150+, BLE cmd 0x29).
+                            {t('peak.note')}
                         </Typography>
                     </Stack>
                 )}

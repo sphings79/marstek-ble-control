@@ -11,6 +11,7 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID, CT_TYPE, CT_MODE, PHASE } from '../../lib/VenusConst';
+import { useT } from '../../i18n/I18nContext';
 import { CTTypeControlPayload } from '../../lib/payloads/CTTypeControlPayload';
 import { CTModeControlPayload } from '../../lib/payloads/CTModeControlPayload';
 
@@ -18,6 +19,7 @@ const READINGS_REQUEST_PAYLOAD = new Uint8Array([0x0a, 0x0b, 0x0c]);
 const PHASE_DETECT_PAYLOAD = new Uint8Array([0x0a, 0x0b, 0x0c]);
 
 export const CTWidget = () => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -163,16 +165,16 @@ export const CTWidget = () => {
 
     const getPhaseLabel = (phase: number | undefined) => {
         switch (phase) {
-            case PHASE.L1: 
-                return 'Connected to L1';
-            case PHASE.L2: 
-                return 'Connected to L2';
-            case PHASE.L3: 
-                return 'Connected to L3';
-            case PHASE.ERROR: 
-                return 'Detection Failed';
-            default: 
-                return `Unknown State (0x${phase?.toString(16) || '?'})`;
+            case PHASE.L1:
+                return t('ct.onL1');
+            case PHASE.L2:
+                return t('ct.onL2');
+            case PHASE.L3:
+                return t('ct.onL3');
+            case PHASE.ERROR:
+                return t('ct.detectFailed');
+            default:
+                return t('ct.unknownPhase', { code: phase?.toString(16) || '?' });
         }
     };
 
@@ -194,11 +196,11 @@ export const CTWidget = () => {
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'success.dark', color: 'success.contrastText', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box display="flex" alignItems="center" gap={1}>
                     <SensorsIcon />
-                    <Typography variant="h6" fontWeight="bold">Current Transformer</Typography>
+                    <Typography variant="h6" fontWeight="bold">{t('ct.title')}</Typography>
                 </Box>
                 {hasState && (
                     <Chip
-                        label={ctConnected ? "Connected" : "Disconnected"}
+                        label={t(ctConnected ? 'ct.connected' : 'ct.disconnected')}
                         size="small"
                         color={ctConnected ? "success" : "default"}
                         sx={{
@@ -213,21 +215,21 @@ export const CTWidget = () => {
             <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 {!isConnected ? (
                     <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : !hasState ? (
                     <Box textAlign="center" py={4}>
                         <CircularProgress size={24} />
-                        <Typography variant="caption" display="block" mt={1}>Syncing Configuration...</Typography>
+                        <Typography variant="caption" display="block" mt={1}>{t('ct.syncing')}</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={3}>
                         <Box>
                             <FormControl fullWidth size="small" disabled={isConfigBusy} sx={{ mb: 2 }}>
-                                <InputLabel>CT Meter Type</InputLabel>
+                                <InputLabel>{t('ct.meterType')}</InputLabel>
                                 <Select
                                     value={selectedType}
-                                    label="CT Meter Type"
+                                    label={t('ct.meterType')}
                                     onChange={handleTypeChange}
                                 >
                                     <MenuItem value={CT_TYPE.SHELLY_PRO_3EM}>Shelly Pro 3EM</MenuItem>
@@ -247,10 +249,10 @@ export const CTWidget = () => {
                                 size="small"
                             >
                                 <ToggleButton value={CT_MODE.SINGLE_PHASE} sx={{ fontWeight: 'bold' }}>
-                                    Single Phase
+                                    {t('ct.singlePhase')}
                                 </ToggleButton>
                                 <ToggleButton value={CT_MODE.THREE_PHASE} sx={{ fontWeight: 'bold' }}>
-                                    Three Phase
+                                    {t('ct.threePhase')}
                                 </ToggleButton>
                             </ToggleButtonGroup>
                         </Box>
@@ -258,7 +260,7 @@ export const CTWidget = () => {
                         <Box>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
-                                    PHASE CONNECTION
+                                    {t('ct.phaseConnection')}
                                 </Typography>
                                 <Button
                                     size="small"
@@ -267,7 +269,7 @@ export const CTWidget = () => {
                                     onClick={handleDetectPhase}
                                     disabled={isDetectingPhase || serverPhase === PHASE.SCANNING || isConfigBusy}
                                 >
-                                    Auto-Detect Phase
+                                    {t('ct.autoDetect')}
                                 </Button>
                             </Box>
 
@@ -275,7 +277,7 @@ export const CTWidget = () => {
                                 {serverPhase === PHASE.SCANNING || isDetectingPhase ? (
                                     <Box display="flex" alignItems="center" gap={1} color="warning.main">
                                         <CircularProgress size={16} color="inherit" />
-                                        <Typography variant="body2" fontWeight="bold">Detecting Phase...</Typography>
+                                        <Typography variant="body2" fontWeight="bold">{t('ct.detecting')}</Typography>
                                     </Box>
                                 ) : (
                                     <Typography
@@ -294,7 +296,7 @@ export const CTWidget = () => {
                         <Box>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
-                                    LIVE READINGS
+                                    {t('state.liveReadings')}
                                 </Typography>
                                 <Button
                                     size="small"
@@ -303,38 +305,38 @@ export const CTWidget = () => {
                                     onClick={fetchReadings}
                                     disabled={isFetchingReadings}
                                 >
-                                    Fetch
+                                    {t('ct.fetch')}
                                 </Button>
                             </Box>
 
                             {!readingsData ? (
                                 <Typography variant="body2" color="text.secondary" textAlign="center" py={2} sx={{ fontStyle: 'italic' }}>
-                                    No readings fetched yet.
+                                    {t('ct.noReadings')}
                                 </Typography>
                             ) : (
                                 <Fade in={true}>
                                     <Grid container spacing={1.5}>
                                         <Grid size={{ xs: 6 }}>
                                             <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)' }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">L1 Power</Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">{t('ct.l1')}</Typography>
                                                 <Typography variant="body1" fontWeight="bold" fontFamily="monospace">{readingsData.l1} W</Typography>
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 6 }}>
                                             <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)' }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">L2 Power</Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">{t('ct.l2')}</Typography>
                                                 <Typography variant="body1" fontWeight="bold" fontFamily="monospace">{readingsData.l2} W</Typography>
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 6 }}>
                                             <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)' }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">L3 Power</Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">{t('ct.l3')}</Typography>
                                                 <Typography variant="body1" fontWeight="bold" fontFamily="monospace">{readingsData.l3} W</Typography>
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 6 }}>
                                             <Paper variant="outlined" sx={{ p: 1.5, textAlign: 'center', bgcolor: 'success.light', color: 'success.contrastText', border: 'none' }}>
-                                                <Typography variant="caption" display="block" sx={{ opacity: 0.8 }}>Total</Typography>
+                                                <Typography variant="caption" display="block" sx={{ opacity: 0.8 }}>{t('ct.total')}</Typography>
                                                 <Typography variant="body1" fontWeight="bold" fontFamily="monospace">{readingsData.total} W</Typography>
                                             </Paper>
                                         </Grid>

@@ -5,6 +5,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import { ConnectionState } from '../lib/BLEConnectionManager';
 import type { DeviceInfo } from "../lib/DeviceUtils.ts";
+import { useT } from '../i18n/I18nContext';
+import type { StringKey } from '../i18n/I18nContext';
 
 interface Props {
     deviceInfo: DeviceInfo;
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect, onReconnect }: Props) => {
+    const t = useT();
     const isConnected = status === ConnectionState.CONNECTED;
 
     let chipColor: "success" | "error" | "warning" | "default" = "default";
@@ -58,26 +61,26 @@ export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect,
                 }}>
                     {rssi != null && (
                         <Box display="flex" alignItems="center" color="text.secondary"
-                             title="Bluetooth signal to the storage">
+                             title={t('topbar.bleTitle')}>
                             <SignalCellularAltIcon fontSize="small" />
                             <Typography variant="caption" ml={0.5} whiteSpace="nowrap">
-                                BLE {rssi} dBm
+                                {t('topbar.ble', { rssi })}
                             </Typography>
                         </Box>
                     )}
 
                     {wifiRssi != null && (
                         <Box display="flex" alignItems="center" color="text.secondary"
-                             title="WiFi signal of the ESP32 bridge to your access point">
+                             title={t('topbar.wifiTitle')}>
                             <WifiIcon fontSize="small" />
                             <Typography variant="caption" ml={0.5} whiteSpace="nowrap">
-                                Bridge WiFi {wifiRssi} dBm
+                                {t('topbar.wifi', { rssi: wifiRssi })}
                             </Typography>
                         </Box>
                     )}
 
                     <Chip
-                        label={status}
+                        label={t(`status.${status}` as StringKey)}
                         color={chipColor}
                         size="small"
                         variant={isConnected ? "filled" : "outlined"}
@@ -92,7 +95,7 @@ export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect,
                             onClick={onDisconnect}
                             sx={{ flexShrink: 0 }}
                         >
-                            Disconnect
+                            {t('topbar.disconnect')}
                         </Button>
                     ) : (
                         <Button
@@ -103,7 +106,7 @@ export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect,
                             onClick={onReconnect}
                             sx={{ flexShrink: 0 }}
                         >
-                            Reconnect
+                            {t('topbar.reconnect')}
                         </Button>
                     )}
                 </Box>

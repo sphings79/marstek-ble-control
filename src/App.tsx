@@ -13,6 +13,7 @@ import { BridgeAuthView } from './components/bridge/BridgeAuthView';
 import { BridgeScannerView } from './components/bridge/BridgeScannerView';
 import { probeBridge, type BridgeInfo } from './lib/bridge/BridgeApi';
 import { BridgeTransport } from './lib/transport/BridgeTransport';
+import { useT } from './i18n/I18nContext';
 
 const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
     const [wifiRssi, setWifiRssi] = useState<number | null>(null);
@@ -80,7 +81,10 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
     );
 };
 
-const Splash = () => (
+const Splash = () => {
+    const t = useT();
+
+    return (
     <Box
         sx={{
             minHeight: '100vh', bgcolor: '#f4f6f8', display: 'flex', flexDirection: 'column',
@@ -88,9 +92,10 @@ const Splash = () => (
         }}
     >
         <CircularProgress />
-        <Typography color="text.secondary" variant="body2">Starting up...</Typography>
+        <Typography color="text.secondary" variant="body2">{t('app.starting')}</Typography>
     </Box>
-);
+    );
+};
 
 /**
  * Decides at startup how this copy of the app reaches the battery.

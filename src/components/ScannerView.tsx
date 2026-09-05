@@ -9,6 +9,7 @@ import BrowserNotSupportedIcon from '@mui/icons-material/BrowserNotSupported';
 
 import { ConnectionState } from '../lib/BLEConnectionManager';
 import { Footer } from './Footer';
+import { useT } from '../i18n/I18nContext';
 
 interface Props {
     onScan: () => void;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ScannerView = ({ onScan, status, error }: Props) => {
+    const t = useT();
     const isBluetoothSupported = typeof window !== 'undefined' && 'bluetooth' in navigator;
 
     const isScanning = status === ConnectionState.SCANNING;
@@ -27,40 +29,40 @@ export const ScannerView = ({ onScan, status, error }: Props) => {
         if (!isBluetoothSupported) {
             return {
                 icon: <BrowserNotSupportedIcon sx={{ fontSize: 60, color: 'text.disabled' }} />,
-                title: "Browser Not Supported",
-                desc: "Your current browser doesn't support WebBluetooth. Try something Blink-based.",
-                btnText: "Incompatible Browser",
+                title: t('scanner.unsupported.title'),
+                desc: t('scanner.unsupported.desc'),
+                btnText: t('scanner.unsupported.btn'),
             };
         }
 
         if (error) return {
             icon: <ErrorOutlineIcon sx={{ fontSize: 60, color: 'error.main' }} />,
-            title: "Connection Failed",
-            desc: "Please ensure the device is powered on and in range.",
-            btnText: "Retry Scan"
+            title: t('scanner.failed.title'),
+            desc: t('scanner.failed.desc'),
+            btnText: t('scanner.failed.btn'),
         };
 
         switch (status) {
             case ConnectionState.SCANNING:
                 return {
                     icon: <BluetoothSearchingIcon sx={{ fontSize: 60, color: 'primary.main' }} />,
-                    title: "Searching...",
-                    desc: "Select a Marstek Venus storage",
-                    btnText: "Scanning..."
+                    title: t('scanner.scanning.title'),
+                    desc: t('scanner.scanning.desc'),
+                    btnText: t('scanner.scanning.btn'),
                 };
             case ConnectionState.CONNECTING:
                 return {
                     icon: <BluetoothConnectedIcon sx={{ fontSize: 60, color: 'warning.main' }} />,
-                    title: "Connecting...",
-                    desc: "Establishing GATT connection...",
-                    btnText: "Connecting..."
+                    title: t('scanner.connecting.title'),
+                    desc: t('scanner.connecting.desc'),
+                    btnText: t('scanner.connecting.btn'),
                 };
             default:
                 return {
                     icon: <BluetoothIcon sx={{ fontSize: 60, color: 'primary.main' }} />,
-                    title: "Marstek BLE Control",
-                    desc: "Connect to a Marstek Venus storage to begin.",
-                    btnText: "Start Scanning"
+                    title: t('scanner.idle.title'),
+                    desc: t('scanner.idle.desc'),
+                    btnText: t('scanner.idle.btn'),
                 };
         }
     };

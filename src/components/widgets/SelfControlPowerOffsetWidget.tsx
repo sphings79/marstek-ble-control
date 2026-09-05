@@ -5,6 +5,7 @@ import {
 import TuneIcon from '@mui/icons-material/Tune';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { useT } from '../../i18n/I18nContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
 import { SelfControlPowerOffsetPayload } from '../../lib/payloads/SelfControlPowerOffsetPayload';
@@ -14,6 +15,7 @@ import { SelfControlPowerOffsetPayload } from '../../lib/payloads/SelfControlPow
  * self-consumption controller (target grid power instead of 0 W).
  */
 export const SelfControlPowerOffsetWidget = () => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -39,19 +41,19 @@ export const SelfControlPowerOffsetWidget = () => {
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'secondary.dark', color: 'secondary.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <TuneIcon />
                 <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
-                    Self-Consumption Offset
+                    {t('offset.title')}
                 </Typography>
             </Box>
 
             <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 {!isConnected ? (
                     <Box display="flex" flexGrow={1} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={2}>
                         <TextField
-                            label="Grid target offset (W)"
+                            label={t('offset.target')}
                             type="number"
                             value={offset}
                             onChange={(e) => setOffset(Number(e.target.value))}
@@ -66,10 +68,10 @@ export const SelfControlPowerOffsetWidget = () => {
                             fullWidth
                             startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}
                         >
-                            {busy ? 'Applying...' : 'Apply'}
+                            {t(busy ? 'common.applying' : 'common.apply')}
                         </Button>
                         <Typography variant="caption" color="text.secondary">
-                            Regulate to this grid power instead of 0 W. Positive = keep importing a little, negative = keep exporting a little (BLE cmd 0x55).
+                            {t('offset.note')}
                         </Typography>
                     </Stack>
                 )}

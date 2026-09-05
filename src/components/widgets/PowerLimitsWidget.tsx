@@ -11,6 +11,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
+import { useT } from '../../i18n/I18nContext';
 import { DischargePowerLimitControlPayload } from '../../lib/payloads/DischargePowerLimitControlPayload';
 import { ChargePowerLimitControlPayload } from '../../lib/payloads/ChargePowerLimitControlPayload';
 import { DevicePowerClassControlPayload, DEVICE_POWER_CLASS_OPTIONS } from '../../lib/payloads/DevicePowerClassControlPayload';
@@ -25,6 +26,7 @@ interface PowerLimitControlProps {
 }
 
 const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onSendCommand }: PowerLimitControlProps) => {
+    const t = useT();
     const [pendingValue, setPendingValue] = useState<number | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,7 +69,7 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
             {serverValue === undefined ? (
                 <Box textAlign="center" height="60px" display="flex" flexDirection="column" justifyContent="center" alignItems="center">
                     <CircularProgress size={24} />
-                    <Typography variant="caption" display="block" mt={1}>Syncing...</Typography>
+                    <Typography variant="caption" display="block" mt={1}>{t('common.syncing')}</Typography>
                 </Box>
             ) : (
                 <>
@@ -92,7 +94,7 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
                             <Fade in={true}>
                                 <Box display="flex" alignItems="center" gap={1}>
                                     <CircularProgress size={16} color="inherit" />
-                                    <Typography variant="caption">Updating...</Typography>
+                                    <Typography variant="caption">{t('common.updating')}</Typography>
                                 </Box>
                             </Fade>
                         )}
@@ -100,7 +102,7 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
 
                     {isCustomValue && !isPending && (
                         <Alert severity="info" icon={false} sx={{ mt: 1, py: 0, justifyContent: 'center' }}>
-                            Custom Value: {displayValue} W
+                            {t('powerLimits.customValue', { value: displayValue })}
                         </Alert>
                     )}
                 </>
@@ -117,6 +119,7 @@ interface DevicePowerClassControlProps {
 // The device power class (BLE cmd 0x15) is not reported back in the STATE response, so this
 // control keeps a local selection instead of syncing a server value.
 const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClassControlProps) => {
+    const t = useT();
     const [selected, setSelected] = useState<number | null>(null);
     const [isPending, setIsPending] = useState(false);
 
@@ -137,7 +140,7 @@ const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClas
         <Box width="100%" textAlign="center" sx={{ py: 2 }}>
             <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
                 <SpeedIcon color="action" />
-                <Typography variant="subtitle1" fontWeight="bold">Device Power Class</Typography>
+                <Typography variant="subtitle1" fontWeight="bold">{t('powerLimits.deviceClass')}</Typography>
             </Box>
 
             <ToggleButtonGroup
@@ -157,7 +160,7 @@ const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClas
             </ToggleButtonGroup>
 
             <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                Selecting 800 W also clamps all schedule slots to 800 W (BLE cmd 0x15).
+                {t('powerLimits.deviceClassNote')}
             </Typography>
         </Box>
     );
@@ -172,6 +175,7 @@ export const PowerLimitsWidget = ({
   dischargeOptions = [800, 1200],
   chargeOptions = [600, 1200]
 }: Props) => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -203,19 +207,19 @@ export const PowerLimitsWidget = ({
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'secondary.dark', color: 'secondary.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <BoltIcon />
                 <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
-                    Power Limits
+                    {t('powerLimits.title')}
                 </Typography>
             </Box>
 
             <Box sx={{ p: 2, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 {!isConnected ? (
                     <Box display="flex" flexGrow={1} alignItems="center" justifyContent="center">
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : (
                     <>
                         <PowerLimitControl
-                            title="Discharge Limit"
+                            title={t('powerLimits.discharge')}
                             icon={<BatterySaverIcon color="action" />}
                             serverValue={serverDischarge}
                             isConnected={isConnected}
@@ -226,7 +230,7 @@ export const PowerLimitsWidget = ({
                         <Divider sx={{ my: 1 }} />
 
                         <PowerLimitControl
-                            title="Charge Limit"
+                            title={t('powerLimits.charge')}
                             icon={<BatteryChargingFullIcon color="action" />}
                             serverValue={serverCharge}
                             isConnected={isConnected}
@@ -243,8 +247,8 @@ export const PowerLimitsWidget = ({
 
                         <Box mt="auto" pt={2} textAlign="center">
                             <Typography variant="caption" color="text.secondary">
-                                Something something local regulations.<br/>
-                                Keep in mind that they might actually exist for a reason
+                                {t('powerLimits.regulations1')}<br/>
+                                {t('powerLimits.regulations2')}
                             </Typography>
                         </Box>
                     </>

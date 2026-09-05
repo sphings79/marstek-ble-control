@@ -19,17 +19,19 @@ import { COMMAND_ID, MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT, WORK_MODE, MANUAL_MODE_S
 import { SetWorkModePayload } from '../../lib/payloads/SetWorkModePayload.ts';
 import { ManualWorkModeSlotControlPayload } from '../../lib/payloads/ManualWorkModeSlotControlPayload.ts';
 import type {WorkModeSetting} from "../../lib/payloads/GetWorkModeSettingsPayload.ts";
+import { useT } from '../../i18n/I18nContext';
+import type { StringKey } from '../../i18n/I18nContext';
 
 const REQUEST_PAYLOAD = new Uint8Array([0x01]);
 
-const DAYS = [
-    { label: 'Mo', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.MONDAY },
-    { label: 'Tu', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.TUESDAY },
-    { label: 'We', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.WEDNESDAY },
-    { label: 'Th', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.THURSDAY },
-    { label: 'Fr', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.FRIDAY },
-    { label: 'Sa', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.SATURDAY },
-    { label: 'Su', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.SUNDAY },
+const DAYS: { key: StringKey, mask: number }[] = [
+    { key: 'workMode.day.mo', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.MONDAY },
+    { key: 'workMode.day.tu', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.TUESDAY },
+    { key: 'workMode.day.we', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.WEDNESDAY },
+    { key: 'workMode.day.th', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.THURSDAY },
+    { key: 'workMode.day.fr', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.FRIDAY },
+    { key: 'workMode.day.sa', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.SATURDAY },
+    { key: 'workMode.day.su', mask: MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT.SUNDAY },
 ];
 
 const formatTime = (h: number, m: number) => 
@@ -41,6 +43,8 @@ const parseTime = (timeStr: string) => {
 };
 
 const DaySelector = ({ days, onChange, disabled }: { days: number, onChange: (d: number) => void, disabled: boolean }) => {
+    const t = useT();
+
     const toggleDay = (mask: number) => {
         if (days & mask) onChange(days & ~mask);
         else onChange(days | mask);
@@ -53,7 +57,7 @@ const DaySelector = ({ days, onChange, disabled }: { days: number, onChange: (d:
                 return (
                     <Chip
                         key={d.mask}
-                        label={d.label}
+                        label={t(d.key)}
                         onClick={() => !disabled && toggleDay(d.mask)}
                         color={isSelected ? "primary" : "default"}
                         variant={isSelected ? "filled" : "outlined"}
@@ -93,6 +97,7 @@ const ScheduleItemUI = ({
     onSave: (s: WorkModeSetting) => void,
     onDelete?: (slotIndex: number, originalSetting: WorkModeSetting) => void
 }) => {
+    const t = useT();
     const defaultPower = Math.max(minPower, Math.min(maxPower, 500));
     const basePower = setting.absolutePowerLimit || defaultPower;
 
@@ -155,7 +160,7 @@ const ScheduleItemUI = ({
                 <Box display="flex" alignItems="center" gap={1.5}>
                     {isUpsSlot ? (
                         <Typography variant="subtitle2" fontWeight="bold">
-                            UPS Mode
+                            {t('workMode.upsMode')}
                         </Typography>
                     ) : (
                         <Select
@@ -165,14 +170,14 @@ const ScheduleItemUI = ({
                             sx={{ fontWeight: 'bold', minWidth: 160 }}
                             disabled={isSaving}
                         >
-                            <MenuItem value={MANUAL_MODE_SCHEDULE_ITEM_ACTION.CHARGE}>Charge</MenuItem>
-                            <MenuItem value={MANUAL_MODE_SCHEDULE_ITEM_ACTION.DISCHARGE}>Discharge</MenuItem>
-                            <MenuItem value={MANUAL_MODE_SCHEDULE_ITEM_ACTION.SELF_CONSUMPTION}>Self-Consumption</MenuItem>
+                            <MenuItem value={MANUAL_MODE_SCHEDULE_ITEM_ACTION.CHARGE}>{t('workMode.charge')}</MenuItem>
+                            <MenuItem value={MANUAL_MODE_SCHEDULE_ITEM_ACTION.DISCHARGE}>{t('workMode.discharge')}</MenuItem>
+                            <MenuItem value={MANUAL_MODE_SCHEDULE_ITEM_ACTION.SELF_CONSUMPTION}>{t('workMode.selfConsumption')}</MenuItem>
                         </Select>
                     )}
                     
                     {isDirty && !isSaving && (
-                        <Chip label="Unsaved" color="warning" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                        <Chip label={t('workMode.unsaved')} color="warning" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
                     )}
                 </Box>
                 
@@ -191,12 +196,12 @@ const ScheduleItemUI = ({
                     <>
                         <Box display="flex" gap={2}>
                             <TextField 
-                                label="Start Time" type="time" value={startTime} 
+                                label={t('workMode.startTime')} type="time" value={startTime} 
                                 onChange={e => setStartTime(e.target.value)} fullWidth size="small" 
                                 slotProps={{ inputLabel: { shrink: true } }} disabled={isSaving}
                             />
                             <TextField 
-                                label="End Time" type="time" value={endTime} 
+                                label={t('workMode.endTime')} type="time" value={endTime} 
                                 onChange={e => setEndTime(e.target.value)} fullWidth size="small" 
                                 slotProps={{ inputLabel: { shrink: true } }} disabled={isSaving}
                             />
@@ -207,7 +212,7 @@ const ScheduleItemUI = ({
 
                 {action !== MANUAL_MODE_SCHEDULE_ITEM_ACTION.SELF_CONSUMPTION && (
                     <TextField 
-                        label="(Dis-)Charge Power" 
+                        label={t('workMode.power')} 
                         type="number" 
                         value={power} 
                         onChange={e => {
@@ -217,7 +222,7 @@ const ScheduleItemUI = ({
                         }}
                         fullWidth size="small" 
                         error={!isValidPower}
-                        helperText={!isValidPower ? `Must be between ${minPower}W and ${maxPower}W` : ""}
+                        helperText={!isValidPower ? t('workMode.powerRange', { min: minPower, max: maxPower }) : ""}
                         slotProps={{ 
                             input: { 
                                 endAdornment: <InputAdornment position="end">W</InputAdornment>,
@@ -240,13 +245,13 @@ const ScheduleItemUI = ({
                         <Fade in={true}>
                             <Box display="flex" alignItems="center" gap={1}>
                                 <CircularProgress size={16} color="inherit" />
-                                <span>Saving...</span>
+                                <span>{t('workMode.saving')}</span>
                             </Box>
                         </Fade>
                     ) : (
                         <Box display="flex" alignItems="center" gap={1}>
                             <SaveIcon fontSize="small" />
-                            <span>{isDirty ? "Save Changes" : "Saved"}</span>
+                            <span>{t(isDirty ? 'workMode.saveChanges' : 'workMode.saved')}</span>
                         </Box>
                     )}
                 </Button>
@@ -266,6 +271,7 @@ export const WorkModeWidget = ({
     scheduleItemMaxPower = 1200, 
     scheduleItemUPSSupported = false,
 }: Props) => {
+    const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -448,7 +454,7 @@ export const WorkModeWidget = ({
         if (emptySlot) {
             setAddedDraftSlots(prev => [...prev, emptySlot.slotIndex]);
         } else {
-            alert(`No available schedule slots (Max 9).`);
+            alert(t('workMode.noFreeSlots'));
         }
     };
 
@@ -464,9 +470,9 @@ export const WorkModeWidget = ({
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'primary.dark', color: 'primary.contrastText', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box display="flex" alignItems="center" gap={1}>
                     <SettingsSuggestIcon />
-                    <Typography variant="h6" fontWeight="bold">Work Mode</Typography>
+                    <Typography variant="h6" fontWeight="bold">{t('workMode.title')}</Typography>
                 </Box>
-                <Tooltip title="Poll Settings">
+                <Tooltip title={t('workMode.poll')}>
                     <span>
                         <IconButton onClick={fetchSettings} disabled={!isConnected || isRefreshing || isBusy || globalMode === null} sx={{ color: 'inherit' }}>
                             <RefreshIcon sx={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '100%': { transform: 'rotate(360deg)' } } }} />
@@ -478,12 +484,12 @@ export const WorkModeWidget = ({
             <Box sx={{ p: 3, flexGrow: 1, overflowY: 'auto' }}>
                 {!isConnected ? (
                     <Box display="flex" justifyContent="center" py={4}>
-                        <Typography variant="body2" color="text.secondary">Waiting for connection...</Typography>
+                        <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
                 ) : (!scheduleData || globalMode === null) ? (
                     <Box display="flex" flexDirection="column" alignItems="center" py={4}>
                         <CircularProgress size={24} sx={{ mb: 1 }} />
-                        <Typography variant="caption" color="text.secondary">Polling configuration...</Typography>
+                        <Typography variant="caption" color="text.secondary">{t('workMode.polling')}</Typography>
                     </Box>
                 ) : (
                     <Stack spacing={3}>
@@ -495,7 +501,7 @@ export const WorkModeWidget = ({
                                     onClick={() => handleGlobalModeChange(WORK_MODE.SELF_CONSUMPTION)}
                                     disabled={isBusy}
                                 >
-                                    Self-Consumption
+                                    {t('workMode.selfConsumption')}
                                 </Button>
                                 <Button 
                                     variant={globalMode === WORK_MODE.MANUAL ? "contained" : "outlined"} 
@@ -503,7 +509,7 @@ export const WorkModeWidget = ({
                                     onClick={() => handleGlobalModeChange(WORK_MODE.MANUAL)}
                                     disabled={isBusy}
                                 >
-                                    Manual
+                                    {t('workMode.manual')}
                                 </Button>
                             </Stack>
                         </Box>
@@ -521,7 +527,7 @@ export const WorkModeWidget = ({
                         >
                             <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0, minHeight: 'auto', '& .MuiAccordionSummary-content': { my: 1 } }}>
                                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
-                                    MANUAL MODE CONFIGURATION
+                                    {t('workMode.manualHeading')}
                                 </Typography>
                             </AccordionSummary>
                             <AccordionDetails sx={{ px: 0, pb: 0 }}>
@@ -529,10 +535,9 @@ export const WorkModeWidget = ({
                                     {
                                         upsSetting && (
                                             <Alert severity="info" sx={{ mb: 2, py: 0 }}>
-                                                What the vendor app exposes as "UPS Mode" is actually just a special case of the manual schedule.<br/>
+                                                {t('workMode.upsInfo1')}<br/>
                                                 <br/>
-                                                Specifically, if enabled, the system will charge the battery with the specified power as soon as a Grid connection is available.
-                                                This overrides any other configured manual schedule items and requires the Backup Power setting to be enabled to make sense.
+                                                {t('workMode.upsInfo2')}
                                             </Alert>
                                         )
                                     }
@@ -552,20 +557,17 @@ export const WorkModeWidget = ({
 
                                 <Box>
                                     <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" mb={2}>
-                                        SCHEDULE ITEMS ({renderableSchedules.length}/9)
+                                        {t('workMode.scheduleItems', { count: renderableSchedules.length })}
                                     </Typography>
 
                                     <Alert severity="info" sx={{ mb: 2, py: 0 }}>
-                                        Anything here only really makes sense if the Battery has a synced time.
-                                        However, as of now, I do not know how that time sync even works
-                                        <br/>
-                                        So this part is kinda useless.
+                                        {t('workMode.timeWarning')}
                                     </Alert>
 
                                     <Stack spacing={2} mb={2}>
                                         {renderableSchedules.length === 0 ? (
                                             <Typography variant="body2" color="text.disabled" textAlign="center" py={2} fontStyle="italic">
-                                                No schedule items configured.
+                                                {t('workMode.noItems')}
                                             </Typography>
                                         ) : (
                                             renderableSchedules.map(setting => (
@@ -591,7 +593,7 @@ export const WorkModeWidget = ({
                                         disabled={isBusy || isUpsActive || globalMode === WORK_MODE.SELF_CONSUMPTION || renderableSchedules.length >= 9}
                                         sx={{ borderStyle: 'dashed' }}
                                     >
-                                        Add Schedule Item
+                                        {t('workMode.addItem')}
                                     </Button>
                                 </Box>
                             </AccordionDetails>

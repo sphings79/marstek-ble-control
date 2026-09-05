@@ -17,6 +17,7 @@ import { BackupPowerControlPayload } from "../../lib/payloads/BackupPowerControl
 import { SurplusFeedInControlPayload } from "../../lib/payloads/SurplusFeedInControlPayload";
 import { BluetoothControlPayload } from "../../lib/payloads/BluetoothControlPayload.ts";
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
+import { useT } from '../../i18n/I18nContext';
 
 interface Props {
     /**
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
+    const t = useT();
     const { sendPacket, connectionState, pollState, viaBridge } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -142,14 +144,14 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
         <Paper elevation={3} sx={{ p: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', userSelect: "none" }}>
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'warning.main', color: 'warning.contrastText', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <ToggleOnIcon />
-                <Typography variant="h6" fontWeight="bold">Toggles</Typography>
+                <Typography variant="h6" fontWeight="bold">{t('toggles.title')}</Typography>
             </Box>
 
             <Box sx={{ flexGrow: 1 }}>
                 {!hasState && isConnected ? (
                     <Box p={3} textAlign="center">
                         <CircularProgress size={24} />
-                        <Typography variant="caption" display="block" mt={1}>Syncing...</Typography>
+                        <Typography variant="caption" display="block" mt={1}>{t('toggles.syncing')}</Typography>
                     </Box>
                 ) : (
                     <List sx={{ p: 0 }}>
@@ -159,8 +161,8 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                                 <BoltIcon color={backupPowerOn ? "warning" : "disabled"} />
                             </ListItemIcon>
                             <ListItemText
-                                primary="Backup Power"
-                                secondary="Controls the inbuilt power outlet"
+                                primary={t('toggles.backupPower')}
+                                secondary={t('toggles.backupPower.desc')}
                                 sx={{ mr: 2 }}
                             />
                             <Switch
@@ -178,8 +180,8 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                                     <CurrencyExchangeIcon color={surplusFeedInOn && surplusFeedInSupported ? "warning" : "disabled"} />
                                 </ListItemIcon>
                                 <ListItemText
-                                    primary="Surplus Feed-in"
-                                    secondary={!surplusFeedInSupported ? "Not supported by the current FW version" : "Feed excess solar energy back into the grid when the battery is full"}
+                                    primary={t('toggles.surplus')}
+                                    secondary={t(surplusFeedInSupported ? 'toggles.surplus.desc' : 'toggles.unsupported')}
                                     sx={{ mr: 2 }}
                                 />
                                 <Switch
@@ -197,8 +199,8 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                                 <LightModeIcon color={ledOn && ledControlSupported ? "warning" : "disabled"} />
                             </ListItemIcon>
                             <ListItemText
-                                primary="LED Light"
-                                secondary={!ledControlSupported ? "Not supported by the current FW version" : "Control the front panel indicators"}
+                                primary={t('toggles.led')}
+                                secondary={t(ledControlSupported ? 'toggles.led.desc' : 'toggles.unsupported')}
                                 sx={{ mr: 2 }}
                             />
                             <Switch
@@ -215,12 +217,8 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                                 <BluetoothIcon color={bluetoothEnabled && bluetoothControlSupported ? "warning" : "disabled"} />
                             </ListItemIcon>
                             <ListItemText
-                                primary="Bluetooth"
-                                secondary={
-                                    !bluetoothControlSupported ? 
-                                        "Not supported by the current FW version" : 
-                                        "Once disabled, to connect again, power-cycling the device will make it accessible via BLE again for 10 minutes."
-                                }
+                                primary={t('toggles.bluetooth')}
+                                secondary={t(bluetoothControlSupported ? 'toggles.bluetooth.desc' : 'toggles.unsupported')}
                                 sx={{ mr: 2 }}
                             />
                             <Switch
@@ -239,30 +237,27 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
             <Dialog open={confirmBluetoothOff} onClose={() => setConfirmBluetoothOff(false)}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <WarningAmberIcon color="warning" />
-                    Switch Bluetooth off?
+                    {t('toggles.confirm.title')}
                 </DialogTitle>
                 <DialogContent>
                     <DialogContentText sx={{ mb: 2 }}>
-                        This command travels over the very connection it switches off. Once it takes
-                        effect the storage stops accepting Bluetooth connections, and this page
-                        cannot bring it back.
+                        {t('toggles.confirm.body1')}
                     </DialogContentText>
                     <DialogContentText sx={{ mb: 2 }}>
-                        Getting back in means <strong>power-cycling the storage</strong>, which
-                        makes it reachable again for ten minutes.
+                        {t('toggles.confirm.body2.pre')}{' '}
+                        <strong>{t('toggles.confirm.body2.strong')}</strong>
+                        {t('toggles.confirm.body2.post')}
                     </DialogContentText>
                     {viaBridge && (
                         <DialogContentText>
-                            You are connected through the ESP32 bridge, so Bluetooth is the only way
-                            it reaches the storage - the bridge goes deaf with it, wherever it is
-                            installed.
+                            {t('toggles.confirm.bridge')}
                         </DialogContentText>
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmBluetoothOff(false)} color="inherit">Cancel</Button>
+                    <Button onClick={() => setConfirmBluetoothOff(false)} color="inherit">{t('common.cancel')}</Button>
                     <Button onClick={() => void setBluetoothEnabled(false)} color="warning" variant="contained">
-                        Switch it off
+                        {t('toggles.confirm.ok')}
                     </Button>
                 </DialogActions>
             </Dialog>

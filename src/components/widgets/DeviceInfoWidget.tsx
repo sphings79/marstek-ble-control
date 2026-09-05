@@ -14,6 +14,7 @@ import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputCompone
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
+import { useT } from '../../i18n/I18nContext';
 
 interface Props {
     /**
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
+    const t = useT();
     const { sendPacket, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
@@ -98,9 +100,9 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
             <Box sx={{ p: 2, minHeight: '72px', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box display="flex" alignItems="center" gap={1}>
                     <InfoOutlinedIcon />
-                    <Typography variant="h6" fontWeight="bold">Device Info</Typography>
+                    <Typography variant="h6" fontWeight="bold">{t('deviceInfo.title')}</Typography>
                 </Box>
-                <Tooltip title="Refresh Data">
+                <Tooltip title={t('deviceInfo.refresh')}>
                     <span>
                         <IconButton
                             onClick={refresh}
@@ -128,10 +130,10 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
                         {isConnected ? (
                             <>
                                 <CircularProgress size={30} sx={{ mb: 1 }} />
-                                <Typography variant="caption" display="block">Fetching Data...</Typography>
+                                <Typography variant="caption" display="block">{t('deviceInfo.fetching')}</Typography>
                             </>
                         ) : (
-                            <Typography variant="body2">Waiting for connection...</Typography>
+                            <Typography variant="body2">{t('state.waitingConnection')}</Typography>
                         )}
                     </Box>
                 ) : (
@@ -139,19 +141,19 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
                         <Stack spacing={3}>
 
                             <Box>
-                                <Chip label="Identity" size="small" color="primary" variant="outlined" sx={{ mb: 1, fontWeight: 'bold' }} />
+                                <Chip label={t('deviceInfo.identity')} size="small" color="primary" variant="outlined" sx={{ mb: 1, fontWeight: 'bold' }} />
                                 <InfoRow
-                                    label="Model Type"
+                                    label={t('deviceInfo.modelType')}
                                     value={data.deviceType}
                                     icon={<SettingsInputComponentIcon fontSize="small" />}
                                 />
                                 <InfoRow
-                                    label="Device ID"
+                                    label={t('deviceInfo.deviceId')}
                                     value={data.deviceId}
                                     icon={<FingerprintIcon fontSize="small" />}
                                 />
                                 <InfoRow
-                                    label="MAC Address"
+                                    label={t('deviceInfo.mac')}
                                     value={data.macAddress}
                                     icon={<FingerprintIcon fontSize="small" />}
                                     isLast
@@ -159,18 +161,18 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
                             </Box>
 
                             <Box>
-                                <Chip label="Versions" size="small" color="secondary" variant="outlined" sx={{ mb: 1, fontWeight: 'bold' }} />
+                                <Chip label={t('deviceInfo.versions')} size="small" color="secondary" variant="outlined" sx={{ mb: 1, fontWeight: 'bold' }} />
                                 <Grid container columnSpacing={4}>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label="EMS FW (Control)" value={data.data.get('dev_ver')} icon={<MemoryIcon fontSize="small"/>} />
-                                        <InfoRow label="BMS FW" value={data.data.get('bms_ver')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.emsFw')} value={data.data.get('dev_ver')} icon={<MemoryIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.bmsFw')} value={data.data.get('bms_ver')} icon={<PowerIcon fontSize="small"/>} />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label="VNS FW (Microinverter)" value={data.data.get('inv_ver')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.vnsFw')} value={data.data.get('inv_ver')} icon={<PowerIcon fontSize="small"/>} />
                                         {showMppt && (
-                                            <InfoRow label="MPPT FW" value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
+                                            <InfoRow label={t('deviceInfo.mpptFw')} value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
                                         )}
-                                        <InfoRow label="Communication Module" value={data.data.get('fc_ver')} icon={<MemoryIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.commModule')} value={data.data.get('fc_ver')} icon={<MemoryIcon fontSize="small"/>} />
                                     </Grid>
                                 </Grid>
                             </Box>
