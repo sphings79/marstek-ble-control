@@ -69,6 +69,7 @@ things, and none of them is a Marstek service:
 - 🛡️ **Model detection for firmware files** — warns before flashing another model's image, based on
   the `VNSA`/`VNSD`/`VNSE` tag embedded in every image; verified against all 27 Venus images in the
   firmware archive
+- 🌍 **English and German** — the whole interface, picked from your browser and switchable at any time
 - ⚡ **Device Power Class** selection (800 / 2200 / 2500 W)
 - 📉 **Peak Shaving** — cap grid draw at a configurable threshold
 - 🎚️ **Self-Consumption Power Offset** — bias the controller to target a grid power other than 0 W

@@ -73,6 +73,7 @@ braucht es drei Dinge, und keines davon ist ein Marstek-Dienst:
 - 🛡️ **Modellerkennung für Firmware-Dateien** — warnt, bevor das Abbild eines anderen Modells
   geflasht wird, anhand des in jedem Abbild eingebetteten `VNSA`/`VNSD`/`VNSE`-Tags; gegen alle 27
   Venus-Abbilder im Firmware-Archiv geprüft
+- 🌍 **Englisch und Deutsch** — die komplette Oberfläche, richtet sich nach dem Browser und ist jederzeit umschaltbar
 - ⚡ **Geräteleistungsklasse** wählbar (800 / 2200 / 2500 W)
 - 📉 **Peak Shaving** — Netzbezug auf einen einstellbaren Schwellwert begrenzen
 - 🎚️ **Offset für den Eigenverbrauch** — den Regler auf eine andere Netzleistung als 0 W ziehen
@@ -103,14 +104,14 @@ gemeldet statt geflasht.
 ## Die App
 
 <div align="center">
-<img alt="Marstek BLE Control auf einem Smartphone: Ladezustand, Batterie- und Netzleistung, Energiestatistik und die Gerätedetails" src="docs/assets/dashboard-mobile.png" height="640">
+<img alt="Marstek BLE Control auf einem Smartphone: Ladezustand, Batterie- und Netzleistung, Energiestatistik und die Gerätedetails" src="docs/assets/dashboard-mobile-de.png" height="640">
 </div>
 
 <details>
 <summary>The whole panel on a desktop</summary>
 
 <div align="center">
-<img alt="Das vollständige Bedienfeld: Zustand, Geräteinfo, Schalter, Work Mode, Leistungsgrenzen, Peak Shaving, Modulzustände, Entladetiefe, Stromwandler, lokale API, Gerätezeit, Werksreset und OTA" src="docs/assets/dashboard-desktop.png" width="100%">
+<img alt="Das vollständige Bedienfeld: Zustand, Geräteinfo, Schalter, Work Mode, Leistungsgrenzen, Peak Shaving, Modulzustände, Entladetiefe, Stromwandler, lokale API, Gerätezeit, Werksreset und OTA" src="docs/assets/dashboard-desktop-de.png" width="100%">
 </div>
 
 </details>
