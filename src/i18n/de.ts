@@ -105,9 +105,9 @@ export const de: Record<keyof typeof en, string> = {
     "deviceInfo.mac": "MAC-Adresse",
     "deviceInfo.emsFw": "EMS-FW (Steuerung)",
     "deviceInfo.bmsFw": "BMS-FW",
-    "deviceInfo.vnsFw": "VNS-FW (Mikrowechselrichter)",
+    "deviceInfo.vnsFw": "VNS-FW (Mikrowechsel­richter)",
     "deviceInfo.mpptFw": "MPPT-FW",
-    "deviceInfo.commModule": "Kommunikationsmodul",
+    "deviceInfo.commModule": "Kommunikations­modul",
 
     // Work mode widget
     "workMode.title": "Betriebsart",

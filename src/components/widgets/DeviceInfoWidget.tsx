@@ -88,14 +88,14 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
             <Box display="flex" alignItems="center" gap={1.5} sx={{ minWidth: 0 }}>
                 {icon && <Box color="text.secondary" sx={{ opacity: 0.7, flexShrink: 0 }}>{icon}</Box>}
                 {/* German compounds - "Kommunikationsmodul" - carry no break opportunity and
-                    would otherwise run straight over the value. Hyphenation handles it properly
-                    where the browser can; breaking anywhere is the fallback that at least keeps
-                    the two apart. */}
+                    would otherwise run straight over the value. The long German compounds
+                    carry a soft hyphen so they break in one sensible place; automatic
+                    hyphenation was happy to shrink a label to one syllable per line. */}
                 <Typography
                     variant="body2"
                     color="text.secondary"
                     fontWeight={500}
-                    sx={{ hyphens: 'auto', overflowWrap: 'anywhere' }}
+                    sx={{ overflowWrap: 'break-word' }}
                 >
                     {label}
                 </Typography>
