@@ -72,11 +72,13 @@ export const BridgeFirmwareCard = () => {
 
     const busy = phase === 'uploading' || phase === 'restarting';
 
-    // Two separate questions. Whether to shout about a new version follows the running firmware;
-    // whether the release can be installed does not. The web interface has no version of its own
-    // to compare, so gating its button on the firmware's meant that updating the firmware first
-    // took away the only way to fetch the interface that goes with it.
-    const outdated = release != null && isOutdated(version?.version, release.tag);
+    // Three separate questions. The firmware and the interface are installed separately and are
+    // compared separately - gating both on the firmware's version meant updating the firmware
+    // first took away the only way to fetch the interface that goes with it, and left the
+    // interface button saying the same thing before and after.
+    const firmwareOutdated = release != null && isOutdated(version?.version, release.tag);
+    const webOutdated = release != null && version?.web !== release.tag;
+    const outdated = firmwareOutdated || webOutdated;
     const canInstall = release != null;
 
     const installRelease = async (target: UpdateTarget) => {
@@ -120,6 +122,7 @@ export const BridgeFirmwareCard = () => {
                     {version && (
                         <Typography variant="caption" color="text.secondary" display="block">
                             {version.version} · slot {version.slot} · {version.built}
+                            {version.web && <> · {t('bridgeFw.webInstalled', { version: version.web })}</>}
                         </Typography>
                     )}
 
@@ -142,23 +145,23 @@ export const BridgeFirmwareCard = () => {
 
                     {canInstall && release.firmwareUrl && (
                         <Button
-                            variant={outdated ? 'contained' : 'outlined'}
+                            variant={firmwareOutdated ? 'contained' : 'outlined'}
                             onClick={() => void installRelease('firmware')}
                             disabled={busy}
                             fullWidth
                         >
-                            {t(outdated ? 'bridgeFw.install' : 'bridgeFw.reinstall', { tag: release.tag })}
+                            {t(firmwareOutdated ? 'bridgeFw.install' : 'bridgeFw.reinstall', { tag: release.tag })}
                         </Button>
                     )}
 
                     {canInstall && release.webUrl && (
                         <Button
-                            variant={outdated ? 'contained' : 'outlined'}
+                            variant={webOutdated ? 'contained' : 'outlined'}
                             onClick={() => void installRelease('web')}
                             disabled={busy}
                             fullWidth
                         >
-                            {t('bridgeFw.installWeb', { tag: release.tag })}
+                            {t(webOutdated ? 'bridgeFw.installWeb' : 'bridgeFw.reinstallWeb', { tag: release.tag })}
                         </Button>
                     )}
 

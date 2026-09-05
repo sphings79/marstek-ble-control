@@ -7,6 +7,12 @@ export interface BridgeVersion {
     idf: string;
     /** Which of the two app slots is running, e.g. "ota_0". */
     slot: string;
+    /**
+     * The release the web interface was installed from, "custom" for one uploaded by hand, and
+     * absent on a bridge too old to record it. The interface carries no version of its own that
+     * can be read back, so this is the only way to tell whether it matches a release.
+     */
+    web?: string;
 }
 
 export async function fetchBridgeVersion(): Promise<BridgeVersion | null> {

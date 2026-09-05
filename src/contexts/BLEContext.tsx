@@ -65,14 +65,24 @@ export const BLEProvider = ({ transport, children }: { transport?: Transport; ch
         return () => mgr.disconnect();
     }, []);
 
+    // Both of these are async underneath, and neither used to be awaited or caught: a rejected
+    // promise vanished into an unhandled rejection, so a press of connect that failed before it
+    // reached the bridge looked exactly like a press that had not registered at all. Which is
+    // what it was mistaken for.
     const connect = () => {
         setError(null);
-        managerRef.current!.scanAndConnect();
+        void managerRef.current!.scanAndConnect().catch((err: Error) => {
+            setConnectionState(ConnectionState.ERROR);
+            setError(err.message);
+        });
     };
 
     const reconnect = () => {
         setError(null);
-        managerRef.current!.reconnect();
+        void managerRef.current!.reconnect().catch((err: Error) => {
+            setConnectionState(ConnectionState.ERROR);
+            setError(err.message);
+        });
     };
 
     const disconnect = () => {

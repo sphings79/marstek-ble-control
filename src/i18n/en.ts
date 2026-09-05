@@ -334,4 +334,8 @@ export const en = {
     "err.uploadFailed": "Connection to the bridge failed during upload",
     "err.uploadCancelled": "Upload cancelled",
     "err.installFailed": "The bridge could not install it: {detail}",
+
+    // Interface version
+    "bridgeFw.reinstallWeb": "Reinstall {tag} interface",
+    "bridgeFw.webInstalled": "interface {version}",
 } as const;

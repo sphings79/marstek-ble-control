@@ -252,16 +252,19 @@ export class BLEConnectionManager {
     }
 
     private async doPoll() {
-        if (!this.transport.isConnected) {
-            return;
+        // Every path schedules the next poll. Returning early without one meant a single moment of
+        // "not connected" - a reconnect in progress, a bridge catching its breath - stopped the
+        // polling for good, and the dashboard sat on "waiting for first poll" until the whole
+        // connection was torn down and rebuilt by hand.
+        if (this.transport.isConnected) {
+            try {
+                await this.sendPacket(COMMAND_ID.STATE);
+            } catch (err) {
+                console.warn("Poll failed", err);
+            }
         }
 
-        try {
-            await this.sendPacket(COMMAND_ID.STATE);
-        } catch (err) {
-            console.warn("Poll failed", err);
-        }
-
+        this.stopPolling();
         this.pollTimer = setTimeout(() => this.doPoll(), 5_000);
     }
 

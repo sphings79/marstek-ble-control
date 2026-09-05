@@ -292,7 +292,7 @@ export const de: Record<keyof typeof en, string> = {
     "bridgeFw.changelog": "Änderungen",
     "bridgeFw.available": "ist verfügbar.",
     "bridgeFw.install": "{tag}-Firmware installieren",
-    "bridgeFw.reinstall": "{tag}-Firmware neu installieren",
+    "bridgeFw.reinstall": "{tag}-Firmware erneut installieren",
     "bridgeFw.installWeb": "{tag}-Oberfläche installieren",
     "bridgeFw.firmware": "Firmware",
     "bridgeFw.webInterface": "Weboberfläche",
@@ -332,4 +332,8 @@ export const de: Record<keyof typeof en, string> = {
     "err.uploadFailed": "Verbindung zur Bridge während des Uploads verloren",
     "err.uploadCancelled": "Upload abgebrochen",
     "err.installFailed": "Die Bridge konnte es nicht installieren: {detail}",
+
+    // Interface version
+    "bridgeFw.reinstallWeb": "{tag}-Oberfläche erneut installieren",
+    "bridgeFw.webInstalled": "Oberfläche {version}",
 };
