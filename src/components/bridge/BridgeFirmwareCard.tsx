@@ -69,7 +69,13 @@ export const BridgeFirmwareCard = () => {
     };
 
     const busy = phase === 'uploading' || phase === 'restarting';
-    const updateAvailable = release && isOutdated(version?.version, release.tag);
+
+    // Two separate questions. Whether to shout about a new version follows the running firmware;
+    // whether the release can be installed does not. The web interface has no version of its own
+    // to compare, so gating its button on the firmware's meant that updating the firmware first
+    // took away the only way to fetch the interface that goes with it.
+    const outdated = release != null && isOutdated(version?.version, release.tag);
+    const canInstall = release != null;
 
     const installRelease = async (target: UpdateTarget) => {
         const url = target === 'web' ? release?.webUrl : release?.firmwareUrl;
@@ -121,7 +127,7 @@ export const BridgeFirmwareCard = () => {
                         <Alert severity={phase === 'done' ? 'success' : 'error'}>{message}</Alert>
                     )}
 
-                    {updateAvailable && (
+                    {outdated && (
                         <Alert
                             severity="info"
                             action={release.url
@@ -134,14 +140,24 @@ export const BridgeFirmwareCard = () => {
                         </Alert>
                     )}
 
-                    {updateAvailable && release.firmwareUrl && (
-                        <Button variant="contained" onClick={() => void installRelease('firmware')} disabled={busy} fullWidth>
-                            Install {release.tag} firmware
+                    {canInstall && release.firmwareUrl && (
+                        <Button
+                            variant={outdated ? 'contained' : 'outlined'}
+                            onClick={() => void installRelease('firmware')}
+                            disabled={busy}
+                            fullWidth
+                        >
+                            {outdated ? `Install ${release.tag} firmware` : `Reinstall ${release.tag} firmware`}
                         </Button>
                     )}
 
-                    {updateAvailable && release.webUrl && (
-                        <Button variant="contained" onClick={() => void installRelease('web')} disabled={busy} fullWidth>
+                    {canInstall && release.webUrl && (
+                        <Button
+                            variant={outdated ? 'contained' : 'outlined'}
+                            onClick={() => void installRelease('web')}
+                            disabled={busy}
+                            fullWidth
+                        >
                             Install {release.tag} interface
                         </Button>
                     )}
