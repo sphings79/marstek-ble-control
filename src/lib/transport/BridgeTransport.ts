@@ -1,7 +1,7 @@
 import { ConnectionState } from '../ConnectionState';
 import { bridgeUrl } from '../bridge/BridgeApi';
 import { TransportKind, type Transport, type TransportCallbacks } from './Transport';
-import { translate } from '../../i18n/i18n';
+import { translate, type StringKey } from '../../i18n/i18n';
 
 /** One device the bridge saw while scanning. */
 export interface BridgeDevice {
@@ -94,6 +94,27 @@ export class BridgeTransport implements Transport {
 
     public setCallbacks(callbacks: TransportCallbacks) {
         this.callbacks = callbacks;
+    }
+
+    /**
+     * Put a message from the bridge into the reader's language.
+     *
+     * The firmware writes its messages in English and has no idea which language the browser is
+     * in, so the ones worth translating carry a code in front of a pipe. Anything without one, or
+     * with a code this build does not know, falls through as it arrived - an English sentence
+     * beats no sentence.
+     */
+    private localise(msg: string | undefined): string | undefined {
+        if (!msg) return msg;
+
+        const split = msg.indexOf('|');
+        if (split < 1) return msg;
+
+        const key = `bridgeMsg.${msg.slice(0, split)}` as StringKey;
+        const fallback = msg.slice(split + 1);
+        const translated = translate(key);
+
+        return translated === key ? fallback : translated;
     }
 
     private log(msg: string, data?: unknown) {
@@ -271,7 +292,7 @@ export class BridgeTransport implements Transport {
                 if (next) {
                     const previous = this.state;
                     this.state = msg.state as BridgeState;
-                    this.callbacks.onStateChange(next, typeof msg.msg === 'string' ? msg.msg : undefined);
+                    this.callbacks.onStateChange(next, this.localise(typeof msg.msg === 'string' ? msg.msg : undefined));
 
                     if (this.state === 'disconnected' && previous === 'connected') {
                         this.callbacks.onDisconnected();
@@ -286,7 +307,7 @@ export class BridgeTransport implements Transport {
             }
             case 'error':
                 this.error(`Bridge reported ${msg.code}: ${msg.msg}`);
-                this.callbacks.onStateChange(ConnectionState.ERROR, String(msg.msg ?? translate('err.bridgeGeneric')));
+                this.callbacks.onStateChange(ConnectionState.ERROR, this.localise(typeof msg.msg === 'string' ? msg.msg : undefined) ?? translate('err.bridgeGeneric'));
                 break;
             default:
                 this.log('Ignoring unknown control message', msg);

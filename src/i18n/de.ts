@@ -336,4 +336,7 @@ export const de: Record<keyof typeof en, string> = {
     // Interface version
     "bridgeFw.reinstallWeb": "{tag}-Oberfläche erneut installieren",
     "bridgeFw.webInstalled": "Oberfläche {version}",
+
+    // Messages the bridge sends
+    "bridgeMsg.dropped_early": "Der Speicher hat die Verbindung getrennt, bevor sie nutzbar war. Der nächste Versuch klappt meist.",
 };

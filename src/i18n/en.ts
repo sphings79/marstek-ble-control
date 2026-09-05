@@ -338,4 +338,7 @@ export const en = {
     // Interface version
     "bridgeFw.reinstallWeb": "Reinstall {tag} interface",
     "bridgeFw.webInstalled": "interface {version}",
+
+    // Messages the bridge sends
+    "bridgeMsg.dropped_early": "The storage dropped the connection before it was usable. It usually accepts the next attempt.",
 } as const;
