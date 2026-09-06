@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-    Paper, Typography, Box, CircularProgress, Grid, LinearProgress, Chip, Stack
+    Paper, Typography, Box, CircularProgress, Grid, LinearProgress, Chip, Stack, Alert
 } from '@mui/material';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import ThermostatIcon from '@mui/icons-material/Thermostat';
@@ -95,6 +95,19 @@ export const BatteryModulesStateWidget = () => {
                     </Box>
                 ) : (
                     <Grid container spacing={2}>
+                        {/* Saying so rather than quietly listing fewer cards than the chip above
+                            promises. The storage counts every pack but its answer only carries
+                            six sets of readings. */}
+                        {data.isTruncated && (
+                            <Grid size={12}>
+                                <Alert severity="info">
+                                    {t('modules.truncated', {
+                                        reported: data.moduleCount,
+                                        shown: data.moduleStates.length,
+                                    })}
+                                </Alert>
+                            </Grid>
+                        )}
                         {data.moduleStates.map((mod) => {
                             const statusInfo = getStatusInfo(mod.status);
 

@@ -339,4 +339,7 @@ export const de: Record<keyof typeof en, string> = {
 
     // Messages the bridge sends
     "bridgeMsg.dropped_early": "Der Speicher hat die Verbindung getrennt, bevor sie nutzbar war. Der nächste Versuch klappt meist.",
+
+    // Modules the storage counts but does not report
+    "modules.truncated": "Der Speicher meldet {reported} Module, sendet aber nur Messwerte für {shown}. In der Antwort ist kein Platz für mehr, die übrigen lassen sich daher nicht anzeigen.",
 };

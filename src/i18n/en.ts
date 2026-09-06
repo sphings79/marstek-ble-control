@@ -341,4 +341,7 @@ export const en = {
 
     // Messages the bridge sends
     "bridgeMsg.dropped_early": "The storage dropped the connection before it was usable. It usually accepts the next attempt.",
+
+    // Modules the storage counts but does not report
+    "modules.truncated": "The storage reports {reported} modules but only sends readings for {shown}. The response has no room for more, so the rest cannot be shown.",
 } as const;
