@@ -62,6 +62,13 @@ export interface StateAttributes {
     BluetoothEnabled?: boolean;
     DepthOfDischarge?: number; // percent, also FIXME naming? The app calls it that, but it's a bad name
     LEDLight?: boolean;
+
+    // Local UDP JSON-RPC API: enable flag at byte[101] and port at byte[105] (u16 LE). Written at
+    // the same offset by every model's RuntimeInfo builder (Venus A/D FUN_0800b024, Venus E 3.0
+    // BLE_Build_RuntimeInfo_VNSE3), so it is read for all of them - not part of the model-specific
+    // extended block below.
+    LocalApiEnabled?: boolean;
+    ApiPort?: number;
 }
 
 export class StatePayload extends VenusPayload {
@@ -106,7 +113,25 @@ export class StatePayload extends VenusPayload {
             CommunicationModuleFirmwareVersion: new TextDecoder().decode(bytes.slice(81, 93)),
         };
 
-        if (bytes.length > 110) {
+        // Local API enable + port live at byte[101] / byte[105] on every model (same builder offset
+        // on Venus A/D and Venus E 3.0), ahead of the model-specific extended block. Guard only
+        // against a payload too short to contain the port.
+        if (bytes.length >= 107) {
+            attrs.LocalApiEnabled = bytes[101] === 0x01;
+            attrs.ApiPort = view.getUint16(105, true);
+        }
+
+        // Venus A / Venus D extended block. The field at the highest offset read here is LED at
+        // byte[152], so the whole block requires a payload of at least 153 bytes. Venus D sends 167
+        // (its RuntimeInfo builder, Control FW FUN_0800b024, fills up to byte[166]).
+        //
+        // The old gate was `> 110`, which let the Venus E 3.0 (VNSE3) through: its RuntimeInfo
+        // builder omits the MPPT block and the multi-pack fields, so it sends only 133 payload
+        // bytes with a *different* extended layout. Reading the Venus D offsets on it threw
+        // "Offset is outside the bounds of the DataView" at getInt16(140), which killed the entire
+        // STATE parse and left every STATE-driven widget stuck on its spinner. The E3.0 extended
+        // fields live at their own offsets and are parsed separately below.
+        if (bytes.length >= 153) {
             attrs.MPPT1Power = view.getUint16(107, true) / 10;
             attrs.MPPT1Enabled = bytes[109] === 0x01;
             attrs.MPPT2Power = view.getUint16(110, true) / 10;
@@ -125,6 +150,22 @@ export class StatePayload extends VenusPayload {
             attrs.BluetoothEnabled = bytes[148] === 0x01;
             attrs.DepthOfDischarge = bytes[149];
             attrs.LEDLight = bytes[152] === 0x01;
+        } else if (bytes.length >= 125) {
+            // Venus E 3.0 (VNSE3) extended block. Its RuntimeInfo builder (Control FW
+            // BLE_Build_RuntimeInfo_VNSE3 @0x0800a79c) omits the MPPT block and the multi-pack
+            // fields that Venus A/D carry, so these fields sit 28 bytes earlier than on Venus D and
+            // the payload is much shorter: 133 bytes on EMS 147, 139 on EMS 150. The 6-byte version
+            // difference is a trailing block past every offset read here, so this layout holds for
+            // both. Offsets were read out of the decompiled builder and confirmed against a real
+            // EMS-147 capture (DoD 88 %, Bluetooth on, LED on all landed on these exact bytes).
+            //
+            // No MPPT (no PV) and no surplus feed-in on the E3.0, so those stay undefined on
+            // purpose - StateWidget hides the PV tile and TogglesWidget is told not to show surplus.
+            attrs.BatteryPower = view.getInt16(112, true); // fp64 power result (negative = discharge)
+            attrs.GridPower = view.getInt16(116, true);    // sVar6 - sVar1, matches the Venus D grid formula
+            attrs.BluetoothEnabled = bytes[120] === 0x01;
+            attrs.DepthOfDischarge = bytes[121];
+            attrs.LEDLight = bytes[124] === 0x01;
         }
 
         return new StatePayload(attrs);

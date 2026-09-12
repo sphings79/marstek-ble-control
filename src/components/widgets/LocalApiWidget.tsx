@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Paper, Typography, Box, Switch, FormControlLabel, TextField, Button, Stack, CircularProgress
 } from '@mui/material';
 import LanIcon from '@mui/icons-material/Lan';
 
-import { useBLE } from '../../contexts/BLEContext';
+import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
@@ -15,15 +15,35 @@ import { LocalApiControlPayload } from '../../lib/payloads/LocalApiControlPayloa
  *
  * Enables/disables the device's local UDP JSON-RPC API and sets its port.
  * This is the local API - NOT Modbus TCP (Modbus cannot be toggled).
+ *
+ * The current enable flag and port are read from the STATE payload (byte[101] / byte[105]), so the
+ * controls reflect what the device actually reports instead of a hard-coded default. The local
+ * enabled/port state is only re-synced from the device while the user is not editing (tracked by
+ * `dirty`); editing sets it, a successful apply clears it so the next poll syncs again.
  */
 export const LocalApiWidget = () => {
     const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
+    const stateData = useVenusData(COMMAND_ID.STATE);
+    const serverEnabled = stateData?.attributes.LocalApiEnabled;
+    const serverPort = stateData?.attributes.ApiPort;
+
+    const isSyncing = !stateData && isConnected;
+
     const [enabled, setEnabled] = useState(false);
     const [port, setPort] = useState(30000);
+    const [dirty, setDirty] = useState(false);
     const [busy, setBusy] = useState(false);
+
+    // Adopt the device's reported values whenever they change and the user isn't mid-edit/apply.
+    useEffect(() => {
+        if (serverEnabled !== undefined && serverPort !== undefined && !dirty && !busy) {
+            setEnabled(serverEnabled);
+            setPort(serverPort);
+        }
+    }, [serverEnabled, serverPort, dirty, busy]);
 
     const apply = async () => {
         if (!isConnected || busy) return;
@@ -31,6 +51,7 @@ export const LocalApiWidget = () => {
         try {
             const payload = new LocalApiControlPayload(enabled, port);
             await sendPacket(COMMAND_ID.LOCAL_API_CONTROL, payload.toBytes());
+            setDirty(false);
             pollState();
         } catch (err) {
             console.error('Failed to set local API', err);
@@ -53,17 +74,22 @@ export const LocalApiWidget = () => {
                     <Box display="flex" flexGrow={1} alignItems="center" justifyContent="center">
                         <Typography variant="body2" color="text.secondary">{t('state.waitingConnection')}</Typography>
                     </Box>
+                ) : isSyncing ? (
+                    <Box display="flex" flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
+                        <CircularProgress size={24} sx={{ mb: 1 }} />
+                        <Typography variant="caption" color="text.secondary">{t('common.syncing')}</Typography>
+                    </Box>
                 ) : (
                     <Stack spacing={2}>
                         <FormControlLabel
-                            control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
+                            control={<Switch checked={enabled} onChange={(e) => { setEnabled(e.target.checked); setDirty(true); }} />}
                             label={t(enabled ? 'common.enabled' : 'common.disabled')}
                         />
                         <TextField
                             label={t('localApi.port')}
                             type="number"
                             value={port}
-                            onChange={(e) => setPort(Number(e.target.value))}
+                            onChange={(e) => { setPort(Number(e.target.value)); setDirty(true); }}
                             slotProps={{ htmlInput: { min: 1, max: 65535, step: 1 } }}
                             fullWidth
                             size="small"
@@ -71,7 +97,7 @@ export const LocalApiWidget = () => {
                         <Button
                             variant="contained"
                             onClick={apply}
-                            disabled={busy}
+                            disabled={busy || !dirty}
                             fullWidth
                             startIcon={busy ? <CircularProgress size={16} color="inherit" /> : undefined}
                         >
