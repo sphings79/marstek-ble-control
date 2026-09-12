@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    Paper, Typography, Box, TextField, Button, Stack, CircularProgress
+    Paper, Typography, Box, TextField, Button, Stack, CircularProgress, Alert
 } from '@mui/material';
 import TuneIcon from '@mui/icons-material/Tune';
 
@@ -15,9 +15,16 @@ import { SelfControlPowerOffsetPayload } from '../../lib/payloads/SelfControlPow
  * self-consumption controller (target grid power instead of 0 W).
  *
  * The current value is read from the STATE payload (it sits in the RuntimeInfo just before the LED
- * flag), so the field reflects what the device holds instead of starting at 0 every reload. The
- * local value is only re-synced from the device while the user is not editing (tracked by `dirty`);
- * editing sets it, a successful apply clears it so the next poll syncs again.
+ * flag), so the field reflects what the device holds instead of starting at 0 every reload.
+ *
+ * Note: the firmware clamps the offset to the power limits - a positive offset to the charge limit,
+ * a negative one to the negated discharge limit - so a value can legitimately come back smaller
+ * than what was sent (e.g. a positive offset lands on 0 when the charge limit is 0).
+ *
+ * Syncing: the field follows the device, except while the user is editing (`dirty`) or an apply is
+ * in flight (`busy`). After an apply we stay busy for a short grace period so the field holds the
+ * applied value until the fresh poll lands, rather than flashing the stale device value for the
+ * split second before it returns; the sync then adopts whatever the device reports (possibly clamped).
  */
 export const SelfControlPowerOffsetWidget = () => {
     const t = useT();
@@ -33,12 +40,16 @@ export const SelfControlPowerOffsetWidget = () => {
     const [dirty, setDirty] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    // Adopt the device's reported value whenever it changes and the user isn't mid-edit/apply.
+    const busyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Adopt the device's reported value unless the user is editing or an apply is in flight.
     useEffect(() => {
         if (serverOffset !== undefined && !dirty && !busy) {
             setOffset(serverOffset);
         }
     }, [serverOffset, dirty, busy]);
+
+    useEffect(() => () => { if (busyTimeout.current) clearTimeout(busyTimeout.current); }, []);
 
     const apply = async () => {
         if (!isConnected || busy) return;
@@ -46,13 +57,15 @@ export const SelfControlPowerOffsetWidget = () => {
         try {
             const payload = new SelfControlPowerOffsetPayload(offset);
             await sendPacket(COMMAND_ID.SELF_CONTROL_POWER_OFFSET, payload.toBytes());
-            setDirty(false);
             pollState();
         } catch (err) {
             console.error('Failed to set self-consumption offset', err);
-        } finally {
             setBusy(false);
+            return;
         }
+        // Hold the applied value until the next poll lands, then let the sync adopt the device value.
+        if (busyTimeout.current) clearTimeout(busyTimeout.current);
+        busyTimeout.current = setTimeout(() => { setDirty(false); setBusy(false); }, 2_000);
     };
 
     return (
@@ -97,6 +110,9 @@ export const SelfControlPowerOffsetWidget = () => {
                         <Typography variant="caption" color="text.secondary">
                             {t('offset.note')}
                         </Typography>
+                        <Alert severity="info" icon={false} sx={{ py: 0 }}>
+                            <Typography variant="caption">{t('offset.limitNote')}</Typography>
+                        </Alert>
                     </Stack>
                 )}
             </Box>

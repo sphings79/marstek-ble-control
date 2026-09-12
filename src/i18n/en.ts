@@ -197,6 +197,7 @@ export const en = {
     "offset.title": "Self-Consumption Offset",
     "offset.target": "Grid target offset (W)",
     "offset.note": "Regulate to this grid power instead of 0 W. Positive = keep importing a little, negative = keep exporting a little (BLE cmd 0x55).",
+    "offset.limitNote": "The offset is capped by the power limits: a positive value by the charge limit, a negative one by the discharge limit. With the charge limit at 0, a positive offset is clamped to 0.",
 
     // OTA widget
     "ota.title": "Firmware Update (OTA)",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Paper, Typography, Box, Switch, FormControlLabel, TextField, Button, Stack, CircularProgress
 } from '@mui/material';
@@ -37,7 +37,9 @@ export const LocalApiWidget = () => {
     const [dirty, setDirty] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    // Adopt the device's reported values whenever they change and the user isn't mid-edit/apply.
+    const busyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Adopt the device's reported values unless the user is editing or an apply is in flight.
     useEffect(() => {
         if (serverEnabled !== undefined && serverPort !== undefined && !dirty && !busy) {
             setEnabled(serverEnabled);
@@ -45,19 +47,24 @@ export const LocalApiWidget = () => {
         }
     }, [serverEnabled, serverPort, dirty, busy]);
 
+    useEffect(() => () => { if (busyTimeout.current) clearTimeout(busyTimeout.current); }, []);
+
     const apply = async () => {
         if (!isConnected || busy) return;
         setBusy(true);
         try {
             const payload = new LocalApiControlPayload(enabled, port);
             await sendPacket(COMMAND_ID.LOCAL_API_CONTROL, payload.toBytes());
-            setDirty(false);
             pollState();
         } catch (err) {
             console.error('Failed to set local API', err);
-        } finally {
             setBusy(false);
+            return;
         }
+        // Hold the applied values until the next poll lands, so the controls don't flash the stale
+        // device state for the moment before it returns; the sync then adopts what the device reports.
+        if (busyTimeout.current) clearTimeout(busyTimeout.current);
+        busyTimeout.current = setTimeout(() => { setDirty(false); setBusy(false); }, 2_000);
     };
 
     return (

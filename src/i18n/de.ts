@@ -195,6 +195,7 @@ export const de: Record<keyof typeof en, string> = {
     "offset.title": "Eigenverbrauchs-Offset",
     "offset.target": "Ziel-Netzleistung (W)",
     "offset.note": "Regelt auf diese Netzleistung statt auf 0 W. Positiv = etwas beziehen, negativ = etwas einspeisen (BLE-Befehl 0x55).",
+    "offset.limitNote": "Der Offset ist durch die Leistungsgrenzen gedeckelt: ein positiver Wert durch die Ladegrenze, ein negativer durch die Entladegrenze. Steht die Ladegrenze auf 0, wird ein positiver Offset auf 0 geklemmt.",
 
     // OTA widget
     "ota.title": "Firmware-Update (OTA)",
