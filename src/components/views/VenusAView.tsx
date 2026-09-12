@@ -59,6 +59,7 @@ const groups: WidgetGroup[] = [
             <PowerLimitsWidget
                 dischargeOptions={[800, 1200, 1500]}
                 chargeOptions={[800, 1200, 1500]}
+                powerClassOptions={[800, 1200, 1500]}
             />,
             <PeakShavingWidget />,
             <SelfControlPowerOffsetWidget />,

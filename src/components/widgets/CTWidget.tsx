@@ -257,6 +257,19 @@ export const CTWidget = () => {
                             </ToggleButtonGroup>
                         </Box>
 
+                        {ctConnected === false ? (
+                            // No CT meter connected: the firmware leaves the phase at SCANNING (0),
+                            // which the phase box below would render as a permanent "detecting..."
+                            // spinner. Show a clear notice instead, and drop the phase/readings
+                            // sections (both need a meter). The type/mode selector stays so a meter
+                            // can still be configured.
+                            <Paper variant="outlined" sx={{ p: 3, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    {t('ct.noMeter')}
+                                </Typography>
+                            </Paper>
+                        ) : (
+                        <>
                         <Box>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">
@@ -344,6 +357,8 @@ export const CTWidget = () => {
                                 </Fade>
                             )}
                         </Box>
+                        </>
+                        )}
 
                     </Stack>
                 )}

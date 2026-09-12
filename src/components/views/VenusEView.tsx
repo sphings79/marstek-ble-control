@@ -73,9 +73,18 @@ const groups: WidgetGroup[] = [
         widgets: [
             <TogglesWidget showSurplusFeedIn={false} />,
             <WorkModeWidget scheduleItemMaxPower={2500} scheduleItemUPSSupported={true} />,
+            // No free discharge limit on the E3.0: its firmware writes the max-discharge register
+            // (config+4, read back as "discharge limit") only from the device-power-class path
+            // (FUN_08006708, called with the class wattage) and the config default - never from a
+            // free discharge command - so a value set via cmd 0x17 just reverts. Confirmed on real
+            // FW-147 hardware (the value springs back to 2500) and in the decompiled v150 builder.
+            // Discharge is therefore set through the power class; the charge limit has its own
+            // working setter (FUN_0800663c, config+2) and stays. No 2200 W class on the E3.0.
             <PowerLimitsWidget
-                dischargeOptions={[800, 1200, 1500, 2000, 2500]}
                 chargeOptions={[800, 1200, 1500, 2000, 2500]}
+                powerClassOptions={[600, 800, 2500]}
+                deviceClassNoteKey="powerLimits.deviceClassNote.e3"
+                showDischargeLimit={false}
             />,
             <PeakShavingWidget />,
             <SelfControlPowerOffsetWidget />,

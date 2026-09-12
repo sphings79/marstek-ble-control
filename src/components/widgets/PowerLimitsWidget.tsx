@@ -11,7 +11,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from "../../lib/VenusConst.ts";
-import { useT } from '../../i18n/i18n';
+import { useT, type StringKey } from '../../i18n/i18n';
 import { DischargePowerLimitControlPayload } from '../../lib/payloads/DischargePowerLimitControlPayload';
 import { ChargePowerLimitControlPayload } from '../../lib/payloads/ChargePowerLimitControlPayload';
 import { DevicePowerClassControlPayload, DEVICE_POWER_CLASS_OPTIONS } from '../../lib/payloads/DevicePowerClassControlPayload';
@@ -113,12 +113,14 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
 
 interface DevicePowerClassControlProps {
     isConnected: boolean;
+    options: number[];
+    noteKey: StringKey;
     onSendCommand: (value: number) => Promise<void>;
 }
 
 // The device power class (BLE cmd 0x15) is not reported back in the STATE response, so this
 // control keeps a local selection instead of syncing a server value.
-const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClassControlProps) => {
+const DevicePowerClassControl = ({ isConnected, options, noteKey, onSendCommand }: DevicePowerClassControlProps) => {
     const t = useT();
     const [selected, setSelected] = useState<number | null>(null);
     const [isPending, setIsPending] = useState(false);
@@ -152,7 +154,7 @@ const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClas
                 color="primary"
                 sx={{ mb: 1 }}
             >
-                {DEVICE_POWER_CLASS_OPTIONS.map(opt => (
+                {options.map(opt => (
                     <ToggleButton key={opt} value={opt} sx={{ py: 1.5, fontWeight: 'bold' }}>
                         {opt} W
                     </ToggleButton>
@@ -160,7 +162,7 @@ const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClas
             </ToggleButtonGroup>
 
             <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                {t('powerLimits.deviceClassNote')}
+                {t(noteKey)}
             </Typography>
         </Box>
     );
@@ -169,11 +171,27 @@ const DevicePowerClassControl = ({ isConnected, onSendCommand }: DevicePowerClas
 interface Props {
     dischargeOptions?: number[];
     chargeOptions?: number[];
+    // Device power class choices (BLE cmd 0x15). The functional set is model-specific (read out of
+    // each Control firmware's 0x15 handler): Venus A 800/1200/1500, Venus D 800/2200/2500,
+    // Venus E 3.0 600/800/2500 - every other value the handler silently ignores. Each view passes
+    // its own list; the default is only a fallback.
+    powerClassOptions?: number[];
+    // i18n key for the note under the power-class buttons, so a view can explain its own classes
+    // (e.g. the Venus E 3.0's 600 W option).
+    deviceClassNoteKey?: StringKey;
+    // The free discharge limit (BLE cmd 0x17). On the Venus E 3.0 the firmware governs discharge
+    // through the power class only - the max-discharge register the app reads (config+4) is written
+    // by the power-class path, never by a free discharge command - so a value set here just reverts.
+    // Its view hides the control; discharge is set via the power class instead.
+    showDischargeLimit?: boolean;
 }
 
 export const PowerLimitsWidget = ({
   dischargeOptions = [800, 1200],
-  chargeOptions = [600, 1200]
+  chargeOptions = [600, 1200],
+  powerClassOptions = [...DEVICE_POWER_CLASS_OPTIONS],
+  showDischargeLimit = true,
+  deviceClassNoteKey = 'powerLimits.deviceClassNote',
 }: Props) => {
     const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
@@ -218,16 +236,20 @@ export const PowerLimitsWidget = ({
                     </Box>
                 ) : (
                     <>
-                        <PowerLimitControl
-                            title={t('powerLimits.discharge')}
-                            icon={<BatterySaverIcon color="action" />}
-                            serverValue={serverDischarge}
-                            isConnected={isConnected}
-                            options={dischargeOptions}
-                            onSendCommand={setDischargeLimit}
-                        />
+                        {showDischargeLimit && (
+                            <>
+                                <PowerLimitControl
+                                    title={t('powerLimits.discharge')}
+                                    icon={<BatterySaverIcon color="action" />}
+                                    serverValue={serverDischarge}
+                                    isConnected={isConnected}
+                                    options={dischargeOptions}
+                                    onSendCommand={setDischargeLimit}
+                                />
 
-                        <Divider sx={{ my: 1 }} />
+                                <Divider sx={{ my: 1 }} />
+                            </>
+                        )}
 
                         <PowerLimitControl
                             title={t('powerLimits.charge')}
@@ -242,6 +264,8 @@ export const PowerLimitsWidget = ({
 
                         <DevicePowerClassControl
                             isConnected={isConnected}
+                            options={powerClassOptions}
+                            noteKey={deviceClassNoteKey}
                             onSendCommand={setDevicePowerClass}
                         />
 
