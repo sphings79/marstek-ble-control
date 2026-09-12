@@ -299,6 +299,7 @@ export const de: Record<keyof typeof en, string> = {
     "bridgeFw.firmware": "Firmware",
     "bridgeFw.webInterface": "Weboberfläche",
     "bridgeFw.uploading": "Wird hochgeladen: {percent} %",
+    "bridgeFw.installing": "Wird installiert\u2026 (die Bridge l\u00e4dt das Image selbst)",
     "bridgeFw.restarting": "Startet neu...",
     "bridgeFw.back": "Neu gestartet und wieder da.",
     "bridgeFw.noAnswerUpload": "Das Abbild wurde angenommen, die Bridge meldet sich aber noch nicht zurück. Vielleicht braucht sie nur länger fürs WLAN.",

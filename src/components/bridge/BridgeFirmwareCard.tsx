@@ -13,7 +13,9 @@ import {
 } from '../../lib/bridge/BridgeReleases';
 import { useT } from '../../i18n/i18n';
 
-type Phase = 'idle' | 'uploading' | 'restarting' | 'done' | 'failed';
+// 'uploading' is a hand-uploaded file with real byte progress; 'installing' is the bridge fetching
+// a release image itself, where there is no progress to report from here - shown indeterminate.
+type Phase = 'idle' | 'uploading' | 'installing' | 'restarting' | 'done' | 'failed';
 
 /**
  * Firmware for the ESP32 bridge itself.
@@ -70,7 +72,7 @@ export const BridgeFirmwareCard = () => {
         }
     };
 
-    const busy = phase === 'uploading' || phase === 'restarting';
+    const busy = phase === 'uploading' || phase === 'installing' || phase === 'restarting';
 
     // Three separate questions. The firmware and the interface are installed separately and are
     // compared separately - gating both on the firmware's version meant updating the firmware
@@ -85,13 +87,13 @@ export const BridgeFirmwareCard = () => {
         const url = target === 'web' ? release?.webUrl : release?.firmwareUrl;
         if (!url) return;
 
-        setPhase('uploading');
+        setPhase('installing');
         setPercent(0);
         setMessage(null);
 
         try {
             // The bridge downloads it itself, so there is no progress to report from here - only
-            // the wait, and then whether it came back.
+            // the wait, and then whether it came back. Shown as an indeterminate bar, not a 0% one.
             await installFromUrl(url, target);
 
             setPhase('restarting');
@@ -191,11 +193,15 @@ export const BridgeFirmwareCard = () => {
                     {busy && (
                         <Box>
                             <LinearProgress
-                                variant={phase === 'restarting' ? 'indeterminate' : 'determinate'}
+                                variant={phase === 'uploading' ? 'determinate' : 'indeterminate'}
                                 value={percent}
                             />
                             <Typography variant="caption" color="text.secondary">
-                                {phase === 'restarting' ? t('bridgeFw.restarting') : t('bridgeFw.uploading', { percent })}
+                                {phase === 'restarting'
+                                    ? t('bridgeFw.restarting')
+                                    : phase === 'installing'
+                                        ? t('bridgeFw.installing')
+                                        : t('bridgeFw.uploading', { percent })}
                             </Typography>
                         </Box>
                     )}

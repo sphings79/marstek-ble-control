@@ -63,6 +63,12 @@ export interface StateAttributes {
     DepthOfDischarge?: number; // percent, also FIXME naming? The app calls it that, but it's a bad name
     LEDLight?: boolean;
 
+    // Self-consumption power offset (signed W, BLE cmd 0x55 / config+0x83). In the RuntimeInfo it
+    // sits just before the LED flag, at a model-specific payload offset: byte[150] on Venus A/D
+    // (between DoD at 149 and LED at 152), byte[122] on the Venus E 3.0. Read so the widget can show
+    // the value the device actually holds instead of resetting to 0 on reload.
+    SelfControlPowerOffset?: number;
+
     // Local UDP JSON-RPC API: enable flag at byte[101] and port at byte[105] (u16 LE). Written at
     // the same offset by every model's RuntimeInfo builder (Venus A/D FUN_0800b024, Venus E 3.0
     // BLE_Build_RuntimeInfo_VNSE3), so it is read for all of them - not part of the model-specific
@@ -149,6 +155,7 @@ export class StatePayload extends VenusPayload {
 
             attrs.BluetoothEnabled = bytes[148] === 0x01;
             attrs.DepthOfDischarge = bytes[149];
+            attrs.SelfControlPowerOffset = view.getInt16(150, true); // config+0x83, between DoD and LED
             attrs.LEDLight = bytes[152] === 0x01;
         } else if (bytes.length >= 125) {
             // Venus E 3.0 (VNSE3) extended block. Its RuntimeInfo builder (Control FW
@@ -165,6 +172,7 @@ export class StatePayload extends VenusPayload {
             attrs.GridPower = view.getInt16(116, true);    // sVar6 - sVar1, matches the Venus D grid formula
             attrs.BluetoothEnabled = bytes[120] === 0x01;
             attrs.DepthOfDischarge = bytes[121];
+            attrs.SelfControlPowerOffset = view.getInt16(122, true); // config+0x83, confirmed on FW 148 (offset 0x7A)
             attrs.LEDLight = bytes[124] === 0x01;
         }
 

@@ -301,6 +301,7 @@ export const en = {
     "bridgeFw.firmware": "Firmware",
     "bridgeFw.webInterface": "Web Interface",
     "bridgeFw.uploading": "Uploading {percent}%",
+    "bridgeFw.installing": "Installing\u2026 (the bridge is downloading the image itself)",
     "bridgeFw.restarting": "Restarting...",
     "bridgeFw.back": "Restarted and back.",
     "bridgeFw.noAnswerUpload": "The image was accepted, but the bridge has not answered again yet. It may just be slow to rejoin WiFi.",
