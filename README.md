@@ -77,6 +77,7 @@ things, and none of them is a Marstek service:
 - 🕐 **Set Time** on the device
 - 🐛 Reliability fixes — correct BLE command IDs, and robust reassembly of fragmented BLE responses
   so Device Info and Work Mode load dependably
+- 📜 **[Changelog](CHANGELOG.md)** — the full release history
 
 ### Firmware updates over Bluetooth
 
