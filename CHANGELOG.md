@@ -8,6 +8,13 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.7 — 2026-09-13
+- The offered update shows a real progress bar: it reads the download-and-flash progress the bridge
+  now streams, filling with a percentage instead of an indeterminate bar (an older bridge that
+  streams none still falls back to indeterminate).
+- After a web-interface update the page reloads itself, so the freshly installed interface takes
+  over instead of the old one lingering in the tab.
+
 ## v1.3.6 — 2026-09-12
 - After Apply, fields hold the value you set until the next poll lands, instead of flashing the
   device's old value for a moment (self-consumption offset and local-API cards).
