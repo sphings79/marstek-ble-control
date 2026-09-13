@@ -62,7 +62,7 @@ things, and none of them is a Marstek service:
 - ✅ **Marstek Venus D support** — tested on real hardware
 - ✅ **Marstek Venus E 3.0 support** (`MST_VNSE3_*`) — own dashboard without PV/MPPT, without the
   multi-module battery view and without surplus feed-in, since its firmware implements none of
-  them. Not yet tested on real hardware.
+  them. Confirmed working on real hardware by a user (state, control, CT and OTA).
 - 🔄 **OTA firmware updates over Bluetooth** — for Venus A, D and E 3.0; Control/EMS, BMS, MPPT and
   Micro-Inverter modules (VNS and BMS updates confirmed working by users on a Venus D). The
   firmware's own validation logic was verified to be identical across all three models.
@@ -70,7 +70,7 @@ things, and none of them is a Marstek service:
   the `VNSA`/`VNSD`/`VNSE` tag embedded in every image; verified against all 27 Venus images in the
   firmware archive
 - 🌍 **English and German** — the whole interface, picked from your browser and switchable at any time
-- ⚡ **Device Power Class** selection (800 / 2200 / 2500 W)
+- ⚡ **Device Power Class** selection — the values each model's firmware actually accepts (Venus A 800 / 1200 / 1500 W, Venus D 800 / 2200 / 2500 W, Venus E 3.0 600 / 800 / 2500 W)
 - 📉 **Peak Shaving** — cap grid draw at a configurable threshold
 - 🎚️ **Self-Consumption Power Offset** — bias the controller to target a grid power other than 0 W
 - 🔌 **Local API toggle** — enable the on-device UDP JSON-RPC API
