@@ -35,6 +35,9 @@ export const BridgeFirmwareCard = () => {
     const [version, setVersion] = useState<BridgeVersion | null>(null);
     const [phase, setPhase] = useState<Phase>('idle');
     const [percent, setPercent] = useState(0);
+    // True once the bridge has streamed real download progress, so the install bar can switch from
+    // indeterminate to a real percentage. Stays false against an older bridge that reports none.
+    const [installDeterminate, setInstallDeterminate] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [release, setRelease] = useState<BridgeRelease | null>(null);
 
@@ -89,15 +92,28 @@ export const BridgeFirmwareCard = () => {
 
         setPhase('installing');
         setPercent(0);
+        setInstallDeterminate(false);
         setMessage(null);
 
         try {
-            // The bridge downloads it itself, so there is no progress to report from here - only
-            // the wait, and then whether it came back. Shown as an indeterminate bar, not a 0% one.
-            await installFromUrl(url, target);
+            // The bridge streams "P <percent>" as it downloads and flashes; until the first one the
+            // bar stays indeterminate (an older bridge sends none, so it never switches).
+            await installFromUrl(url, target, (pct) => {
+                setInstallDeterminate(true);
+                setPercent(pct);
+            });
 
             setPhase('restarting');
             const back = await waitForBridge();
+
+            if (target === 'web' && back) {
+                // The new interface is now on the device but this page is still the old one. Load it.
+                setPhase('done');
+                setMessage(t('bridgeFw.back'));
+                window.location.reload();
+                return;
+            }
+
             setPhase(back ? 'done' : 'failed');
             setVersion(back ? await fetchBridgeVersion() : version);
             setMessage(t(back ? 'bridgeFw.back' : 'bridgeFw.noAnswer'));
@@ -193,14 +209,14 @@ export const BridgeFirmwareCard = () => {
                     {busy && (
                         <Box>
                             <LinearProgress
-                                variant={phase === 'uploading' ? 'determinate' : 'indeterminate'}
+                                variant={phase === 'uploading' || (phase === 'installing' && installDeterminate) ? 'determinate' : 'indeterminate'}
                                 value={percent}
                             />
                             <Typography variant="caption" color="text.secondary">
                                 {phase === 'restarting'
                                     ? t('bridgeFw.restarting')
                                     : phase === 'installing'
-                                        ? t('bridgeFw.installing')
+                                        ? (installDeterminate ? t('bridgeFw.installingPct', { percent }) : t('bridgeFw.installing'))
                                         : t('bridgeFw.uploading', { percent })}
                             </Typography>
                         </Box>

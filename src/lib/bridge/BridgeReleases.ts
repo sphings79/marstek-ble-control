@@ -69,8 +69,20 @@ export function isOutdated(running: string | undefined, tag: string): boolean {
     return !running.startsWith(tag);
 }
 
-/** Have the bridge fetch and install an image itself. It reboots into it on success. */
-export async function installFromUrl(url: string, target: 'firmware' | 'web'): Promise<void> {
+/**
+ * Have the bridge fetch and install an image itself. It reboots into it on success.
+ *
+ * The bridge streams progress as it downloads and flashes, because the download holds its single
+ * web-server task and a separate progress poll could not be answered: the response body is a live
+ * feed of `P <percent>` lines, closed by `OK` or `E <error>`. `onProgress` receives the percentages.
+ * A bridge on older firmware answers once with JSON (`{ok, error}`) instead - the tail handles that,
+ * so a new interface talking to an old bridge still works.
+ */
+export async function installFromUrl(
+    url: string,
+    target: 'firmware' | 'web',
+    onProgress?: (percent: number) => void,
+): Promise<void> {
     const response = await fetch(bridgeUrl('api/update/url').href, {
         method: 'POST',
         credentials: 'same-origin',
@@ -88,4 +100,47 @@ export async function installFromUrl(url: string, target: 'firmware' | 'web'): P
         }
         throw new Error(translate('err.installFailed', { detail }));
     }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+        return;
+    }
+
+    const decoder = new TextDecoder();
+    let text = '';
+    let ok = false;
+    let failure: string | null = null;
+
+    for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+
+        let nl: number;
+        while ((nl = text.indexOf('\n')) >= 0) {
+            const line = text.slice(0, nl).trim();
+            text = text.slice(nl + 1);
+            if (line.startsWith('P ')) {
+                const pct = Number(line.slice(2));
+                if (Number.isFinite(pct)) onProgress?.(Math.max(0, Math.min(100, pct)));
+            } else if (line === 'OK') {
+                ok = true;
+            } else if (line.startsWith('E ')) {
+                failure = line.slice(2);
+            }
+        }
+    }
+
+    if (ok) return;
+    if (failure) throw new Error(translate('err.installFailed', { detail: failure }));
+
+    // No streamed verdict: an older bridge's one-shot JSON reply, or an empty body. A clean 200 with
+    // neither an OK nor an error line is taken as done.
+    let parsed: { ok?: boolean; error?: string } | null = null;
+    try {
+        parsed = JSON.parse(text.trim() || '{}') as { ok?: boolean; error?: string };
+    } catch {
+        parsed = null;
+    }
+    if (parsed?.error) throw new Error(translate('err.installFailed', { detail: parsed.error }));
 }
