@@ -64,7 +64,8 @@ things, and none of them is a Marstek service:
   multi-module battery view and without surplus feed-in, since its firmware implements none of
   them. Confirmed working on real hardware by a user (state, control, CT and OTA).
 - 🔄 **OTA firmware updates over Bluetooth** — for Venus A, D and E 3.0; Control/EMS, BMS, MPPT and
-  Micro-Inverter modules (VNS and BMS updates confirmed working by users on a Venus D). The
+  Micro-Inverter modules (EMS, BMS and VNS/Micro flashes confirmed working on a Venus D and a
+  Venus E 3.0; MPPT is unverified only because no MPPT image is in the firmware archive yet). The
   firmware's own validation logic was verified to be identical across all three models.
 - 🛡️ **Model detection for firmware files** — warns before flashing another model's image, based on
   the `VNSA`/`VNSD`/`VNSE` tag embedded in every image; verified against all 27 Venus images in the

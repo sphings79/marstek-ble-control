@@ -95,6 +95,11 @@ export const OtaWidget = () => {
         : { mismatch: false, connectedModel: 'Unknown' };
 
     const isNonEmsComponent = analysis?.componentGuess.component === 'Micro/Inverter' || analysis?.componentGuess.component === 'MPPT';
+    // BMS, Micro/Inverter (VNS) and EMS flashes are hardware-confirmed on Venus D and E 3.0. MPPT is
+    // still only static analysis - not for lack of a device, but because no MPPT image is in the
+    // firmware archive to flash yet - so it keeps the "not confirmed on real hardware" caution while
+    // the others are softened.
+    const isMpptComponent = analysis?.componentGuess.component === 'MPPT';
 
     const phaseLabel: Record<string, string> = {
         [OtaPhase.ACTIVATING]: t('ota.phase.activating'),
@@ -165,8 +170,8 @@ export const OtaWidget = () => {
                                 </Alert>
                             )}
                             {isNonEmsComponent && (
-                                <Alert severity="warning" sx={{ mt: 1 }}>
-                                    {t('ota.nonEms', {
+                                <Alert severity={isMpptComponent ? 'warning' : 'info'} sx={{ mt: 1 }}>
+                                    {t(isMpptComponent ? 'ota.nonEms' : 'ota.nonEms.confirmed', {
                                         component: analysis.componentGuess.component,
                                         flag: analysis.componentGuess.otaTypeFlag.toString(16).padStart(2, '0'),
                                     })}
@@ -227,7 +232,7 @@ export const OtaWidget = () => {
                     {isNonEmsComponent && (
                         <DialogContentText>
                             {t('ota.confirmNonEms.1')} <strong>{analysis?.componentGuess.component}</strong>{' '}
-                            {t('ota.confirmNonEms.2', {
+                            {t(isMpptComponent ? 'ota.confirmNonEms.2' : 'ota.confirmNonEms.2.confirmed', {
                                 flag: analysis?.componentGuess.otaTypeFlag.toString(16).padStart(2, '0') ?? '',
                             })}
                         </DialogContentText>
