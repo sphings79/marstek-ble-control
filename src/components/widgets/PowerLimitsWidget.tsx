@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
     Paper, Typography, Box, CircularProgress,
-    ToggleButton, ToggleButtonGroup, Fade, Alert, Divider
+    ToggleButton, ToggleButtonGroup, Fade, Slider, Divider
 } from '@mui/material';
 import BoltIcon from '@mui/icons-material/Bolt';
 import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
@@ -25,6 +25,8 @@ interface PowerLimitControlProps {
     onSendCommand: (value: number) => Promise<void>;
 }
 
+const POWER_STEP = 50;
+
 const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onSendCommand }: PowerLimitControlProps) => {
     const t = useT();
     const [pendingValue, setPendingValue] = useState<number | null>(null);
@@ -39,8 +41,14 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
         };
     }, []);
 
-    const handleChange = async (_: React.MouseEvent<HTMLElement>, newVal: number | null) => {
-        if (newVal === null || !isConnected || isPending) return;
+    // Value while the thumb is being dragged; nothing is sent until the drag is released.
+    const [dragValue, setDragValue] = useState<number | null>(null);
+    const max = Math.max(...options);
+    const sliderValue = dragValue ?? displayValue ?? 0;
+
+    const handleCommit = async (newVal: number) => {
+        setDragValue(null);
+        if (!isConnected || isPending || newVal === serverValue) return;
 
         setPendingValue(newVal);
 
@@ -57,8 +65,6 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
         }
     };
 
-    const isCustomValue = displayValue !== null && !options.includes(displayValue);
-
     return (
         <Box width="100%" textAlign="center" sx={{ py: 2 }}>
             <Box display="flex" alignItems="center" justifyContent="center" gap={1} mb={2}>
@@ -73,21 +79,21 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
                 </Box>
             ) : (
                 <>
-                    <ToggleButtonGroup
-                        value={displayValue}
-                        exclusive
-                        onChange={handleChange}
-                        disabled={!isConnected || isPending}
-                        fullWidth
-                        color="primary"
-                        sx={{ mb: 1 }}
-                    >
-                        {options.map(opt => (
-                            <ToggleButton key={opt} value={opt} sx={{ py: 1.5, fontWeight: 'bold' }}>
-                                {opt} W
-                            </ToggleButton>
-                        ))}
-                    </ToggleButtonGroup>
+                    <Typography variant="h5" fontWeight="bold" color="primary">{sliderValue} W</Typography>
+
+                    <Box sx={{ px: 1.5 }}>
+                        <Slider
+                            value={sliderValue}
+                            min={0}
+                            max={max}
+                            step={POWER_STEP}
+                            marks={[{ value: 0, label: '0' }, { value: max, label: `${max} W` }]}
+                            disabled={!isConnected || isPending}
+                            onChange={(_, v) => setDragValue(v as number)}
+                            onChangeCommitted={(_, v) => void handleCommit(v as number)}
+                            aria-label={title}
+                        />
+                    </Box>
 
                     <Box height={24} display="flex" justifyContent="center" alignItems="center">
                         {isPending && (
@@ -100,11 +106,6 @@ const PowerLimitControl = ({ title, icon, serverValue, isConnected, options, onS
                         )}
                     </Box>
 
-                    {isCustomValue && !isPending && (
-                        <Alert severity="info" icon={false} sx={{ mt: 1, py: 0, justifyContent: 'center' }}>
-                            {t('powerLimits.customValue', { value: displayValue })}
-                        </Alert>
-                    )}
                 </>
             )}
         </Box>

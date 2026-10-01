@@ -8,6 +8,16 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.10 — 2026-10-01
+- Firmware update: the technical notes about the Micro/Inverter component are gone, and starting an
+  update always asks one short "really start?" question. After a finished update the loaded file is
+  cleared so the start button cannot be pressed twice, and the log follows the newest line.
+- Power limits are now a "Power" card with 0 to max sliders (50 W steps) for charge and discharge;
+  the device power class keeps its buttons.
+- The schedule hint explains where the battery gets its time (cloud, or the Marstek Offline Endpoint)
+  and links to it.
+- On a phone the section bar with the menu button stays visible below the header while scrolling.
+
 ## v1.3.8 — 2026-09-13
 - EMS, BMS and Micro-Inverter (VNS) updates are hardware-confirmed on a Venus D and a Venus E 3.0,
   so the VNS firmware-update note is a plain info line instead of a "not confirmed on real hardware"

@@ -3,7 +3,7 @@ import {
     Paper, Typography, Box, CircularProgress, Button, Stack,
     Switch, TextField, IconButton, Tooltip, MenuItem, 
     Select, InputAdornment, Alert, Fade, Chip,
-    Accordion, AccordionSummary, AccordionDetails
+    Accordion, AccordionSummary, AccordionDetails, Link
 } from '@mui/material';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -19,6 +19,7 @@ import { COMMAND_ID, MANUAL_MODE_SCHEDULE_ITEM_DAY_BIT, WORK_MODE, MANUAL_MODE_S
 import { SetWorkModePayload } from '../../lib/payloads/SetWorkModePayload.ts';
 import { ManualWorkModeSlotControlPayload } from '../../lib/payloads/ManualWorkModeSlotControlPayload.ts';
 import type {WorkModeSetting} from "../../lib/payloads/GetWorkModeSettingsPayload.ts";
+import { OFFLINE_ENDPOINT_REPO } from '../../lib/projectLinks';
 import { useT } from '../../i18n/i18n';
 import type { StringKey } from '../../i18n/i18n';
 
@@ -561,7 +562,8 @@ export const WorkModeWidget = ({
                                     </Typography>
 
                                     <Alert severity="info" sx={{ mb: 2, py: 0 }}>
-                                        {t('workMode.timeWarning')}
+                                        {t('workMode.timeWarning')}{' '}
+                                        <Link href={OFFLINE_ENDPOINT_REPO} target="_blank" rel="noopener noreferrer">{t('workMode.timeWarningLink')}</Link>
                                     </Alert>
 
                                     <Stack spacing={2} mb={2}>

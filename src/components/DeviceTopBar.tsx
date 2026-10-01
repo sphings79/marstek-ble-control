@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { AppBar, Toolbar, Typography, Chip, Button, Box } from '@mui/material';
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import WifiIcon from '@mui/icons-material/Wifi';
@@ -21,6 +22,22 @@ interface Props {
 export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect, onReconnect }: Props) => {
     const t = useT();
     const isConnected = status === ConnectionState.CONNECTED;
+    const barRef = useRef<HTMLElement>(null);
+
+    // The bar wraps to a variable height on a phone, so publish the real height for whatever
+    // sticks below it (the mobile section bar) instead of assuming a fixed one.
+    useEffect(() => {
+        const el = barRef.current;
+        if (!el) return;
+        const publish = () => document.documentElement.style.setProperty('--topbar-height', `${el.offsetHeight}px`);
+        publish();
+        const observer = new ResizeObserver(publish);
+        observer.observe(el);
+        return () => {
+            observer.disconnect();
+            document.documentElement.style.removeProperty('--topbar-height');
+        };
+    }, []);
 
     let chipColor: "success" | "error" | "warning" | "default" = "default";
     if (isConnected) chipColor = "success";
@@ -28,7 +45,7 @@ export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect,
     if (status === ConnectionState.DISCONNECTED) chipColor = "error";
 
     return (
-        <AppBar position="sticky" color="default" elevation={1}>
+        <AppBar ref={barRef} position="sticky" color="default" elevation={1}>
             {/* Wraps rather than overflows. On a phone the name, two radio readings, the status
                 and the button do not fit on one line, and pushing the disconnect button off the
                 right edge is the one failure here that actually costs someone something. */}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Paper, Typography, Box, Button, Stack, Alert, LinearProgress,
     Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
@@ -31,6 +31,13 @@ export const OtaWidget = () => {
     const [progress, setProgress] = useState<OtaProgress | null>(null);
     const [log, setLog] = useState<string[]>([]);
     const [running, setRunning] = useState(false);
+    const logBoxRef = useRef<HTMLDivElement>(null);
+
+    // Keep the newest log line in view.
+    useEffect(() => {
+        const el = logBoxRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+    }, [log]);
 
     const appendLog = (msg: string) => {
         setLog(prev => {
@@ -57,19 +64,9 @@ export const OtaWidget = () => {
         appendLog(`Checksum: 0x${(a.checksum >>> 0).toString(16).padStart(8, '0')}`);
     };
 
-    const needsConfirmation = () => {
-        if (!analysis) return false;
-        const { mismatch } = detectModelMismatch(analysis, manager.deviceName);
-        return mismatch || analysis.componentGuess.component === 'Micro/Inverter' || analysis.componentGuess.component === 'MPPT';
-    };
-
     const startClicked = () => {
         if (!analysis || !fileBytes) return;
-        if (needsConfirmation()) {
-            setConfirmOpen(true);
-        } else {
-            void runOta();
-        }
+        setConfirmOpen(true);
     };
 
     const runOta = async () => {
@@ -83,6 +80,10 @@ export const OtaWidget = () => {
 
         try {
             await otaManagerRef.current.run(fileBytes, analysis, appendLog, setProgress);
+            // Done: drop the loaded file so the start button cannot be pressed a second time.
+            setAnalysis(null);
+            setFileBytes(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         } catch (err) {
             appendLog(`❌ OTA failed: ${(err as Error).message}`);
         } finally {
@@ -95,11 +96,6 @@ export const OtaWidget = () => {
         : { mismatch: false, connectedModel: 'Unknown' };
 
     const isNonEmsComponent = analysis?.componentGuess.component === 'Micro/Inverter' || analysis?.componentGuess.component === 'MPPT';
-    // BMS, Micro/Inverter (VNS) and EMS flashes are hardware-confirmed on Venus D and E 3.0. MPPT is
-    // still only static analysis - not for lack of a device, but because no MPPT image is in the
-    // firmware archive to flash yet - so it keeps the "not confirmed on real hardware" caution while
-    // the others are softened.
-    const isMpptComponent = analysis?.componentGuess.component === 'MPPT';
 
     const phaseLabel: Record<string, string> = {
         [OtaPhase.ACTIVATING]: t('ota.phase.activating'),
@@ -169,14 +165,6 @@ export const OtaWidget = () => {
                                     {t('ota.mismatch', { file: analysis.modelGuess.model, device: String(connectedModel) })}
                                 </Alert>
                             )}
-                            {isNonEmsComponent && (
-                                <Alert severity={isMpptComponent ? 'warning' : 'info'} sx={{ mt: 1 }}>
-                                    {t(isMpptComponent ? 'ota.nonEms' : 'ota.nonEms.confirmed', {
-                                        component: analysis.componentGuess.component,
-                                        flag: analysis.componentGuess.otaTypeFlag.toString(16).padStart(2, '0'),
-                                    })}
-                                </Alert>
-                            )}
                         </Box>
                     )}
 
@@ -203,7 +191,7 @@ export const OtaWidget = () => {
                     )}
 
                     {log.length > 0 && (
-                        <Box sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1 }}>
+                        <Box ref={logBoxRef} sx={{ maxHeight: 220, overflowY: 'auto', bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1 }}>
                             <List dense disablePadding>
                                 {log.map((line, i) => (
                                     <ListItem key={i} sx={{ py: 0 }}>
@@ -229,14 +217,7 @@ export const OtaWidget = () => {
                             {t('ota.confirmMismatch.3')}
                         </DialogContentText>
                     )}
-                    {isNonEmsComponent && (
-                        <DialogContentText>
-                            {t('ota.confirmNonEms.1')} <strong>{analysis?.componentGuess.component}</strong>{' '}
-                            {t(isMpptComponent ? 'ota.confirmNonEms.2' : 'ota.confirmNonEms.2.confirmed', {
-                                flag: analysis?.componentGuess.otaTypeFlag.toString(16).padStart(2, '0') ?? '',
-                            })}
-                        </DialogContentText>
-                    )}
+                    <DialogContentText>{t('ota.confirmAsk')}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setConfirmOpen(false)} color="inherit">{t('common.cancel')}</Button>

@@ -70,11 +70,11 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
 
     return (
         <Box>
-            {/* Group nav bar — sticks just below the 56px AppBar on mobile. */}
+            {/* Group nav bar — sticks just below the AppBar, whose height is published as --topbar-height. */}
             <Box
                 sx={{
                     position: 'sticky',
-                    top: 56,
+                    top: 'var(--topbar-height, 56px)',
                     zIndex: theme.zIndex.appBar - 1,
                     display: 'flex',
                     alignItems: 'center',
