@@ -4,6 +4,7 @@ import { BLEProvider, useBLE } from './contexts/BLEContext';
 
 import { ScannerView } from './components/ScannerView';
 import { DeviceTopBar } from './components/DeviceTopBar';
+import { WifiRssiContext } from './components/WifiRssiContext';
 import { Footer } from './components/Footer';
 import { VenusAView } from './components/views/VenusAView';
 import { VenusDView } from './components/views/VenusDView';
@@ -50,12 +51,12 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
     }
 
     return (
+        <WifiRssiContext.Provider value={wifiRssi}>
         <Box sx={{ minHeight: '100vh', bgcolor: '#f4f6f8', display: 'flex', flexDirection: 'column' }}>
             <DeviceTopBar
                 deviceInfo={deviceInfo}
                 status={connectionState}
                 rssi={rssi}
-                wifiRssi={wifiRssi}
                 onDisconnect={disconnect}
                 onReconnect={reconnect}
             />
@@ -78,6 +79,7 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
                 <Footer />
             </Box>
         </Box>
+        </WifiRssiContext.Provider>
     );
 };
 

@@ -1,11 +1,9 @@
-import { useEffect, useRef } from 'react';
 import { AppBar, Toolbar, Typography, Chip, Button, Box } from '@mui/material';
-import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
-import WifiIcon from '@mui/icons-material/Wifi';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import { ConnectionState } from '../lib/BLEConnectionManager';
 import type { DeviceInfo } from "../lib/DeviceUtils.ts";
+import { SignalReadings } from './SignalReadings';
 import { useT } from '../i18n/i18n';
 import type { StringKey } from '../i18n/i18n';
 
@@ -13,42 +11,25 @@ interface Props {
     deviceInfo: DeviceInfo;
     status: ConnectionState;
     rssi: number | null;
-    /** The bridge's own WiFi signal, when the connection runs through one. */
-    wifiRssi?: number | null;
     onDisconnect: () => void;
     onReconnect: () => void;
 }
 
-export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect, onReconnect }: Props) => {
+export const DeviceTopBar = ({ deviceInfo, status, rssi, onDisconnect, onReconnect }: Props) => {
     const t = useT();
     const isConnected = status === ConnectionState.CONNECTED;
-    const barRef = useRef<HTMLElement>(null);
-
-    // The bar wraps to a variable height on a phone, so publish the real height for whatever
-    // sticks below it (the mobile section bar) instead of assuming a fixed one.
-    useEffect(() => {
-        const el = barRef.current;
-        if (!el) return;
-        const publish = () => document.documentElement.style.setProperty('--topbar-height', `${el.offsetHeight}px`);
-        publish();
-        const observer = new ResizeObserver(publish);
-        observer.observe(el);
-        return () => {
-            observer.disconnect();
-            document.documentElement.style.removeProperty('--topbar-height');
-        };
-    }, []);
 
     let chipColor: "success" | "error" | "warning" | "default" = "default";
     if (isConnected) chipColor = "success";
     if (status === ConnectionState.CONNECTING) chipColor = "warning";
     if (status === ConnectionState.DISCONNECTED) chipColor = "error";
 
+    // Sticky only from md up. On a phone it scrolls away, so the section bar with the menu
+    // button is the only thing left pinned and the content gets the room.
     return (
-        <AppBar ref={barRef} position="sticky" color="default" elevation={1}>
-            {/* Wraps rather than overflows. On a phone the name, two radio readings, the status
-                and the button do not fit on one line, and pushing the disconnect button off the
-                right edge is the one failure here that actually costs someone something. */}
+        <AppBar position="sticky" color="default" elevation={1} sx={{ position: { xs: 'static', md: 'sticky' } }}>
+            {/* Wraps rather than overflows: pushing the disconnect button off the right edge is the
+                one failure here that actually costs someone something. */}
             <Toolbar sx={{ flexWrap: 'wrap', rowGap: 1, columnGap: 2, py: { xs: 1, sm: 0 } }}>
                 <Box sx={{ minWidth: 0, flexGrow: 1, mr: 'auto' }}>
                     <Typography variant="h6" lineHeight={1.2} noWrap>
@@ -65,36 +46,15 @@ export const DeviceTopBar = ({ deviceInfo, status, rssi, wifiRssi, onDisconnect,
                     </Typography>
                 </Box>
 
-                {/* One group, so the readings, the status and the button move to the second line
-                    together instead of breaking up between them - and wraps internally as well,
-                    because on a phone even that group alone is wider than the screen.
-
-                    Two different radio links, so each one says which it is. The Bluetooth figure
-                    is between whatever is talking to the storage and the storage itself; the WiFi
-                    one belongs to the bridge and only exists when there is a bridge in the path. */}
+                {/* The status and the button stay together on the right. The radio readings sit here
+                    on desktop only; on a phone they live in the pinned section bar instead. */}
                 <Box sx={{
                     display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
                     flexWrap: 'wrap', columnGap: 2, rowGap: 1, minWidth: 0,
                 }}>
-                    {rssi != null && (
-                        <Box display="flex" alignItems="center" color="text.secondary"
-                             title={t('topbar.bleTitle')}>
-                            <SignalCellularAltIcon fontSize="small" />
-                            <Typography variant="caption" ml={0.5} whiteSpace="nowrap">
-                                {t('topbar.ble', { rssi })}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    {wifiRssi != null && (
-                        <Box display="flex" alignItems="center" color="text.secondary"
-                             title={t('topbar.wifiTitle')}>
-                            <WifiIcon fontSize="small" />
-                            <Typography variant="caption" ml={0.5} whiteSpace="nowrap">
-                                {t('topbar.wifi', { rssi: wifiRssi })}
-                            </Typography>
-                        </Box>
-                    )}
+                    <Box sx={{ display: { xs: 'none', md: 'contents' } }}>
+                        <SignalReadings rssi={rssi} />
+                    </Box>
 
                     <Chip
                         label={t(`status.${status}` as StringKey)}

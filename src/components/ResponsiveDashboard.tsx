@@ -9,6 +9,7 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
 import { useT, type StringKey } from '../i18n/i18n';
+import { SignalReadings } from './SignalReadings';
 import { LanguageSwitch } from './LanguageSwitch';
 import { useBLE } from '../contexts/BLEContext';
 import { BridgeFirmwareCard } from './bridge/BridgeFirmwareCard';
@@ -40,7 +41,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
     const t = useT();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const { viaBridge } = useBLE();
+    const { viaBridge, rssi } = useBLE();
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     // The bridge is not part of any storage's feature set, so no model view declares it. It is
@@ -70,11 +71,11 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
 
     return (
         <Box>
-            {/* Group nav bar — sticks just below the AppBar, whose height is published as --topbar-height. */}
+            {/* Group nav bar — sticks to the top once the (non-sticky on mobile) device header has scrolled away. */}
             <Box
                 sx={{
                     position: 'sticky',
-                    top: 'var(--topbar-height, 56px)',
+                    top: 0,
                     zIndex: theme.zIndex.appBar - 1,
                     display: 'flex',
                     alignItems: 'center',
@@ -89,7 +90,11 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                 <IconButton onClick={() => setDrawerOpen(true)} aria-label={t('nav.openMenu')}>
                     <MenuIcon />
                 </IconButton>
-                <Typography variant="subtitle1" fontWeight="bold">{active ? t(active.labelKey) : ''}</Typography>
+                <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ minWidth: 0 }}>{active ? t(active.labelKey) : ''}</Typography>
+                {/* Signal strength rides along with the pinned bar, since the device header scrolls away. */}
+                <Box sx={{ ml: 'auto', pr: 1, display: 'flex', alignItems: 'center', columnGap: 1.5, flexShrink: 0 }}>
+                    <SignalReadings rssi={rssi} />
+                </Box>
             </Box>
 
             <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>

@@ -22,9 +22,9 @@ export const de: Record<keyof typeof en, string> = {
     'footer.notAffiliated': 'nicht mit Marstek verbunden',
 
     'topbar.bleTitle': 'Bluetooth-Signal zum Speicher',
-    'topbar.ble': 'BLE {rssi} dBm',
+    'topbar.ble': '{rssi} dBm',
     'topbar.wifiTitle': 'WLAN-Signal der ESP32-Bridge zu deinem Accesspoint',
-    'topbar.wifi': 'Bridge-WLAN {rssi} dBm',
+    'topbar.wifi': '{rssi} dBm',
     'topbar.disconnect': 'Trennen',
     'topbar.reconnect': 'Neu verbinden',
 

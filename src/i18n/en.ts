@@ -24,9 +24,9 @@ export const en = {
     'footer.notAffiliated': 'not affiliated with Marstek',
 
     'topbar.bleTitle': 'Bluetooth signal to the storage',
-    'topbar.ble': 'BLE {rssi} dBm',
+    'topbar.ble': '{rssi} dBm',
     'topbar.wifiTitle': 'WiFi signal of the ESP32 bridge to your access point',
-    'topbar.wifi': 'Bridge WiFi {rssi} dBm',
+    'topbar.wifi': '{rssi} dBm',
     'topbar.disconnect': 'Disconnect',
     'topbar.reconnect': 'Reconnect',
 
