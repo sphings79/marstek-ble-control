@@ -25,6 +25,9 @@ export const en = {
 
     'topbar.bleTitle': 'Bluetooth signal to the storage',
     'topbar.ble': '{rssi} dBm',
+    'topbar.lost': 'lost',
+    'topbar.connecting': 'connecting…',
+    'topbar.noValue': '-- dBm',
     'topbar.wifiTitle': 'WiFi signal of the ESP32 bridge to your access point',
     'topbar.wifi': '{rssi} dBm',
     'topbar.disconnect': 'Disconnect',

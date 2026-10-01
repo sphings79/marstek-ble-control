@@ -23,6 +23,9 @@ export const de: Record<keyof typeof en, string> = {
 
     'topbar.bleTitle': 'Bluetooth-Signal zum Speicher',
     'topbar.ble': '{rssi} dBm',
+    'topbar.lost': 'getrennt',
+    'topbar.connecting': 'verbinde…',
+    'topbar.noValue': '-- dBm',
     'topbar.wifiTitle': 'WLAN-Signal der ESP32-Bridge zu deinem Accesspoint',
     'topbar.wifi': '{rssi} dBm',
     'topbar.disconnect': 'Trennen',

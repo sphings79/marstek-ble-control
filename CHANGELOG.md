@@ -8,6 +8,11 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.12 — 2026-10-01
+- The Bluetooth reading in the header doubles as the link indicator: dBm while connected, "connecting…"
+  in orange while the link comes up, "lost" in red when it is gone. On a phone it sits in the pinned
+  section bar, so a dropped connection is visible even after scrolling down.
+
 ## v1.3.11 — 2026-10-01
 - The header shows the Bluetooth symbol instead of the cellular bars, and Bluetooth and WiFi are just
   the dBm value; the tooltip says which link it is.
