@@ -8,6 +8,15 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.14 — 2026-10-01
+- New "Pick from archive" button on the firmware update card: lists the images for the connected model
+  (Control, BMS, Micro) straight from the firmware archive on GitHub, newest first with release notes,
+  downloads the chosen one, verifies its SHA-256 and runs it through the same checks as a file you pick
+  yourself. Venus A, D and E 3.0.
+- "Schaltet die Notstromsteckdose an/aus" wording fix.
+- Internal cleanup: the connection provider no longer reads a ref while rendering, and a few lint
+  findings are gone. No behaviour change intended.
+
 ## v1.3.13 — 2026-10-01
 - Plainer wording throughout: "SoC" instead of "State of Charge/Ladezustand", clearer descriptions for the
   backup power, surplus feed-in, LED and Bluetooth switches, and the BLE command numbers are gone from the

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Alert, CssBaseline, CircularProgress, Typography } from '@mui/material';
-import { BLEProvider, useBLE } from './contexts/BLEContext';
+import { useBLE } from './contexts/BLEContext';
+import { BLEProvider } from './contexts/BLEProvider';
 
 import { ScannerView } from './components/ScannerView';
 import { DeviceTopBar } from './components/DeviceTopBar';

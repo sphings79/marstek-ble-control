@@ -36,7 +36,7 @@ export class ManualWorkModeSlotControlPayload extends VenusPayload {
         this.enabled = enabled;
     }
 
-    static FROM_BYTES(_: Uint8Array): ManualWorkModeSlotControlPayload {
+    static FROM_BYTES(): ManualWorkModeSlotControlPayload {
         return new ManualWorkModeSlotControlPayload(0,
             MANUAL_MODE_SCHEDULE_ITEM_ACTION.CHARGE, 
             0, 

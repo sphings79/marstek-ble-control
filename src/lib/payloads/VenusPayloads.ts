@@ -21,7 +21,7 @@ import {GetWorkModeSettingsPayload} from "./GetWorkModeSettingsPayload.ts";
 import {BluetoothControlPayload} from "./BluetoothControlPayload.ts";
 
 export interface VenusPayloadStatic<T> {
-    new (...args: any[]): any;
+    new (...args: never[]): unknown;
     FROM_BYTES(bytes: Uint8Array): T;
 }
 

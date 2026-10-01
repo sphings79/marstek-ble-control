@@ -7,6 +7,8 @@ import {
 import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
+import { ArchiveDialog } from './ArchiveDialog';
+import { archiveSupports } from '../../lib/ota/FirmwareArchive';
 import { useBLE } from '../../contexts/BLEContext';
 import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
@@ -16,7 +18,8 @@ const MAX_LOG_LINES = 300;
 
 export const OtaWidget = () => {
     const t = useT();
-    const { manager, connectionState } = useBLE();
+    const { manager, connectionState, deviceInfo } = useBLE();
+    const modelName = deviceInfo?.modelName;
     const isConnected = connectionState === ConnectionState.CONNECTED;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +29,7 @@ export const OtaWidget = () => {
     const [fileBytes, setFileBytes] = useState<Uint8Array | null>(null);
 
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [archiveOpen, setArchiveOpen] = useState(false);
     const [progress, setProgress] = useState<OtaProgress | null>(null);
     const [log, setLog] = useState<string[]>([]);
     const [running, setRunning] = useState(false);
@@ -44,22 +48,31 @@ export const OtaWidget = () => {
         });
     };
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const buf = new Uint8Array(await file.arrayBuffer());
-        const a = analyzeFirmwareForOta(file.name, buf);
+    // Shared by a picked file and an image from the archive, so both go through the same analysis.
+    const loadFirmware = (fileName: string, buf: Uint8Array) => {
+        const a = analyzeFirmwareForOta(fileName, buf);
 
         setFileBytes(buf);
         setAnalysis(a);
         setProgress(null);
         setLog([]);
 
-        appendLog(`Selected: ${file.name} (${file.size.toLocaleString()} bytes)`);
+        appendLog(`Selected: ${fileName} (${buf.length.toLocaleString()} bytes)`);
         appendLog(`Detected model: ${a.modelGuess.model} (${a.modelGuess.reason})`);
         appendLog(`Detected component: ${a.componentGuess.component}, OTA type flag 0x${a.componentGuess.otaTypeFlag.toString(16).padStart(2, '0')} (${a.componentGuess.reason})`);
         appendLog(`Checksum: 0x${(a.checksum >>> 0).toString(16).padStart(8, '0')}`);
+    };
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        loadFirmware(file.name, new Uint8Array(await file.arrayBuffer()));
+    };
+
+    const handleArchivePick = (name: string, bytes: Uint8Array) => {
+        setArchiveOpen(false);
+        loadFirmware(name, bytes);
     };
 
     const startClicked = () => {
@@ -139,6 +152,17 @@ export const OtaWidget = () => {
                         {t('ota.selectFile')}
                     </Button>
 
+                    {archiveSupports(modelName) && (
+                        <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={() => setArchiveOpen(true)}
+                            disabled={!isConnected || running}
+                        >
+                            {t('ota.archive.button')}
+                        </Button>
+                    )}
+
                     {analysis && (
                         <Box>
                             <Typography variant="body2" fontWeight="bold">{analysis.fileName}</Typography>
@@ -195,6 +219,15 @@ export const OtaWidget = () => {
                     )}
                 </Stack>
             </Box>
+
+            {modelName && (
+                <ArchiveDialog
+                    open={archiveOpen}
+                    modelName={modelName}
+                    onClose={() => setArchiveOpen(false)}
+                    onPick={handleArchivePick}
+                />
+            )}
 
             <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
