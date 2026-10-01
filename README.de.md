@@ -262,8 +262,8 @@ generischen Geräteansicht.
 - 🌐 **Weitere Projekte und Tools:** [sphings-dev.de](https://sphings-dev.de/)
 - 📦 **Firmware-Archiv für Marstek-Venus-Geräte:** [sphings79/marstek-firmware-archiv](https://github.com/sphings79/marstek-firmware-archiv)
 - 🛡️ **Firmware-Backup / Checker:** [marstek-fw-checker](https://sphings-dev.de/marstek/marstek-fw-checker/) — eine Kopie eines Firmware-Abbilds ziehen und zum Archiv beitragen. Hinweis: Eine Firmware lässt sich nur sichern, solange sie noch aussteht, also **bevor sie installiert wurde** — nach dem Flashen kommt man nicht mehr heran.
-- 🔬 **Reverse Engineering der Venus-D-Firmware:** [sphings79/Marstek-Venus-D-Firmware-Reverse-Engineering](https://github.com/sphings79/Marstek-Venus-D-Firmware-Reverse-Engineering)
-- 🏠 **Home-Assistant-Integration über Modbus:** [sphings79/marstek_venus_modbus_dev](https://github.com/sphings79/marstek_venus_modbus_dev)
+- 🔬 **Reverse Engineering der Venus-Firmware:** [sphings79/Marstek-Venus-Firmware-Reverse-Engineering](https://github.com/sphings79/Marstek-Venus-Firmware-Reverse-Engineering)
+- 🏠 **Home-Assistant-Integration über Modbus:** [sphings79/marstek-modbus-suite](https://github.com/sphings79/marstek-modbus-suite)
 
 ## Dank
 
