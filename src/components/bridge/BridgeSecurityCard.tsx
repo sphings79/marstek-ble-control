@@ -101,10 +101,6 @@ export const BridgeSecurityCard = () => {
                     >
                         {t('bridgePw.submit')}
                     </Button>
-
-                    <Typography variant="caption" color="text.secondary">
-                        {t('bridgePw.note')}
-                    </Typography>
                 </Stack>
             </Box>
         </Paper>

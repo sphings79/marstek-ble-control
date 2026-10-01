@@ -52,16 +52,16 @@ export const Footer = () => {
         </Stack>
 
         <Typography variant="caption" display="block">
-            {t('footer.forkOf')}{' '}
+            {t('footer.thanksPre')}{' '}
             <Link
                 href={UPSTREAM_REPO}
                 target="_blank"
                 rel="noopener noreferrer"
                 underline="hover"
             >
-                Hypfer/venuscontrol
+                Hypfer
             </Link>
-            {' '}· {t('footer.notAffiliated')}
+            {t('footer.thanksPost')}{' '}· {t('footer.notAffiliated')}
         </Typography>
 
         <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>

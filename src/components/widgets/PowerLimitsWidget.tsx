@@ -272,8 +272,7 @@ export const PowerLimitsWidget = ({
 
                         <Box mt="auto" pt={2} textAlign="center">
                             <Typography variant="caption" color="text.secondary">
-                                {t('powerLimits.regulations1')}<br/>
-                                {t('powerLimits.regulations2')}
+                                {t('powerLimits.regulations1')}
                             </Typography>
                         </Box>
                     </>

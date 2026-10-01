@@ -1,12 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import {
     Box, Grid, Drawer, List, ListItemButton, ListItemIcon, ListItemText,
-    IconButton, Typography, Divider, Link, useMediaQuery,
+    IconButton, Typography, Divider, Link, Collapse, useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
 import { useT, type StringKey } from '../i18n/i18n';
 import { SignalReadings } from './SignalReadings';
@@ -43,6 +45,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { viaBridge, rssi } = useBLE();
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [projectsOpen, setProjectsOpen] = useState(false);
 
     // The bridge is not part of any storage's feature set, so no model view declares it. It is
     // added here instead of in each of them: the rule "if we are reached through a bridge, its
@@ -131,24 +134,33 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                                 <ListItemText primary={t('footer.star')} primaryTypographyProps={{ fontWeight: 'bold' }} />
                             </ListItemButton>
 
-                            {PROJECT_LINKS.map(l => (
-                                <ListItemButton
-                                    key={l.href}
-                                    component="a"
-                                    href={l.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <ListItemIcon sx={{ minWidth: 36 }}><OpenInNewIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText primary={l.label} />
-                                </ListItemButton>
-                            ))}
+                            <ListItemButton onClick={() => setProjectsOpen(open => !open)}>
+                                <ListItemIcon sx={{ minWidth: 36 }}><OpenInNewIcon fontSize="small" /></ListItemIcon>
+                                <ListItemText primary={t('nav.moreProjects')} />
+                                {projectsOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                            </ListItemButton>
+                            <Collapse in={projectsOpen} timeout="auto" unmountOnExit>
+                                <List dense disablePadding>
+                                    {PROJECT_LINKS.map(l => (
+                                        <ListItemButton
+                                            key={l.href}
+                                            component="a"
+                                            href={l.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <ListItemIcon sx={{ minWidth: 36 }} />
+                                            <ListItemText primary={l.label} />
+                                        </ListItemButton>
+                                    ))}
+                                </List>
+                            </Collapse>
                         </List>
                         <Box sx={{ px: 2, py: 1.5 }}>
                             <Typography variant="caption" color="text.secondary" display="block">
-                                {t('footer.forkOf')}{' '}
+                                {t('footer.thanksShort')}{' '}
                                 <Link href={UPSTREAM_REPO} target="_blank" rel="noopener noreferrer" underline="hover">
-                                    Hypfer/venuscontrol
+                                    Hypfer
                                 </Link>
                                 {' '}· {t('footer.notAffiliated')}
                             </Typography>

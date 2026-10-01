@@ -11,7 +11,6 @@ import { useBLE } from '../../contexts/BLEContext';
 import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { OtaManager, OtaPhase, analyzeFirmwareForOta, detectModelMismatch, type OtaAnalysis, type OtaProgress } from '../../lib/ota/OtaManager';
-import { TransportKind } from '../../lib/transport/Transport';
 
 const MAX_LOG_LINES = 300;
 
@@ -19,7 +18,6 @@ export const OtaWidget = () => {
     const t = useT();
     const { manager, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
-    const overBridge = manager.transportKind === TransportKind.BRIDGE;
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const otaManagerRef = useRef<OtaManager | null>(null);
@@ -122,12 +120,6 @@ export const OtaWidget = () => {
                 <Alert severity="error" sx={{ mb: 2 }}>
                     {t('ota.risk')}
                 </Alert>
-
-                {overBridge && (
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                        {t('ota.bridgeWarning')}
-                    </Alert>
-                )}
 
                 <input
                     ref={fileInputRef}

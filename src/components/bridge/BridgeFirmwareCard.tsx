@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    Alert, Box, Button, LinearProgress, Paper, Stack, Typography
+    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, LinearProgress, Paper, Stack, Typography
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import {
     fetchBridgeVersion, uploadBridgeFirmware, waitForBridge,
@@ -138,10 +139,12 @@ export const BridgeFirmwareCard = () => {
 
                 <Stack spacing={2}>
                     {version && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                            {version.version} · slot {version.slot} · {version.built}
-                            {version.web && <> · {t('bridgeFw.webInstalled', { version: version.web })}</>}
-                        </Typography>
+                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            <Chip size="small" variant="outlined" label={t('bridgeFw.firmwareInstalled', { version: version.version })} />
+                            {version.web && (
+                                <Chip size="small" variant="outlined" label={t('bridgeFw.webInstalled', { version: version.web })} />
+                            )}
+                        </Stack>
                     )}
 
                     {message && (
@@ -198,13 +201,25 @@ export const BridgeFirmwareCard = () => {
                         onChange={(e) => void handleFile(e, 'web')}
                     />
 
-                    <Button variant="outlined" onClick={() => firmwareInput.current?.click()} disabled={busy} fullWidth>
-                        {t('bridgeFw.firmware')}
-                    </Button>
+                    <Accordion disableGutters variant="outlined" sx={{ '&::before': { display: 'none' } }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography variant="body2" fontWeight="bold">{t('bridgeFw.manual')}</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Stack spacing={2}>
+                                <Typography variant="caption" color="text.secondary">
+                                    {t('bridgeFw.manualNote')}
+                                </Typography>
+                                <Button variant="outlined" onClick={() => firmwareInput.current?.click()} disabled={busy} fullWidth>
+                                    {t('bridgeFw.firmware')}
+                                </Button>
 
-                    <Button variant="outlined" onClick={() => webInput.current?.click()} disabled={busy} fullWidth>
-                        {t('bridgeFw.webInterface')}
-                    </Button>
+                                <Button variant="outlined" onClick={() => webInput.current?.click()} disabled={busy} fullWidth>
+                                    {t('bridgeFw.webInterface')}
+                                </Button>
+                            </Stack>
+                        </AccordionDetails>
+                    </Accordion>
 
                     {busy && (
                         <Box>

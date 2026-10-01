@@ -9,4 +9,6 @@ export const PROJECT_LINKS: { label: string; href: string }[] = [
     { label: 'Firmware Archive', href: 'https://github.com/sphings79/marstek-firmware-archiv' },
     { label: 'FW Backup / Checker', href: 'https://sphings-dev.de/marstek/marstek-fw-checker/' },
     { label: 'Reverse Engineering', href: 'https://github.com/sphings79/Marstek-Venus-Firmware-Reverse-Engineering' },
+    { label: 'Modbus Suite (Home Assistant)', href: 'https://github.com/sphings79/marstek-modbus-suite' },
+    { label: 'Offline Endpoint', href: OFFLINE_ENDPOINT_REPO },
 ];

@@ -8,6 +8,19 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.13 — 2026-10-01
+- Plainer wording throughout: "SoC" instead of "State of Charge/Ladezustand", clearer descriptions for the
+  backup power, surplus feed-in, LED and Bluetooth switches, and the BLE command numbers are gone from the
+  notes. The legal-regulations hint is now a single sentence.
+- The device-info versions name every component (EMS, BMS, VNS, MPPT).
+- The device time card explains where the battery gets its time (cloud, or the Marstek Offline Endpoint)
+  and links to it.
+- The bridge-connected firmware-update warning and the bridge-password explainer are removed; the
+  bridge firmware card shows firmware and interface versions as chips and tucks hand-built uploads
+  into a collapsible "Manual update".
+- Footer and phone menu: a thank-you to Hypfer, links to the Modbus Suite and the Offline Endpoint,
+  and on a phone the project links sit behind a collapsible "More projects" entry.
+
 ## v1.3.12 — 2026-10-01
 - The Bluetooth reading in the header doubles as the link indicator: dBm while connected, "connecting…"
   in orange while the link comes up, "lost" in red when it is gone. On a phone it sits in the pinned

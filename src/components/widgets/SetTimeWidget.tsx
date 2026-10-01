@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import {
-    Paper, Typography, Box, TextField, Button, Stack, CircularProgress
+    Paper, Typography, Box, TextField, Button, Stack, CircularProgress, Link
 } from '@mui/material';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 import { useBLE } from '../../contexts/BLEContext';
+import { OFFLINE_ENDPOINT_REPO } from '../../lib/projectLinks';
 import { useT } from '../../i18n/i18n';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import { COMMAND_ID } from '../../lib/VenusConst.ts';
@@ -84,7 +85,8 @@ export const SetTimeWidget = () => {
                             </Button>
                         </Stack>
                         <Typography variant="caption" color="text.secondary">
-                            {t('time.note')}
+                            {t('time.note')}{' '}
+                            <Link href={OFFLINE_ENDPOINT_REPO} target="_blank" rel="noopener noreferrer">{t('workMode.timeWarningLink')}</Link>
                         </Typography>
                     </Stack>
                 )}
