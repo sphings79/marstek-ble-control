@@ -213,6 +213,8 @@ export const en = {
     "ota.archive.source": "Source: firmware archive on GitHub",
     "ota.archive.empty": "The archive has no firmware for this model.",
     "ota.archive.beta": "Beta",
+    "ota.archive.installed": "Installed",
+    "ota.archive.installedVersion": "installed: {version}",
     "ota.archive.error": "The archive could not be loaded ({detail}).",
     "ota.archive.downloadError": "Download failed ({detail}).",
     "ota.fileInfo": "{size} bytes - checksum 0x{checksum}",
@@ -237,7 +239,7 @@ export const en = {
     // Factory reset, device time, local api, module states
     "reset.title": "Factory Reset",
     "reset.keepData": "Factory Reset and Keep Data",
-    "reset.full": "Factory Reset",
+    "reset.full": "Factory Reset, Delete All Data",
     "reset.confirmTitle": "Confirm Reset",
     "reset.confirmKeep": "This will reset all device settings to default values.",
     "reset.confirmFull": "This will reset EVERYTHING including historical energy statistics.",

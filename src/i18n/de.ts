@@ -211,6 +211,8 @@ export const de: Record<keyof typeof en, string> = {
     "ota.archive.source": "Quelle: Firmware-Archiv auf GitHub",
     "ota.archive.empty": "Das Archiv hat für dieses Modell keine Firmware.",
     "ota.archive.beta": "Beta",
+    "ota.archive.installed": "Installiert",
+    "ota.archive.installedVersion": "installiert: {version}",
     "ota.archive.error": "Das Archiv konnte nicht geladen werden ({detail}).",
     "ota.archive.downloadError": "Download fehlgeschlagen ({detail}).",
     "ota.fileInfo": "{size} Bytes — Prüfsumme 0x{checksum}",
@@ -235,7 +237,7 @@ export const de: Record<keyof typeof en, string> = {
     // Factory reset, device time, local api, module states
     "reset.title": "Werksreset",
     "reset.keepData": "Werksreset, Daten behalten",
-    "reset.full": "Werksreset",
+    "reset.full": "Werksreset, alle Daten löschen",
     "reset.confirmTitle": "Reset bestätigen",
     "reset.confirmKeep": "Das setzt alle Geräteeinstellungen auf die Werkswerte zurück.",
     "reset.confirmFull": "Das setzt ALLES zurück, auch die bisherige Energiestatistik.",

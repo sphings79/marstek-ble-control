@@ -14,6 +14,7 @@ import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputCompone
 import { useBLE, useVenusData } from '../../contexts/BLEContext';
 import { ConnectionState } from '../../lib/BLEConnectionManager';
 import {COMMAND_ID} from "../../lib/VenusConst.ts";
+import { versionLabel } from '../../lib/ota/FirmwareArchive';
 import { useT } from '../../i18n/i18n';
 
 interface Props {
@@ -182,13 +183,13 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
                                 <Chip label={t('deviceInfo.versions')} size="small" color="secondary" variant="outlined" sx={{ mb: 1, fontWeight: 'bold' }} />
                                 <Grid container columnSpacing={4}>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label={t('deviceInfo.emsFw')} value={data.data.get('dev_ver')} icon={<MemoryIcon fontSize="small"/>} />
-                                        <InfoRow label={t('deviceInfo.bmsFw')} value={data.data.get('bms_ver')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.emsFw')} value={versionLabel(data.data.get('dev_ver'), t('ota.archive.beta'))} icon={<MemoryIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.bmsFw')} value={versionLabel(data.data.get('bms_ver'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label={t('deviceInfo.vnsFw')} value={data.data.get('inv_ver')} icon={<PowerIcon fontSize="small"/>} />
+                                        <InfoRow label={t('deviceInfo.vnsFw')} value={versionLabel(data.data.get('inv_ver'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
                                         {showMppt && (
-                                            <InfoRow label={t('deviceInfo.mpptFw')} value={data.data.get('mppt_v')} icon={<PowerIcon fontSize="small"/>} />
+                                            <InfoRow label={t('deviceInfo.mpptFw')} value={versionLabel(data.data.get('mppt_v'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
                                         )}
                                         <InfoRow label={t('deviceInfo.commModule')} value={data.data.get('fc_ver')} icon={<MemoryIcon fontSize="small"/>} />
                                     </Grid>

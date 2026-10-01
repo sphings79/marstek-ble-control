@@ -61,7 +61,7 @@ export const FactoryResetWidget = () => {
                 <Typography variant="h6" fontWeight="bold">{t('reset.title')}</Typography>
             </Box>
             
-            <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                 <Stack spacing={2}>
                     <Box>
                         <Button

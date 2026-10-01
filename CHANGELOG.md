@@ -8,6 +8,12 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.15 — 2026-10-01
+- The firmware archive picker groups the images by component in collapsible sections, marks the
+  version that is installed on the device, and uses the card styling of the rest of the page.
+- Test builds show as 149.2 (Beta) instead of 1492, in the archive picker and in the device info.
+- Factory reset: the buttons sit at the top of the card, and the second one says it deletes all data.
+
 ## v1.3.14 — 2026-10-01
 - New "Pick from archive" button on the firmware update card: lists the images for the connected model
   (Control, BMS, Micro) straight from the firmware archive on GitHub, newest first with release notes,

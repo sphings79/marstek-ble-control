@@ -33,6 +33,22 @@ const ARCHIVE_DEVICE: Record<string, string> = {
     'Venus E 3.0': 'VNSE3-0',
 };
 
+/**
+ * The device and the archive both carry versions as plain digits. A four-digit one is a test
+ * build, "major.minor" with the dot dropped: 1492 is 149.2. Same rule as the archive's index.
+ */
+export function formatVersion(raw: string): { text: string; beta: boolean } {
+    const beta = /^\d{4}$/.test(raw);
+    return { text: beta ? `${raw.slice(0, 3)}.${raw.slice(3)}` : raw, beta };
+}
+
+/** `149.2 (Beta)` for 1492, the plain value otherwise; anything that is not digits is left alone. */
+export function versionLabel(raw: string | undefined, betaLabel: string): string | undefined {
+    if (raw === undefined) return undefined;
+    const { text, beta } = formatVersion(raw);
+    return beta ? `${text} (${betaLabel})` : text;
+}
+
 /** Whether the archive has images for this model at all. */
 export function archiveSupports(modelName: string | undefined): boolean {
     return modelName !== undefined && modelName in ARCHIVE_DEVICE;
