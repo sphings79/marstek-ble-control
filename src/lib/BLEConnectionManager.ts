@@ -10,6 +10,10 @@ export { ConnectionState };
 export { SERVICE_UUID, TX_UUID, RX_UUID } from "./transport/WebBluetoothTransport";
 
 type PacketListener = (packet: VenusPacket) => void;
+export interface OtaSession {
+    send(bytes: Uint8Array): Promise<void>;
+    release(resumePolling?: boolean): void;
+}
 
 /**
  * Owns the Marstek protocol on top of a byte pipe: frame reassembly, packet dispatch, the
@@ -22,16 +26,25 @@ export class BLEConnectionManager {
     public onStateChange: (state: ConnectionState, msg?: string) => void = () => {};
     public onRSSI: (rssi: number) => void = () => {};
 
-    // Legacy diagnostic hook for notification fragments. OTA consumes complete
-    // checksum-valid frames through subscribeFrames().
+    // Legacy diagnostic hook for notification fragments. OTA uses subscribeFrames()
+    // instead, which delivers checksum-valid complete frames after reassembly.
     public onRawNotification: (bytes: Uint8Array) => void = () => {};
 
     private listeners: Map<number, PacketListener[]> = new Map();
 
-    private frameListeners = new Set<(frame: Uint8Array) => void>();
-
     private pollTimer: ReturnType<typeof setTimeout> | null = null;
+    private pollingSuspended = false;
+    private pollTask: Promise<void> | null = null;
+    private otaToken: symbol | null = null;
+    private reconnectRequired = false;
+    private freshConnection = false;
+    private frameListeners = new Set<(frame: Uint8Array) => void>();
+    private lossListeners = new Set<() => void>();
+    private disconnectListeners = new Set<() => void>();
     private txMutex = semaphore(1);
+    private connectionGeneration = 0;
+    private connectionTask: Promise<void> | null = null;
+    private writeRejectors = new Set<(error: Error) => void>();
 
     // Reassembly buffer for incoming VenusPacket frames. BLE delivers notifications capped at the
     // negotiated ATT MTU, so larger responses (DEVICE_INFO 0x04, GET_WORK_MODE_SETTINGS / "Settings
@@ -49,7 +62,8 @@ export class BLEConnectionManager {
         this.transport = transport;
         this.transport.setCallbacks({
             onNotify: (bytes) => {
-                // Preserve the raw diagnostic hook before reassembling complete frames.
+                // Preserve the raw diagnostic hook, then reassemble complete frames for OTA
+                // and ordinary command consumers.
                 this.onRawNotification(bytes);
 
                 // Feed the reassembler, which buffers across notifications and dispatches complete
@@ -61,6 +75,30 @@ export class BLEConnectionManager {
                 // Clear any stale bytes before the transport starts delivering notifications.
                 if (state === ConnectionState.CONNECTING) {
                     this.resetReassembler();
+                    this.notifyConnectionLoss();
+                    if (!this.isConnected) {
+                        this.invalidateConnectionWrites();
+                        this.freshConnection = true;
+                    }
+                }
+                if (state === ConnectionState.DISCONNECTED || state === ConnectionState.ERROR) {
+                    this.stopPolling();
+                    this.resetReassembler();
+                    this.notifyConnectionLoss();
+                    if (state === ConnectionState.DISCONNECTED) {
+                        this.invalidateConnectionWrites();
+                        this.freshConnection = true;
+                        for (const listener of [...this.disconnectListeners]) listener();
+                    }
+                }
+
+                if (state === ConnectionState.CONNECTED && this.freshConnection) {
+                    if (!this.otaToken) {
+                        this.reconnectRequired = false;
+                        this.pollingSuspended = false;
+                    }
+                    // Consume fresh evidence even if an old transfer is still unwinding.
+                    this.freshConnection = false;
                 }
 
                 this.onStateChange(state, msg);
@@ -73,6 +111,10 @@ export class BLEConnectionManager {
             onDisconnected: () => {
                 this.stopPolling();
                 this.resetReassembler();
+                this.notifyConnectionLoss();
+                this.invalidateConnectionWrites();
+                this.freshConnection = true;
+                for (const listener of [...this.disconnectListeners]) listener();
                 this.onStateChange(ConnectionState.DISCONNECTED);
             },
         });
@@ -95,10 +137,93 @@ export class BLEConnectionManager {
         return this.transport.isConnected;
     }
 
+    public get requiresReconnect(): boolean { return this.reconnectRequired; }
+
     /** Complete checksum-valid frames, independent of notification boundaries. */
     public subscribeFrames(listener: (frame: Uint8Array) => void): () => void {
         this.frameListeners.add(listener);
         return () => { this.frameListeners.delete(listener); };
+    }
+
+    public subscribeConnectionLoss(listener: () => void): () => void {
+        this.lossListeners.add(listener);
+        return () => { this.lossListeners.delete(listener); };
+    }
+
+    private notifyConnectionLoss() {
+        for (const listener of [...this.lossListeners]) listener();
+    }
+
+    /** A dead transport promise must not hold the next connection's queue hostage. */
+    private invalidateConnectionWrites() {
+        this.connectionGeneration++;
+        for (const reject of [...this.writeRejectors]) reject(new Error('Write belongs to a previous connection'));
+        this.txMutex = semaphore(1);
+        this.pollTask = null;
+        this.stopPolling();
+    }
+
+    /** Reserve the whole exchange, then drain any write already in progress. */
+    public async beginOtaSession(signal?: AbortSignal): Promise<OtaSession> {
+        if (this.otaToken) throw new Error('A firmware transfer is already running');
+        if (this.reconnectRequired) throw new Error('Reconnect before another firmware transfer');
+        if (!this.isConnected) throw new Error('Not connected');
+        const token = Symbol('OTA');
+        const generation = this.connectionGeneration;
+        const mutex = this.txMutex;
+        this.otaToken = token;
+        const previouslySuspended = this.pollingSuspended;
+        this.suspendPolling();
+        try {
+            await new Promise<void>((resolve, reject) => {
+                let done = false;
+                const cleanup = () => {
+                    clearTimeout(timer);
+                    signal?.removeEventListener('abort', abort);
+                    unsubscribeLoss();
+                };
+                const fail = (message: string) => {
+                    if (done) return;
+                    done = true;
+                    cleanup();
+                    reject(new Error(message));
+                };
+                const abort = () => fail('Transfer cancelled');
+                const timer = setTimeout(() => {
+                    this.reconnectRequired = true;
+                    fail('Timed out draining prior writes; reconnect before retrying');
+                }, 5_000);
+                const unsubscribeLoss = this.subscribeConnectionLoss(() => fail('Disconnected before transfer'));
+                signal?.addEventListener('abort', abort, { once: true });
+                if (signal?.aborted) { abort(); return; }
+                mutex.take(() => {
+                    mutex.leave();
+                    if (done) return;
+                    done = true;
+                    cleanup();
+                    resolve();
+                });
+            });
+            if (!this.isConnected || generation !== this.connectionGeneration) throw new Error('Disconnected before transfer');
+            this.resetReassembler();
+        } catch (error) {
+            this.otaToken = null;
+            if (!previouslySuspended && this.isConnected) this.resumePolling();
+            throw error;
+        }
+        return {
+            send: (bytes) => {
+                if (generation !== this.connectionGeneration) return Promise.reject(new Error('Firmware session belongs to a previous connection'));
+                return this.writeLocked(bytes, false, undefined, token);
+            },
+            release: (resume = true) => {
+                if (this.otaToken !== token) return;
+                this.otaToken = null;
+                if (generation === this.connectionGeneration) this.resetReassembler();
+                if (!resume) this.reconnectRequired = true;
+                if (resume && !previouslySuspended && this.isConnected) this.resumePolling();
+            },
+        };
     }
 
     public subscribe(commandId: number, callback: PacketListener) {
@@ -145,8 +270,8 @@ export class BLEConnectionManager {
      * frame into a single notification, so we drive a small resync/length state machine over a
      * rolling buffer rather than assuming one notification == one frame.
      *
-     * All checksum-valid frames reach subscribeFrames(); HM frames additionally reach
-     * ordinary packet subscribers.
+     * All complete checksum-valid frames go to subscribeFrames() consumers. HM frames
+     * additionally go to the normal VenusPacket subscriptions.
      */
     private feedReassembler(chunk: Uint8Array) {
         for (let i = 0; i < chunk.length; i++) this.rxAssembly.push(chunk[i]);
@@ -266,6 +391,15 @@ export class BLEConnectionManager {
     }
 
     private async doPoll() {
+        if (this.pollingSuspended || this.otaToken) return;
+        if (this.pollTask) return this.pollTask;
+        const task = this.performPoll();
+        this.pollTask = task;
+        try { await task; } finally { if (this.pollTask === task) this.pollTask = null; }
+    }
+
+    private async performPoll() {
+        const generation = this.connectionGeneration;
         // Every path schedules the next poll. Returning early without one meant a single moment of
         // "not connected" - a reconnect in progress, a bridge catching its breath - stopped the
         // polling for good, and the dashboard sat on "waiting for first poll" until the whole
@@ -278,8 +412,11 @@ export class BLEConnectionManager {
             }
         }
 
+        if (generation !== this.connectionGeneration) return;
         this.stopPolling();
-        this.pollTimer = setTimeout(() => this.doPoll(), 5_000);
+        if (!this.pollingSuspended && !this.otaToken && this.isConnected) {
+            this.pollTimer = setTimeout(() => { void this.doPoll(); }, 5_000);
+        }
     }
 
     public pollState() {
@@ -291,13 +428,41 @@ export class BLEConnectionManager {
         this.doPoll();
     }
 
-    async scanAndConnect() {
-        await this.transport.scanAndConnect();
+    /** Wait for actual teardown so a delayed disconnect cannot erase the new connection. */
+    private async disconnectBeforeReconnect(): Promise<void> {
+        if (!this.reconnectRequired || !this.isConnected) return;
+        await new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+                clearTimeout(timer);
+                this.disconnectListeners.delete(disconnected);
+            };
+            const disconnected = () => { cleanup(); resolve(); };
+            const timer = setTimeout(() => {
+                cleanup();
+                reject(new Error('Disconnect timed out; reconnect has not started'));
+            }, 5_000);
+            this.disconnectListeners.add(disconnected);
+            try { this.transport.disconnect(); }
+            catch (error) { cleanup(); reject(error); }
+        });
     }
 
-    async reconnect() {
-        await this.transport.reconnect();
+    private connectUsing(method: 'scanAndConnect' | 'reconnect'): Promise<void> {
+        if (this.connectionTask) return this.connectionTask;
+        // Reserve before running transport callbacks, including synchronous/reentrant ones.
+        const task = Promise.resolve().then(async () => {
+            await this.disconnectBeforeReconnect();
+            await this.transport[method]();
+        });
+        this.connectionTask = task;
+        const cleanup = () => { if (this.connectionTask === task) this.connectionTask = null; };
+        void task.then(cleanup, cleanup);
+        return task;
     }
+
+    scanAndConnect() { return this.connectUsing('scanAndConnect'); }
+
+    reconnect() { return this.connectUsing('reconnect'); }
 
     disconnect() {
         this.log("Disconnecting...");
@@ -307,6 +472,7 @@ export class BLEConnectionManager {
     }
 
     async sendPacket(cmd: COMMAND_ID, payload?: Uint8Array) {
+        if (this.otaToken || this.reconnectRequired) throw new Error('Commands paused for firmware transfer; reconnect to resume');
         if (!this.transport.isConnected) {
             this.error("Cannot send: Not connected");
 
@@ -325,6 +491,8 @@ export class BLEConnectionManager {
      * so OTA writes and regular command writes never interleave.
      */
     async sendRaw(bytes: Uint8Array) {
+        if (this.otaToken) throw new Error('Raw writes require the active firmware session');
+        if (this.reconnectRequired) throw new Error('Reconnect before sending commands');
         if (!this.transport.isConnected) {
             this.error("Cannot send raw: Not connected");
             throw new Error(translate('err.notConnected'));
@@ -333,10 +501,27 @@ export class BLEConnectionManager {
         return this.writeLocked(bytes, false);
     }
 
-    private writeLocked(bytes: Uint8Array, withResponse: boolean, logLine?: string) {
+    private writeLocked(bytes: Uint8Array, withResponse: boolean, logLine?: string, token?: symbol) {
+        const generation = this.connectionGeneration;
+        const mutex = this.txMutex;
         return new Promise<void>((resolve, reject) => {
-            this.txMutex.take(async () => {
+            let settled = false;
+            const finish = (error?: unknown) => {
+                if (settled) return;
+                settled = true;
+                this.writeRejectors.delete(fail);
+                if (error) reject(error); else resolve();
+            };
+            const fail = (error: Error) => finish(error);
+            this.writeRejectors.add(fail);
+            mutex.take(async () => {
+                if (settled) { mutex.leave(); return; }
                 try {
+                    if (generation !== this.connectionGeneration) throw new Error('Write belongs to a previous connection');
+                    if (this.reconnectRequired) throw new Error('Reconnect before sending commands');
+                    if ((token && token !== this.otaToken) || (this.otaToken && token !== this.otaToken)) {
+                        throw new Error('Write blocked by firmware session');
+                    }
                     if (!this.transport.isConnected) {
                         // noinspection ExceptionCaughtLocallyJS
                         throw new Error(translate('err.disconnectedWaiting'));
@@ -347,14 +532,14 @@ export class BLEConnectionManager {
                     }
 
                     await this.transport.send(bytes, withResponse);
-                    resolve();
+                    finish();
                 } catch (err) {
                     this.error(withResponse ? "Write Failed" : "Raw Write Failed", err);
-                    reject(err);
+                    finish(err);
                 } finally {
                     // Might be nonsensical, but let's give the firmware some time maybe
                     setTimeout(() => {
-                        this.txMutex.leave();
+                        mutex.leave();
                     }, 25);
                 }
             });
@@ -366,10 +551,13 @@ export class BLEConnectionManager {
      * traffic with the firmware transfer is untested and risky). Call resumePolling() when done.
      */
     suspendPolling() {
+        this.pollingSuspended = true;
         this.stopPolling();
     }
 
     resumePolling() {
+        if (this.otaToken || this.reconnectRequired) return;
+        this.pollingSuspended = false;
         // OTA drove its own raw frames through the buffer; clear any leftover bytes so the first
         // post-OTA command response starts from a clean slate.
         this.resetReassembler();

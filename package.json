@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
-    "test": "node --import ./tests/register-loader.mjs --test --test-concurrency=1 ./tests/ota-acks.test.mjs"
+    "test": "node --import ./tests/register-loader.mjs --test --test-concurrency=1 ./tests/ota-acks.test.mjs ./tests/ota-lifecycle.test.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
