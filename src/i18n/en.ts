@@ -233,7 +233,10 @@ export const en = {
     "ota.phase.sendingSize": "Sending firmware size...",
     "ota.phase.transferring": "Transferring firmware...",
     "ota.phase.finalizing": "Finalizing...",
-    "ota.phase.success": "Update complete - device will restart",
+    "ota.phase.success": "Transfer accepted — reconnect to verify the installed version",
+    "ota.reconnectRequired": "Reconnect before another transfer or normal commands, then verify the installed firmware version.",
+    "ota.unsupportedDevice": "The device model could not be identified. OTA requires a recognised Venus A, D or E 3.0 device.",
+    "ota.stop": "Stop transfer",
     "ota.phase.failed": "Failed",
 
     // Factory reset, device time, local api, module states

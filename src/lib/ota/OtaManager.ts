@@ -1,4 +1,4 @@
-import type { BLEConnectionManager } from '../BLEConnectionManager';
+import type { BLEConnectionManager, OtaSession } from '../BLEConnectionManager';
 import {
     buildDataFrame,
     buildFinishFrame,
@@ -18,7 +18,7 @@ import {
 } from './FirmwareAnalysis';
 
 /**
- * Transfers firmware with correlated, validated acknowledgements.
+ * Transfers firmware with exclusive connection ownership and correlated ACKs.
  * Listeners are registered before each write so early replies cannot be lost.
  * Transfer acceptance must be followed by reconnecting and checking the installed version.
  */
@@ -79,7 +79,6 @@ export function detectModelMismatch(analysis: OtaAnalysis, connectedDeviceName: 
 
 export class OtaManager {
     private manager: BLEConnectionManager;
-
     private readonly timings: OtaTimings;
 
     constructor(manager: BLEConnectionManager) {
@@ -91,21 +90,89 @@ export class OtaManager {
         onLog(msg);
     }
 
-    private async pause(ms: number): Promise<void> {
-        await new Promise<void>(resolve => setTimeout(resolve, ms));
+    private session: OtaSession | null = null;
+    private controller: AbortController | null = null;
+    private running = false;
+
+    /** Stop sending; this cannot undo bytes already staged on the device. */
+    public cancel(): void { this.controller?.abort(); }
+
+    private checkCancelled(): void {
+        if (this.controller?.signal.aborted) throw new Error('Transfer cancelled');
     }
 
-    /** Listen before writing; require write completion and a correlated ACK. */
+    private async pause(ms: number): Promise<void> {
+        this.checkCancelled();
+        const signal = this.controller?.signal;
+        await new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+                clearTimeout(timer);
+                signal?.removeEventListener('abort', abort);
+                unsubscribeLoss();
+            };
+            const finish = () => { cleanup(); resolve(); };
+            const timer = setTimeout(finish, ms);
+            const abort = () => {
+                cleanup();
+                reject(new Error('Transfer cancelled'));
+            };
+            const unsubscribeLoss = this.manager.subscribeConnectionLoss(() => {
+                cleanup();
+                reject(new Error('Disconnected during firmware transfer'));
+            });
+            signal?.addEventListener('abort', abort, { once: true });
+            if (!this.manager.isConnected) {
+                cleanup();
+                reject(new Error('Not connected'));
+            }
+        });
+    }
+
+    /** Initial command54 has no ACK; bound its write and connection lifetime too. */
+    private writeOnly(frame: Uint8Array, timeoutMs: number): Promise<void> {
+        this.checkCancelled();
+        return new Promise((resolve, reject) => {
+            let done = false;
+            const signal = this.controller?.signal;
+            const cleanup = () => {
+                clearTimeout(timer);
+                signal?.removeEventListener('abort', abort);
+                unsubscribeLoss();
+            };
+            const finish = (error?: unknown) => {
+                if (done) return;
+                done = true;
+                cleanup();
+                if (error) reject(error); else resolve();
+            };
+            const abort = () => finish(new Error('Transfer cancelled'));
+            const timer = setTimeout(() => finish(new Error('Activation write timeout')), timeoutMs);
+            const unsubscribeLoss = this.manager.subscribeConnectionLoss(() => finish(new Error('Disconnected during firmware transfer')));
+            signal?.addEventListener('abort', abort, { once: true });
+            if (!this.manager.isConnected) { finish(new Error('Not connected')); return; }
+            try {
+                const write = this.session ? this.session.send(frame) : this.manager.sendRaw(frame);
+                void write.then(() => finish(), finish);
+            } catch (error) { finish(error); }
+        });
+    }
+
+    /** Listen first; require BOTH write completion and a correlated complete ACK. */
     private exchange(frame: Uint8Array, expectedCmd: number, timeoutMs: number,
         validate: (payload: Uint8Array) => 'accept' | 'ignore'): Promise<Ack> {
+        this.checkCancelled();
         return new Promise((resolve, reject) => {
             let done = false;
             let written = false;
             let reply: Ack | null = null;
+            const signal = this.controller?.signal;
             let unsubscribeFrame = () => {};
+            let unsubscribeLoss = () => {};
             const cleanup = () => {
                 clearTimeout(timer);
                 unsubscribeFrame();
+                unsubscribeLoss();
+                signal?.removeEventListener('abort', abort);
             };
             const fail = (error: unknown) => {
                 if (done) return;
@@ -120,6 +187,7 @@ export class OtaManager {
                     resolve(reply);
                 }
             };
+            const abort = () => fail(new Error('Transfer cancelled'));
             const timer = setTimeout(() => fail(written
                 ? new OtaTimeoutError(`ACK timeout for command 0x${expectedCmd.toString(16)}`)
                 : new Error(`Write timeout for command 0x${expectedCmd.toString(16)}`)), timeoutMs);
@@ -134,9 +202,11 @@ export class OtaManager {
                     complete();
                 } catch (error) { fail(error); }
             });
+            unsubscribeLoss = this.manager.subscribeConnectionLoss(() => fail(new Error('Disconnected during firmware transfer')));
+            signal?.addEventListener('abort', abort, { once: true });
             if (!this.manager.isConnected) { fail(new Error('Not connected')); return; }
             try {
-                const send = this.manager.sendRaw(frame);
+                const send = this.session ? this.session.send(frame) : this.manager.sendRaw(frame);
                 void send.then(() => { written = true; complete(); }, fail);
             } catch (error) { fail(error); }
         });
@@ -154,7 +224,8 @@ export class OtaManager {
 
     private async activate(onLog: (msg: string) => void): Promise<void> {
         this.log(onLog, 'Activating upgrade mode...');
-        await this.manager.sendRaw(buildOtaFrame(0x54, new Uint8Array([0x10])));
+        this.checkCancelled();
+        await this.writeOnly(buildOtaFrame(0x54, new Uint8Array([0x10])), this.timings.activateAckMs);
         await this.pause(100);
         await this.exchange(buildTransitionHmFrame(0x10, [0xaa]), 0x00, this.timings.activateAckMs, payload => {
             if (payload.length !== 2 || payload[0] !== 1 || payload[1] !== 0xaa) {
@@ -167,6 +238,7 @@ export class OtaManager {
 
     private async discover(otaTypeFlag: number, onLog: (msg: string) => void): Promise<void> {
         for (let attempt = 1; attempt <= this.timings.discoverAttempts; attempt++) {
+            this.checkCancelled();
             try {
                 await this.exchange(buildOtaFrame(0x3a, new Uint8Array([0x10, 0xd7, 0, otaTypeFlag, 0xaa, 0xbb])),
                     0x3a, this.timings.discoverAckMs, payload => {
@@ -250,31 +322,67 @@ export class OtaManager {
         this.log(onLog, 'Transfer accepted by controller; installed version must be checked after reconnecting');
     }
 
-    async run(bytes: Uint8Array, analysis: OtaAnalysis, onLog: (msg: string) => void, onProgress: (p: OtaProgress) => void): Promise<void> {
-        this.manager.suspendPolling();
+    /**
+     * Transfer a verified immutable image. Throws on failure and on model mismatch.
+     * SUCCESS means the controller accepted the transfer, not a verified installed version.
+     */
+    async run(bytes: Uint8Array, analysis: OtaAnalysis, onLog: (msg: string) => void,
+        onProgress: (p: OtaProgress) => void, signal?: AbortSignal): Promise<void> {
+        if (this.running) throw new Error('A firmware transfer is already running');
+        this.running = true;
+        this.controller = new AbortController();
+        const abort = () => this.controller?.abort();
+        signal?.addEventListener('abort', abort, { once: true });
+        if (signal?.aborted) abort();
+        let activationStarted = false;
         try {
+            this.checkCancelled();
+            // Snapshot both bytes and derived metadata before any asynchronous work.
+            const image = bytes.slice();
+            const verified = analyzeFirmwareForOta(analysis.fileName, image);
+            if (image.length < OTA_CHUNK_SIZE || image.length > 0x7d000 || image.length % OTA_CHUNK_SIZE !== 0) {
+                throw new Error('Firmware must be a complete 128-byte-aligned image within the staging capacity');
+            }
+            if (verified.size !== analysis.size || verified.checksum !== analysis.checksum ||
+                verified.modelGuess.model !== analysis.modelGuess.model ||
+                verified.componentGuess.component !== analysis.componentGuess.component ||
+                verified.componentGuess.otaTypeFlag !== analysis.componentGuess.otaTypeFlag) {
+                throw new Error('Firmware bytes do not match their analysis');
+            }
+            if (verified.componentGuess.component === 'Unknown' || verified.modelGuess.model === 'Unknown') {
+                throw new Error('Unknown firmware model or component');
+            }
+            const deviceModel = detectConnectedDeviceModel(this.manager.deviceName);
+            if (deviceModel === 'Unknown' || deviceModel !== verified.modelGuess.model) {
+                throw new Error('Firmware model does not match the connected device');
+            }
+            this.session = await this.manager.beginOtaSession(this.controller.signal);
+            this.checkCancelled();
+            activationStarted = true;
             onProgress({ phase: OtaPhase.ACTIVATING, chunkIndex: 0, totalChunks: 0, message: 'Activating upgrade mode...' });
             await this.activate(onLog);
-            await new Promise(r => setTimeout(r, 1500));
-
+            await this.pause(1500);
             onProgress({ phase: OtaPhase.DISCOVERING, chunkIndex: 0, totalChunks: 0, message: 'Discovering OTA channel...' });
-            await this.discover(analysis.componentGuess.otaTypeFlag, onLog);
-
+            await this.discover(verified.componentGuess.otaTypeFlag, onLog);
             onProgress({ phase: OtaPhase.SENDING_SIZE, chunkIndex: 0, totalChunks: 0, message: 'Sending firmware size...' });
-            await this.sendSize(analysis.size, analysis.checksum, onLog);
-
-            onProgress({ phase: OtaPhase.TRANSFERRING, chunkIndex: 0, totalChunks: Math.ceil(bytes.length / OTA_CHUNK_SIZE), message: 'Transferring firmware...' });
-            await this.sendChunks(bytes, onLog, onProgress);
-
+            await this.sendSize(verified.size, verified.checksum, onLog);
+            onProgress({ phase: OtaPhase.TRANSFERRING, chunkIndex: 0, totalChunks: image.length / OTA_CHUNK_SIZE, message: 'Transferring firmware...' });
+            await this.sendChunks(image, onLog, onProgress);
             onProgress({ phase: OtaPhase.FINALIZING, chunkIndex: 0, totalChunks: 0, message: 'Finalizing...' });
-            await this.finalize(analysis, onLog);
-
-            onProgress({ phase: OtaPhase.SUCCESS, chunkIndex: 0, totalChunks: 0, message: 'Update complete - device will restart' });
-        } catch (err) {
-            onProgress({ phase: OtaPhase.FAILED, chunkIndex: 0, totalChunks: 0, message: (err as Error).message });
-            throw err;
+            await this.finalize(verified, onLog);
+            onProgress({ phase: OtaPhase.SUCCESS, chunkIndex: 0, totalChunks: 0,
+                message: 'Transfer accepted; reconnect and verify installed firmware' });
+        } catch (error) {
+            onProgress({ phase: OtaPhase.FAILED, chunkIndex: 0, totalChunks: 0, message: String(error instanceof Error ? error.message : error) });
+            throw error;
         } finally {
-            this.manager.resumePolling();
+            signal?.removeEventListener('abort', abort);
+            // Never send ordinary commands while an accepted image may be applying, or
+            // after an interrupted update whose device state is unknown. Reconnect to resume.
+            this.session?.release(!activationStarted);
+            this.session = null;
+            this.controller = null;
+            this.running = false;
         }
     }
 }

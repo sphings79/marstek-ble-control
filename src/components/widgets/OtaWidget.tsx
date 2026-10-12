@@ -24,6 +24,7 @@ export const OtaWidget = () => {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const otaManagerRef = useRef<OtaManager | null>(null);
+    const activeRunRef = useRef(false);
 
     const [analysis, setAnalysis] = useState<OtaAnalysis | null>(null);
     const [fileBytes, setFileBytes] = useState<Uint8Array | null>(null);
@@ -40,6 +41,8 @@ export const OtaWidget = () => {
         const el = logBoxRef.current;
         if (el) el.scrollTop = el.scrollHeight;
     }, [log]);
+
+    useEffect(() => () => { otaManagerRef.current?.cancel(); }, [manager]);
 
     const appendLog = (msg: string) => {
         setLog(prev => {
@@ -81,16 +84,16 @@ export const OtaWidget = () => {
     };
 
     const runOta = async () => {
-        if (!analysis || !fileBytes) return;
+        if (!analysis || !fileBytes || activeRunRef.current) return;
+        activeRunRef.current = true;
         setConfirmOpen(false);
         setRunning(true);
 
-        if (!otaManagerRef.current) {
-            otaManagerRef.current = new OtaManager(manager);
-        }
+        const uploader = new OtaManager(manager);
+        otaManagerRef.current = uploader;
 
         try {
-            await otaManagerRef.current.run(fileBytes, analysis, appendLog, setProgress);
+            await uploader.run(fileBytes, analysis, appendLog, setProgress);
             // Done: drop the loaded file so the start button cannot be pressed a second time.
             setAnalysis(null);
             setFileBytes(null);
@@ -98,6 +101,7 @@ export const OtaWidget = () => {
         } catch (err) {
             appendLog(`❌ OTA failed: ${(err as Error).message}`);
         } finally {
+            activeRunRef.current = false;
             setRunning(false);
         }
     };
@@ -188,10 +192,18 @@ export const OtaWidget = () => {
                         variant="contained"
                         color="error"
                         onClick={startClicked}
-                        disabled={!isConnected || !analysis || running}
+                        disabled={!isConnected || !analysis || running || manager.requiresReconnect || mismatch || connectedModel === 'Unknown' || analysis.modelGuess.model === 'Unknown' || analysis.componentGuess.component === 'Unknown'}
                     >
                         {t('ota.start')}
                     </Button>
+
+                    {manager.requiresReconnect && <Alert severity="info">{t('ota.reconnectRequired')}</Alert>}
+                    {analysis && connectedModel === 'Unknown' && <Alert severity="warning">{t('ota.unsupportedDevice')}</Alert>}
+                    {running && (
+                        <Button color="error" onClick={() => otaManagerRef.current?.cancel()}>
+                            {t('ota.stop')}
+                        </Button>
+                    )}
 
                     {progress && (
                         <Box>
@@ -235,13 +247,6 @@ export const OtaWidget = () => {
                     {t('ota.confirmTitle')}
                 </DialogTitle>
                 <DialogContent>
-                    {mismatch && (
-                        <DialogContentText sx={{ mb: 2 }}>
-                            {t('ota.confirmMismatch.1')} <strong>{analysis?.modelGuess.model}</strong>
-                            {t('ota.confirmMismatch.2')} <strong>{connectedModel}</strong>
-                            {t('ota.confirmMismatch.3')}
-                        </DialogContentText>
-                    )}
                     <DialogContentText>{t('ota.confirmAsk')}</DialogContentText>
                 </DialogContent>
                 <DialogActions>
