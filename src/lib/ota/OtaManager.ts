@@ -18,17 +18,9 @@ import {
 } from './FirmwareAnalysis';
 
 /**
- * OTA update orchestrator. Ported step-for-step from the sibling "Marstek Venus Monitor"
- * project's js/ble-protocol.js (performOTAUpdate / sendOTAActivate / sendFirmwareSize /
- * sendFirmwareChunk / sendOTAFinalize), which was reverse-engineered from real Wireshark
- * captures and used successfully for Control/EMS and BMS firmware updates. The type-flag
- * selection (see FirmwareAnalysis.ts) additionally reflects Ghidra decompilation of the
- * Control firmware's own validation function.
- *
- * NOT YET LIVE-TESTED from this codebase - Web Bluetooth requires a real browser + paired
- * device, which isn't available in the environment this port was written in. The framing,
- * checksum, and sequencing logic is an unchanged port of a working implementation, but treat
- * a first real run as the actual test of this file.
+ * Transfers firmware with correlated, validated acknowledgements.
+ * Listeners are registered before each write so early replies cannot be lost.
+ * Transfer acceptance must be followed by reconnecting and checking the installed version.
  */
 
 export const OtaPhase = Object.freeze({
@@ -65,6 +57,8 @@ interface Ack {
     reason?: string;
 }
 
+class OtaTimeoutError extends Error {}
+
 const OTA_CHUNK_SIZE = 128;
 
 export function analyzeFirmwareForOta(fileName: string, bytes: Uint8Array): OtaAnalysis {
@@ -85,6 +79,7 @@ export function detectModelMismatch(analysis: OtaAnalysis, connectedDeviceName: 
 
 export class OtaManager {
     private manager: BLEConnectionManager;
+
     private readonly timings: OtaTimings;
 
     constructor(manager: BLEConnectionManager) {
@@ -96,100 +91,108 @@ export class OtaManager {
         onLog(msg);
     }
 
-    private waitForAck(expectedCmd: number, timeoutMs: number): Promise<Ack> {
-        return new Promise((resolve) => {
-            let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    private async pause(ms: number): Promise<void> {
+        await new Promise<void>(resolve => setTimeout(resolve, ms));
+    }
 
+    /** Listen before writing; require write completion and a correlated ACK. */
+    private exchange(frame: Uint8Array, expectedCmd: number, timeoutMs: number,
+        validate: (payload: Uint8Array) => 'accept' | 'ignore'): Promise<Ack> {
+        return new Promise((resolve, reject) => {
+            let done = false;
+            let written = false;
+            let reply: Ack | null = null;
+            let unsubscribeFrame = () => {};
             const cleanup = () => {
-                if (timeoutId) clearTimeout(timeoutId);
-                this.manager.onRawNotification = () => {};
+                clearTimeout(timer);
+                unsubscribeFrame();
             };
-
-            this.manager.onRawNotification = (bytes: Uint8Array) => {
-                const decoded = decodeIncomingFrame(bytes);
-                if (!decoded) return;
-                if (!decoded.checksumValid) {
-                    cleanup();
-                    resolve({ ok: false, cmd: decoded.cmd, payload: decoded.payload, reason: 'bad checksum' });
-                    return;
-                }
+            const fail = (error: unknown) => {
+                if (done) return;
+                done = true;
                 cleanup();
-                if (decoded.cmd === expectedCmd) {
-                    resolve({ ok: true, cmd: decoded.cmd, payload: decoded.payload });
-                } else {
-                    resolve({ ok: false, cmd: decoded.cmd, payload: decoded.payload, reason: `unexpected cmd: expected 0x${expectedCmd.toString(16)}, got 0x${decoded.cmd.toString(16)}` });
+                reject(error);
+            };
+            const complete = () => {
+                if (!done && written && reply) {
+                    done = true;
+                    cleanup();
+                    resolve(reply);
                 }
             };
-
-            timeoutId = setTimeout(() => {
-                this.manager.onRawNotification = () => {};
-                resolve({ ok: false, cmd: -1, payload: new Uint8Array(0), reason: 'timeout' });
-            }, timeoutMs);
+            const timer = setTimeout(() => fail(written
+                ? new OtaTimeoutError(`ACK timeout for command 0x${expectedCmd.toString(16)}`)
+                : new Error(`Write timeout for command 0x${expectedCmd.toString(16)}`)), timeoutMs);
+            unsubscribeFrame = this.manager.subscribeFrames(bytes => {
+                const decoded = decodeIncomingFrame(bytes);
+                // Unrelated traffic must never consume this exchange's waiter.
+                if (!decoded || decoded.cmd !== expectedCmd || decoded.frameType === 'normalHM') return;
+                if (!decoded.checksumValid) return;
+                try {
+                    if (validate(decoded.payload) === 'ignore') return;
+                    reply = { ok: true, cmd: decoded.cmd, payload: decoded.payload.slice() };
+                    complete();
+                } catch (error) { fail(error); }
+            });
+            if (!this.manager.isConnected) { fail(new Error('Not connected')); return; }
+            try {
+                const send = this.manager.sendRaw(frame);
+                void send.then(() => { written = true; complete(); }, fail);
+            } catch (error) { fail(error); }
         });
     }
 
+    private requirePayload(payload: Uint8Array, length: number): void {
+        if (payload.length !== length || payload[0] !== 0) {
+            throw new Error('Invalid acknowledgement direction or payload length');
+        }
+    }
+
+    private u32(payload: Uint8Array, offset: number): number {
+        return new DataView(payload.buffer, payload.byteOffset, payload.byteLength).getUint32(offset, true);
+    }
+
     private async activate(onLog: (msg: string) => void): Promise<void> {
-        this.log(onLog, '🔄 Activating upgrade mode...');
-
+        this.log(onLog, 'Activating upgrade mode...');
         await this.manager.sendRaw(buildOtaFrame(0x54, new Uint8Array([0x10])));
-        await new Promise(r => setTimeout(r, 100));
-
-        await this.manager.sendRaw(buildTransitionHmFrame(0x10, [0xaa]));
-
-        const ack = await this.waitForAck(0x00, this.timings.activateAckMs);
-        if (!ack.ok) {
-            throw new Error(`Activation failed: ${ack.reason}`);
-        }
-        if (ack.payload.length < 1 || ack.payload[0] !== 0x01) {
-            throw new Error(`Unexpected activation ACK payload: [${Array.from(ack.payload).join(', ')}]`);
-        }
-        this.log(onLog, '✅ Upgrade mode activated');
+        await this.pause(100);
+        await this.exchange(buildTransitionHmFrame(0x10, [0xaa]), 0x00, this.timings.activateAckMs, payload => {
+            if (payload.length !== 2 || payload[0] !== 1 || payload[1] !== 0xaa) {
+                throw new Error('Upgrade activation rejected or malformed');
+            }
+            return 'accept';
+        });
+        this.log(onLog, 'Upgrade mode acknowledged');
     }
 
     private async discover(otaTypeFlag: number, onLog: (msg: string) => void): Promise<void> {
-        const maxRetries = this.timings.discoverAttempts;
-        let lastAck: Ack | null = null;
-
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            this.log(onLog, `🔍 Sending 0x3A discovery probe (attempt ${attempt}/${maxRetries}, type flag 0x${otaTypeFlag.toString(16).padStart(2, '0')})...`);
-
-            const probeFrame = buildOtaFrame(0x3A, new Uint8Array([0x10, 0xd7, 0x00, otaTypeFlag, 0xaa, 0xbb]));
+        for (let attempt = 1; attempt <= this.timings.discoverAttempts; attempt++) {
             try {
-                await this.manager.sendRaw(probeFrame);
-                lastAck = await this.waitForAck(0x3A, this.timings.discoverAckMs);
-                if (lastAck.ok) {
-                    this.log(onLog, `✅ 0x3A handshake successful on attempt ${attempt}`);
-                    return;
-                }
-            } catch (err) {
-                this.log(onLog, `⚠️ Probe attempt ${attempt} failed: ${(err as Error).message}`);
-            }
-
-            if (attempt < maxRetries) {
-                await new Promise(r => setTimeout(r, this.timings.discoverRetryGapMs));
+                await this.exchange(buildOtaFrame(0x3a, new Uint8Array([0x10, 0xd7, 0, otaTypeFlag, 0xaa, 0xbb])),
+                    0x3a, this.timings.discoverAckMs, payload => {
+                        this.requirePayload(payload, 7);
+                        if (payload[5] !== 1 || payload[6] !== 0xaa) throw new Error('Device rejected firmware target');
+                        if (this.u32(payload, 1) !== 0) throw new Error('Unexpected resume offset; a fresh transfer is required');
+                        return 'accept';
+                    });
+                this.log(onLog, `Firmware target acknowledged (attempt ${attempt})`);
+                return;
+            } catch (error) {
+                if (!(error instanceof OtaTimeoutError) || attempt === this.timings.discoverAttempts) throw error;
+                await this.pause(this.timings.discoverRetryGapMs);
             }
         }
-
-        throw new Error(`OTA channel discovery failed after ${maxRetries} attempts: ${lastAck?.reason ?? 'timeout'}`);
     }
 
     private async sendSize(size: number, checksum: number, onLog: (msg: string) => void): Promise<void> {
-        this.log(onLog, `📏 Sending firmware size (${size} bytes) + checksum 0x${(checksum >>> 0).toString(16)}...`);
-
-        await this.manager.sendRaw(buildSizeFrame(size, checksum));
-        const ack = await this.waitForAck(0x50, this.timings.sizeAckMs);
-        if (!ack.ok) {
-            throw new Error(`Size ACK failed: ${ack.reason}`);
-        }
-
-        if (ack.payload.length >= 9) {
-            const echoed = ack.payload[5] | (ack.payload[6] << 8) | (ack.payload[7] << 16) | (ack.payload[8] << 24);
-            if ((echoed >>> 0) === (checksum >>> 0)) {
-                this.log(onLog, `✅ Firmware checksum verified: 0x${(echoed >>> 0).toString(16)}`);
-            } else {
-                this.log(onLog, `⚠️ Checksum mismatch: sent 0x${(checksum >>> 0).toString(16)}, device echoed 0x${(echoed >>> 0).toString(16)}`);
+        await this.exchange(buildSizeFrame(size, checksum), 0x50, this.timings.sizeAckMs, payload => {
+            this.requirePayload(payload, 9);
+            if (this.u32(payload, 1) !== size || this.u32(payload, 5) !== (checksum >>> 0)) {
+                throw new Error('Device size/checksum echo does not match selected firmware');
             }
-        }
+            return 'accept';
+        });
+        this.log(onLog, `Size and checksum acknowledged: ${size} bytes, 0x${checksum.toString(16)}`);
     }
 
     private async sendChunks(bytes: Uint8Array, onLog: (msg: string) => void, onProgress: (p: OtaProgress) => void): Promise<void> {
@@ -207,19 +210,22 @@ export class OtaManager {
             let retryCount = 0;
             while (!sent && retryCount < this.timings.chunkRetries) {
                 try {
-                    await this.manager.sendRaw(buildDataFrame(offset, chunk));
-                    const ack = await this.waitForAck(0x51, this.timings.chunkAckMs);
-                    if (!ack.ok) {
-                        throw new Error(ack.reason ?? 'chunk ack failed');
-                    }
+                    await this.exchange(buildDataFrame(offset, chunk), 0x51, this.timings.chunkAckMs, payload => {
+                        this.requirePayload(payload, 5);
+                        const acknowledgedOffset = this.u32(payload, 1);
+                        if (acknowledgedOffset < offset) return 'ignore'; // delayed ACK for an earlier chunk
+                        if (acknowledgedOffset !== offset) throw new Error('Chunk acknowledgement offset mismatch');
+                        return 'accept';
+                    });
                     sent = true;
                 } catch (err) {
+                    if (!(err instanceof OtaTimeoutError)) throw err;
                     retryCount++;
                     this.log(onLog, `Retry ${retryCount}/${this.timings.chunkRetries} for chunk ${chunkIndex + 1}: ${(err as Error).message}`);
                     if (retryCount >= this.timings.chunkRetries) {
                         throw new Error(`Failed to send chunk ${chunkIndex + 1} after ${this.timings.chunkRetries} retries`);
                     }
-                    await new Promise(r => setTimeout(r, 100));
+                    await this.pause(100);
                 }
             }
 
@@ -235,45 +241,15 @@ export class OtaManager {
         this.log(onLog, `Data transfer complete: ${bytes.length} bytes in ${chunkIndex} chunks`);
     }
 
-    private async finalize(analysis: OtaAnalysis, onLog: (msg: string) => void): Promise<void> {
-        this.log(onLog, 'Finalizing OTA update...');
-
-        await this.manager.sendRaw(buildFinishFrame());
-        const ack = await this.waitForAck(0x52, this.timings.finalizeAckMs);
-        if (!ack.ok) {
-            throw new Error(`Finalize ACK failed: ${ack.reason}`);
-        }
-
-        if (ack.payload.length >= 2 && ack.payload[0] === 0x00 && ack.payload[1] === 0x01) {
-            this.log(onLog, '✅ OTA finalization successful - device will restart');
-            return;
-        }
-
-        const dir = ack.payload.length >= 1 ? `0x${ack.payload[0].toString(16)}` : 'none';
-        const status = ack.payload.length >= 2 ? `0x${ack.payload[1].toString(16)}` : 'none';
-        this.log(onLog, `OTA finalization FAILED - dir: ${dir}, status: ${status}`);
-        this.log(onLog, 'Possible causes (per BLE_Cmd_OTA_Validate, Control FW 0x0802e78c):');
-        this.log(onLog, '  1. CRC mismatch - device calculated checksum differs from sent checksum');
-
-        const c = analysis.componentGuess.component;
-        if (c === 'Micro/Inverter') {
-            this.log(onLog, '  2. VNS/Micro signature check failed - device expected magic 0x4444 with type flag 0x04');
-        } else if (c === 'BMS') {
-            this.log(onLog, '  2. BMS signature check failed - device expected magic 0x3333 with type flag 0x03');
-        } else if (c === 'MPPT') {
-            this.log(onLog, '  2. MPPT signature check failed - device expected magic 0x2222 with type flag 0x02');
-        } else {
-            this.log(onLog, '  2. EMS/Control check failed - device expected magic 0x0000/0xFFFF with type flag 0x00, and its own model check to pass');
-        }
-        this.log(onLog, `OTA type flag sent: 0x${analysis.componentGuess.otaTypeFlag.toString(16).padStart(2, '0')} (component: ${c})`);
-
-        throw new Error(`Finalize rejected by device (status=${status})`);
+    private async finalize(_analysis: OtaAnalysis, onLog: (msg: string) => void): Promise<void> {
+        await this.exchange(buildFinishFrame(), 0x52, this.timings.finalizeAckMs, payload => {
+            this.requirePayload(payload, 2);
+            if (payload[1] !== 1) throw new Error(`Finalize rejected by device (status=0x${payload[1].toString(16)})`);
+            return 'accept';
+        });
+        this.log(onLog, 'Transfer accepted by controller; installed version must be checked after reconnecting');
     }
 
-    /**
-     * Run the full OTA sequence. Throws on failure; caller is responsible for showing any
-     * model/component mismatch confirmation UI *before* calling this.
-     */
     async run(bytes: Uint8Array, analysis: OtaAnalysis, onLog: (msg: string) => void, onProgress: (p: OtaProgress) => void): Promise<void> {
         this.manager.suspendPolling();
         try {
@@ -298,7 +274,6 @@ export class OtaManager {
             onProgress({ phase: OtaPhase.FAILED, chunkIndex: 0, totalChunks: 0, message: (err as Error).message });
             throw err;
         } finally {
-            this.manager.onRawNotification = () => {};
             this.manager.resumePolling();
         }
     }
