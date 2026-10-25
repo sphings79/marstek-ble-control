@@ -26,21 +26,16 @@ export function bridgeUrl(path: string): URL {
 /**
  * Ask our own origin whether it is a bridge.
  *
- * Skipped outright on https, because a bridge is never served that way: it has no certificate and
- * deliberately does not fake one, since the app it serves is same-origin and needs no TLS to reach
- * it. That keeps the hosted deployment from firing a request on every load that can only ever 404
- * - visible to users as a console error, and a delay if the network is slow. (If the bridge ever
- * does grow TLS, this shortcut is the first thing to remove.)
+ * Probed regardless of protocol: the bridge itself speaks plain http, but it is commonly put behind
+ * a TLS-terminating reverse proxy, which serves the very same app over https. The hosted
+ * deployment pays for this with one request per load that can only 404 - harmless, since it falls
+ * back to Web Bluetooth.
  *
- * Otherwise deliberately strict: a web server answers unknown paths with an HTML error page, which
- * a status-code-only check would happily mistake for a bridge. So the response has to be JSON and
+ * Deliberately strict: a web server answers unknown paths with an HTML error page, which a
+ * status-code-only check would happily mistake for a bridge. So the response has to be JSON and
  * has to identify itself. Bounded to one second - it must never hold up the UI.
  */
 export async function probeBridge(timeoutMs = 1_000): Promise<BridgeInfo | null> {
-    if (window.location.protocol === 'https:') {
-        return null;
-    }
-
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
