@@ -92,11 +92,13 @@ export interface DecodedFrame {
  * from the reference implementation: `value[2] === 0x23 || value[3] === 0x23`.
  */
 export function decodeIncomingFrame(bytes: Uint8Array): DecodedFrame | null {
-    if (bytes.length < 6 || bytes[0] !== 0x73) {
+    if (bytes.length < 5 || bytes[0] !== 0x73) {
         return null;
     }
 
-    const isNormalHM = bytes[2] === 0x23;
+    // A short OTA frame can have low length byte 0x23. Normal HM also needs
+    // its one-byte declared length to match, rather than matching a marker alone.
+    const isNormalHM = bytes[2] === 0x23 && bytes[1] === bytes.length;
     const isTransitionHM = !isNormalHM && bytes[3] === 0x23;
 
     let cmd: number;
@@ -118,7 +120,7 @@ export function decodeIncomingFrame(bytes: Uint8Array): DecodedFrame | null {
         payload = bytes.slice(4, -1);
     }
 
-    if (declaredLength !== bytes.length) {
+    if (declaredLength !== bytes.length || (isTransitionHM && bytes.length < 6)) {
         return null;
     }
 
