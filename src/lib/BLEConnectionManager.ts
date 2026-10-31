@@ -22,13 +22,13 @@ export class BLEConnectionManager {
     public onStateChange: (state: ConnectionState, msg?: string) => void = () => {};
     public onRSSI: (rssi: number) => void = () => {};
 
-    // Fired for EVERY incoming notification, regardless of frame shape - used by OTA, which
-    // speaks a different frame format (2-byte big-endian length, no 0x23 marker) than the
-    // regular VenusPacket frames dispatched below. Normal command consumers should keep using
-    // subscribe()/useVenusData(); this is only for OTA-style raw frame handling.
+    // Legacy diagnostic hook for notification fragments. OTA consumes complete
+    // checksum-valid frames through subscribeFrames().
     public onRawNotification: (bytes: Uint8Array) => void = () => {};
 
     private listeners: Map<number, PacketListener[]> = new Map();
+
+    private frameListeners = new Set<(frame: Uint8Array) => void>();
 
     private pollTimer: ReturnType<typeof setTimeout> | null = null;
     private txMutex = semaphore(1);
@@ -49,8 +49,7 @@ export class BLEConnectionManager {
         this.transport = transport;
         this.transport.setCallbacks({
             onNotify: (bytes) => {
-                // Always fire the raw hook first - OTA (and anything else speaking a non-VenusPacket
-                // frame shape) needs to see every notification, not just ones that parse as VenusPacket.
+                // Preserve the raw diagnostic hook before reassembling complete frames.
                 this.onRawNotification(bytes);
 
                 // Feed the reassembler, which buffers across notifications and dispatches complete
@@ -94,6 +93,12 @@ export class BLEConnectionManager {
 
     public get isConnected(): boolean {
         return this.transport.isConnected;
+    }
+
+    /** Complete checksum-valid frames, independent of notification boundaries. */
+    public subscribeFrames(listener: (frame: Uint8Array) => void): () => void {
+        this.frameListeners.add(listener);
+        return () => { this.frameListeners.delete(listener); };
     }
 
     public subscribe(commandId: number, callback: PacketListener) {
@@ -140,8 +145,8 @@ export class BLEConnectionManager {
      * frame into a single notification, so we drive a small resync/length state machine over a
      * rolling buffer rather than assuming one notification == one frame.
      *
-     * Frames with no 0x23 marker are OTA-shaped; those are consumed here (to keep the buffer aligned)
-     * but not dispatched - OTA is handled separately via onRawNotification.
+     * All checksum-valid frames reach subscribeFrames(); HM frames additionally reach
+     * ordinary packet subscribers.
      */
     private feedReassembler(chunk: Uint8Array) {
         for (let i = 0; i < chunk.length; i++) this.rxAssembly.push(chunk[i]);
@@ -159,7 +164,7 @@ export class BLEConnectionManager {
             let declaredLen: number;
             let type: 'normal' | 'transition' | 'ota';
 
-            if (buf[2] === BLEConnectionManager.HM_MARKER) {
+            if (buf[2] === BLEConnectionManager.HM_MARKER && buf[1] >= 5) {
                 type = 'normal';
                 declaredLen = buf[1];
             } else if (buf[3] === BLEConnectionManager.HM_MARKER) {
@@ -184,12 +189,20 @@ export class BLEConnectionManager {
                 break;
             }
 
-            const frame = Uint8Array.from(buf.splice(0, declaredLen));
+            const frame = Uint8Array.from(buf.slice(0, declaredLen));
+            // HM and OTA both use XOR over every preceding byte (see OtaFrameCodec).
+            if (VenusPacket.calculateChecksum(frame.subarray(0, -1)) !== frame[frame.length - 1]) {
+                // Preserve a following valid frame when a corrupt prefix claimed its bytes.
+                buf.shift();
+                continue;
+            }
+            buf.splice(0, declaredLen);
+            for (const listener of [...this.frameListeners]) listener(frame.slice());
 
             if (type !== 'ota') {
                 this.dispatchAssembledFrame(frame, type);
             }
-            // OTA frames are drained above but intentionally not dispatched here.
+            // OTA has already received the complete frame through frameListeners.
         }
 
         // Nothing left half-parsed -> no need for the stuck-buffer timer.
@@ -225,6 +238,7 @@ export class BLEConnectionManager {
         const calcChecksum = VenusPacket.calculateChecksum(frame.subarray(0, frame.length - 1));
         if (receivedChecksum !== calcChecksum) {
             console.warn(`Checksum mismatch! Exp: ${calcChecksum.toString(16)}, Got: ${receivedChecksum.toString(16)}`);
+            return;
         }
 
         const cmd = type === 'normal' ? frame[3] : frame[4];
