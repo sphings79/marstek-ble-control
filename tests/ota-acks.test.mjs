@@ -742,3 +742,40 @@ for (const stage of ["discover", "sendChunks"])
       };
     },
   );
+
+for (const [component, flag, expected] of [
+  ["Control/EMS", 0, "0x0000/0xFFFF"],
+  ["BMS", 3, "0x3333"],
+  ["MPPT", 2, "0x2222"],
+  ["Micro/Inverter", 4, "0x4444"],
+  ["Unknown", 0, "unknown component"],
+]) await check(
+  `finalize_rejection_diagnostics_${component}`,
+  "Rejected finalize retains strict validation and reports component-specific possible causes",
+  async (clock) => {
+    const m = makeManager(clock, {cmd: 0x52, payload: new Uint8Array([0, 0])});
+    const logs = [];
+    const a = {...analysis, componentGuess: {...analysis.componentGuess, component, otaTypeFlag: flag}};
+    const r = await call(clock, new OtaManager(m.manager), "finalize", [a, s => logs.push(s)]);
+    const output = logs.join("\n");
+    assert.match(output, /dir: 0x00, status: 0x00/);
+    assert.ok(output.includes(`OTA type flag sent: 0x${flag.toString(16).padStart(2, "0")} (component: ${component})`));
+    assert.ok(output.includes(expected));
+    assert.match(output, /CRC mismatch/);
+    assert.match(output, /Component signature check/);
+    return {...r, passesValidation: !r.accepted && /Finalize rejected/.test(r.error) && m.manager.frameListeners.size === 0};
+  },
+);
+
+for (const payload of [[], [0], [1, 1], [0, 1, 0]]) await check(
+  `finalize_malformed_diagnostics_${payload.join("_") || "empty"}`,
+  "Malformed finalize replies log raw fields without weakening direction or length validation",
+  async (clock) => {
+    const m = makeManager(clock, {cmd: 0x52, payload: new Uint8Array(payload)});
+    const logs = [];
+    const r = await call(clock, new OtaManager(m.manager), "finalize", [analysis, s => logs.push(s)]);
+    assert.ok(logs.some(s => s.includes(`payload length: ${payload.length}`)));
+    if (!payload.length) assert.ok(logs.some(s => s.includes("dir: none, status: none")));
+    return {...r, passesValidation: !r.accepted && /direction or payload length/.test(r.error) && m.manager.frameListeners.size === 0};
+  },
+);

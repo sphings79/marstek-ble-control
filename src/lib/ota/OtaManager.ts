@@ -1,3 +1,4 @@
+import { otaOperation } from './OtaOperation';
 import type { BLEConnectionManager, OtaSession } from '../BLEConnectionManager';
 import {
     buildDataFrame,
@@ -101,115 +102,50 @@ export class OtaManager {
         if (this.controller?.signal.aborted) throw new Error('Transfer cancelled');
     }
 
-    private async pause(ms: number): Promise<void> {
-        this.checkCancelled();
-        const signal = this.controller?.signal;
-        await new Promise<void>((resolve, reject) => {
-            const cleanup = () => {
-                clearTimeout(timer);
-                signal?.removeEventListener('abort', abort);
-                unsubscribeLoss();
-            };
-            const finish = () => { cleanup(); resolve(); };
-            const timer = setTimeout(finish, ms);
-            const abort = () => {
-                cleanup();
-                reject(new Error('Transfer cancelled'));
-            };
-            const unsubscribeLoss = this.manager.subscribeConnectionLoss(() => {
-                cleanup();
-                reject(new Error('Disconnected during firmware transfer'));
-            });
-            signal?.addEventListener('abort', abort, { once: true });
-            if (!this.manager.isConnected) {
-                cleanup();
-                reject(new Error('Not connected'));
-            }
-        });
+    private pause(ms: number): Promise<void> {
+        return otaOperation<void>(this.manager, this.controller?.signal, ms, () => {}, () => {});
     }
 
     /** Initial command54 has no ACK; bound its write and connection lifetime too. */
     private writeOnly(frame: Uint8Array, timeoutMs: number): Promise<void> {
-        this.checkCancelled();
-        return new Promise((resolve, reject) => {
-            let done = false;
-            const signal = this.controller?.signal;
-            const cleanup = () => {
-                clearTimeout(timer);
-                signal?.removeEventListener('abort', abort);
-                unsubscribeLoss();
-            };
-            const finish = (error?: unknown) => {
-                if (done) return;
-                done = true;
-                cleanup();
-                if (error) reject(error); else resolve();
-            };
-            const abort = () => finish(new Error('Transfer cancelled'));
-            const timer = setTimeout(() => finish(new Error('Activation write timeout')), timeoutMs);
-            const unsubscribeLoss = this.manager.subscribeConnectionLoss(() => finish(new Error('Disconnected during firmware transfer')));
-            signal?.addEventListener('abort', abort, { once: true });
-            if (!this.manager.isConnected) { finish(new Error('Not connected')); return; }
-            try {
+        return otaOperation<void>(this.manager, this.controller?.signal, timeoutMs,
+            () => { throw new Error('Activation write timeout'); },
+            (resolve, reject) => {
                 const write = this.session ? this.session.send(frame) : this.manager.sendRaw(frame);
-                void write.then(() => finish(), finish);
-            } catch (error) { finish(error); }
-        });
+                void write.then(() => resolve(), reject);
+            });
     }
 
     /** Listen first; require BOTH write completion and a correlated complete ACK. */
     private exchange(frame: Uint8Array, expectedCmd: number, timeoutMs: number,
         validate: (payload: Uint8Array) => 'accept' | 'ignore'): Promise<Ack> {
-        this.checkCancelled();
-        return new Promise((resolve, reject) => {
-            let done = false;
-            let written = false;
-            let reply: Ack | null = null;
-            const signal = this.controller?.signal;
-            let unsubscribeFrame = () => {};
-            let unsubscribeLoss = () => {};
-            const cleanup = () => {
-                clearTimeout(timer);
-                unsubscribeFrame();
-                unsubscribeLoss();
-                signal?.removeEventListener('abort', abort);
-            };
-            const fail = (error: unknown) => {
-                if (done) return;
-                done = true;
-                cleanup();
-                reject(error);
-            };
-            const complete = () => {
-                if (!done && written && reply) {
-                    done = true;
-                    cleanup();
-                    resolve(reply);
-                }
-            };
-            const abort = () => fail(new Error('Transfer cancelled'));
-            const timer = setTimeout(() => fail(written
-                ? new OtaTimeoutError(`ACK timeout for command 0x${expectedCmd.toString(16)}`)
-                : new Error(`Write timeout for command 0x${expectedCmd.toString(16)}`)), timeoutMs);
-            unsubscribeFrame = this.manager.subscribeFrames(bytes => {
-                const decoded = decodeIncomingFrame(bytes);
-                // Unrelated traffic must never consume this exchange's waiter.
-                if (!decoded || decoded.cmd !== expectedCmd || decoded.frameType === 'normalHM') return;
-                if (!decoded.checksumValid) return;
-                try {
-                    if (validate(decoded.payload) === 'ignore') return;
-                    reply = { ok: true, cmd: decoded.cmd, payload: decoded.payload.slice() };
-                    complete();
-                } catch (error) { fail(error); }
-            });
-            unsubscribeLoss = this.manager.subscribeConnectionLoss(() => fail(new Error('Disconnected during firmware transfer')));
-            signal?.addEventListener('abort', abort, { once: true });
-            if (!this.manager.isConnected) { fail(new Error('Not connected')); return; }
-            try {
+        let written = false;
+        let reply: Ack | null = null;
+        return otaOperation<Ack>(this.manager, this.controller?.signal, timeoutMs,
+            () => {
+                throw written
+                    ? new OtaTimeoutError(`ACK timeout for command 0x${expectedCmd.toString(16)}`)
+                    : new Error(`Write timeout for command 0x${expectedCmd.toString(16)}`);
+            },
+            (resolve, reject, onCleanup) => {
+                let active = true;
+                onCleanup(() => { active = false; });
+                const complete = () => { if (written && reply) resolve(reply); };
+                onCleanup(this.manager.subscribeFrames(bytes => {
+                    if (!active) return;
+                    const decoded = decodeIncomingFrame(bytes);
+                    // Unrelated traffic must never consume this exchange's waiter.
+                    if (!decoded || decoded.cmd !== expectedCmd || decoded.frameType === 'normalHM') return;
+                    if (!decoded.checksumValid) return;
+                    try {
+                        if (validate(decoded.payload) === 'ignore') return;
+                        reply = { ok: true, cmd: decoded.cmd, payload: decoded.payload.slice() };
+                        complete();
+                    } catch (error) { reject(error); }
+                }));
                 const send = this.session ? this.session.send(frame) : this.manager.sendRaw(frame);
-                void send.then(() => { written = true; complete(); }, fail);
-            } catch (error) { fail(error); }
-        });
+                void send.then(() => { written = true; complete(); }, reject);
+            });
     }
 
     private requirePayload(payload: Uint8Array, length: number): void {
@@ -313,8 +249,24 @@ export class OtaManager {
         this.log(onLog, `Data transfer complete: ${bytes.length} bytes in ${chunkIndex} chunks`);
     }
 
-    private async finalize(_analysis: OtaAnalysis, onLog: (msg: string) => void): Promise<void> {
+    private async finalize(analysis: OtaAnalysis, onLog: (msg: string) => void): Promise<void> {
         await this.exchange(buildFinishFrame(), 0x52, this.timings.finalizeAckMs, payload => {
+            if (payload.length !== 2 || payload[0] !== 0 || payload[1] !== 1) {
+                const hex = (value: number | undefined) => value === undefined ? 'none' : `0x${value.toString(16).padStart(2, '0')}`;
+                const { component, otaTypeFlag } = analysis.componentGuess;
+                this.log(onLog, `OTA finalization rejected - dir: ${hex(payload[0])}, status: ${hex(payload[1])}, payload length: ${payload.length}`);
+                this.log(onLog, `OTA type flag sent: ${hex(otaTypeFlag)} (component: ${component})`);
+                this.log(onLog, 'Possible causes per BLE_Cmd_OTA_Validate (not identified by the status byte):');
+                this.log(onLog, '  CRC mismatch - device calculated checksum differs from sent checksum');
+                const signature = component === 'Micro/Inverter' ? 'magic 0x4444 with type flag 0x04'
+                    : component === 'BMS' ? 'magic 0x3333 with type flag 0x03'
+                    : component === 'MPPT' ? 'magic 0x2222 with type flag 0x02'
+                    : component === 'Control/EMS' ? 'magic 0x0000/0xFFFF with type flag 0x00, and its own model check to pass'
+                    : null;
+                this.log(onLog, signature
+                    ? `  Component signature check failed - device expected ${signature}`
+                    : '  Component signature check - unknown component; verify image trailer and OTA type flag');
+            }
             this.requirePayload(payload, 2);
             if (payload[1] !== 1) throw new Error(`Finalize rejected by device (status=0x${payload[1].toString(16)})`);
             return 'accept';
