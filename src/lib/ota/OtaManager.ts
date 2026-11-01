@@ -241,8 +241,24 @@ export class OtaManager {
         this.log(onLog, `Data transfer complete: ${bytes.length} bytes in ${chunkIndex} chunks`);
     }
 
-    private async finalize(_analysis: OtaAnalysis, onLog: (msg: string) => void): Promise<void> {
+    private async finalize(analysis: OtaAnalysis, onLog: (msg: string) => void): Promise<void> {
         await this.exchange(buildFinishFrame(), 0x52, this.timings.finalizeAckMs, payload => {
+            if (payload.length !== 2 || payload[0] !== 0 || payload[1] !== 1) {
+                const hex = (value: number | undefined) => value === undefined ? 'none' : `0x${value.toString(16).padStart(2, '0')}`;
+                const { component, otaTypeFlag } = analysis.componentGuess;
+                this.log(onLog, `OTA finalization rejected - dir: ${hex(payload[0])}, status: ${hex(payload[1])}, payload length: ${payload.length}`);
+                this.log(onLog, `OTA type flag sent: ${hex(otaTypeFlag)} (component: ${component})`);
+                this.log(onLog, 'Possible causes per BLE_Cmd_OTA_Validate (not identified by the status byte):');
+                this.log(onLog, '  CRC mismatch - device calculated checksum differs from sent checksum');
+                const signature = component === 'Micro/Inverter' ? 'magic 0x4444 with type flag 0x04'
+                    : component === 'BMS' ? 'magic 0x3333 with type flag 0x03'
+                    : component === 'MPPT' ? 'magic 0x2222 with type flag 0x02'
+                    : component === 'Control/EMS' ? 'magic 0x0000/0xFFFF with type flag 0x00, and its own model check to pass'
+                    : null;
+                this.log(onLog, signature
+                    ? `  Component signature check failed - device expected ${signature}`
+                    : '  Component signature check - unknown component; verify image trailer and OTA type flag');
+            }
             this.requirePayload(payload, 2);
             if (payload[1] !== 1) throw new Error(`Finalize rejected by device (status=0x${payload[1].toString(16)})`);
             return 'accept';
