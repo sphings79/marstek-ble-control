@@ -1,3 +1,4 @@
+import { otaOperation } from "../src/lib/ota/OtaOperation.ts";
 import assert from "node:assert/strict";
 import {
   OtaManager,
@@ -1063,5 +1064,52 @@ await check(
         commandWrites(m, 0x04).length === 1 &&
         m.manager.pollTimer === null,
     };
+  },
+);
+
+for (const exit of ["success", "abort", "loss", "timeout", "throw"]) await check(
+  `operation_lifetime_cleanup_${exit}`,
+  "Every operation exit disposes timers, abort listeners and subscriptions exactly once; late completion has no effect",
+  async (clock) => {
+    const controller = new AbortController();
+    const losses = new Set();
+    let cleanups = 0, lateResolve, lateReject;
+    const connection = {
+      isConnected: true,
+      subscribeConnectionLoss: listener => { losses.add(listener); return () => losses.delete(listener); },
+    };
+    const p = otaOperation(connection, controller.signal, 100,
+      () => { throw new Error("expected timeout"); },
+      (resolve, reject, onCleanup) => {
+        onCleanup(() => cleanups++);
+        lateResolve = resolve;
+        lateReject = reject;
+        if (exit === "throw") throw new Error("expected start failure");
+        if (exit === "success") resolve("ok");
+      });
+    const result = outcome(clock, p);
+    if (exit === "abort") controller.abort();
+    if (exit === "loss") for (const listener of [...losses]) listener();
+    const r = await result;
+    assert.equal(cleanups, 1);
+    assert.equal(losses.size, 0);
+    assert.equal(clock.events.size, 0);
+    lateResolve("late"); lateReject(new Error("late")); controller.abort();
+    return {passesValidation: r.accepted === (exit === "success") && cleanups === 1, ...r};
+  },
+);
+
+for (const state of ["aborted", "disconnected"]) await check(
+  `operation_no_start_${state}`,
+  "An already-cancelled or disconnected operation must not subscribe, write or start a timer",
+  async (clock) => {
+    const controller = new AbortController();
+    if (state === "aborted") controller.abort();
+    let touched = false;
+    const r = await outcome(clock, otaOperation({
+      isConnected: state !== "disconnected",
+      subscribeConnectionLoss: () => { touched = true; return noop; },
+    }, controller.signal, 100, noop, () => { touched = true; }));
+    return {...r, passesValidation: !r.accepted && !touched && clock.events.size === 0};
   },
 );

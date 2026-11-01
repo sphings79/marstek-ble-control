@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BLEConnectionManager, ConnectionState } from '../lib/BLEConnectionManager';
 import { TransportKind, type Transport } from '../lib/transport/Transport';
 import { parseDeviceName, type DeviceInfo } from '../lib/DeviceUtils';
@@ -89,9 +89,9 @@ export const BLEProvider = ({ transport, children }: { transport?: Transport; ch
         manager.disconnect();
     };
 
-    const sendPacket = (cmd: COMMAND_ID, p?: Uint8Array) => {
+    const sendPacket = useCallback((cmd: COMMAND_ID, p?: Uint8Array) => {
         return manager.sendPacket(cmd, p);
-    };
+    }, [manager]);
 
     const pollState = () => {
         manager.pollState();

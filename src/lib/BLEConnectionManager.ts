@@ -1,3 +1,4 @@
+import { otaOperation } from './ota/OtaOperation';
 import { VenusPacket } from "./VenusPacket";
 import semaphore from 'semaphore';
 import {COMMAND_ID} from "./VenusConst.ts";
@@ -175,35 +176,18 @@ export class BLEConnectionManager {
         const previouslySuspended = this.pollingSuspended;
         this.suspendPolling();
         try {
-            await new Promise<void>((resolve, reject) => {
-                let done = false;
-                const cleanup = () => {
-                    clearTimeout(timer);
-                    signal?.removeEventListener('abort', abort);
-                    unsubscribeLoss();
-                };
-                const fail = (message: string) => {
-                    if (done) return;
-                    done = true;
-                    cleanup();
-                    reject(new Error(message));
-                };
-                const abort = () => fail('Transfer cancelled');
-                const timer = setTimeout(() => {
+            await otaOperation<void>(this, signal, 5_000,
+                () => {
                     this.reconnectRequired = true;
-                    fail('Timed out draining prior writes; reconnect before retrying');
-                }, 5_000);
-                const unsubscribeLoss = this.subscribeConnectionLoss(() => fail('Disconnected before transfer'));
-                signal?.addEventListener('abort', abort, { once: true });
-                if (signal?.aborted) { abort(); return; }
-                mutex.take(() => {
-                    mutex.leave();
-                    if (done) return;
-                    done = true;
-                    cleanup();
-                    resolve();
-                });
-            });
+                    throw new Error('Timed out draining prior writes; reconnect before retrying');
+                },
+                (resolve) => {
+                    mutex.take(() => {
+                        // A cancelled drain still has to release its eventual mutex turn.
+                        mutex.leave();
+                        resolve();
+                    });
+                }, 'Disconnected before transfer');
             if (!this.isConnected || generation !== this.connectionGeneration) throw new Error('Disconnected before transfer');
             this.resetReassembler();
         } catch (error) {

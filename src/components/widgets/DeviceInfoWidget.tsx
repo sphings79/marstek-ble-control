@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Paper, Typography, Box, IconButton, Stack,
     CircularProgress, Tooltip, Fade, Chip, Grid
@@ -42,14 +42,20 @@ export const DeviceInfoWidget = ({ showMppt = true, showVns = true, showBms = tr
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const refresh = () => {
-        if (isConnected) {
-            setIsRefreshing(true);
-            sendPacket(COMMAND_ID.DEVICE_INFO);
+    const refreshTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const stopRefreshing = useCallback(() => {
+        clearTimeout(refreshTimer.current);
+        setIsRefreshing(false);
+    }, []);
+    const refresh = useCallback(() => {
+        if (!isConnected) return;
+        clearTimeout(refreshTimer.current);
+        setIsRefreshing(true);
+        refreshTimer.current = setTimeout(stopRefreshing, 5000);
+        void sendPacket(COMMAND_ID.DEVICE_INFO).catch(stopRefreshing);
+    }, [isConnected, sendPacket, stopRefreshing]);
 
-            setTimeout(() => setIsRefreshing(false), 5000);
-        }
-    };
+    useEffect(() => () => clearTimeout(refreshTimer.current), []);
 
     // The device tends to ignore commands for the first ~1-2s after connecting, so a single
     // request fired the instant we connect is usually lost (whereas a later manual refresh works).
@@ -71,13 +77,11 @@ export const DeviceInfoWidget = ({ showMppt = true, showVns = true, showBms = tr
         timer = setTimeout(attempt, 800);
 
         return () => { cancelled = true; clearTimeout(timer); };
-    }, [isConnected, data]);
+    }, [isConnected, data, refresh]);
 
     useEffect(() => {
-        if (data) {
-            setIsRefreshing(false);
-        }
-    }, [data]);
+        if (data || !isConnected) stopRefreshing();
+    }, [data, isConnected, stopRefreshing]);
 
     const InfoRow = ({ label, value, icon, isLast = false }: { label: string, value?: string, icon?: React.ReactNode, isLast?: boolean }) => (
         <Box
