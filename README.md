@@ -220,10 +220,13 @@ Web Bluetooth requires a secure context, so the page must be served over **HTTPS
 npm install
 npm run dev      # development server
 npm run build    # static files in dist/
+npm test         # offline OTA regression tests (Node.js 22.18+ or 24+)
 ```
 
 The contents of `dist/` are the whole application. Drop them on any static web host that serves
 HTTPS.
+
+The [OTA test suite](tests/README.md) uses generated protocol fixtures and a virtual clock; no battery, Bluetooth connection or firmware downloads are needed.
 
 ---
 

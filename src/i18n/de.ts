@@ -231,7 +231,10 @@ export const de: Record<keyof typeof en, string> = {
     "ota.phase.sendingSize": "Firmware-Größe wird gesendet...",
     "ota.phase.transferring": "Firmware wird übertragen...",
     "ota.phase.finalizing": "Wird abgeschlossen...",
-    "ota.phase.success": "Update fertig — das Gerät startet neu",
+    "ota.phase.success": "Übertragung akzeptiert — neu verbinden und installierte Version prüfen",
+    "ota.reconnectRequired": "Verbindung trennen und anschließend erneut verbinden, bevor eine weitere Übertragung oder normale Befehle möglich sind. Danach die installierte Firmware-Version prüfen.",
+    "ota.unsupportedDevice": "Das Gerätemodell konnte nicht erkannt werden. OTA erfordert ein erkanntes Venus A-, D- oder E 3.0-Gerät.",
+    "ota.stop": "Übertragung stoppen",
     "ota.phase.failed": "Fehlgeschlagen",
 
     // Factory reset, device time, local api, module states
