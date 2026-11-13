@@ -98,7 +98,12 @@ const HistoryBlock = ({ label, energyIn, energyOut }: { label: string, energyIn?
     );
 };
 
-export const StateWidget = () => {
+interface StateWidgetProps {
+    // Venus E v1/v2: the inverter-state byte (RuntimeInfo byte 4) has no known value table there.
+    showInverterState?: boolean;
+}
+
+export const StateWidget = ({ showInverterState = true }: StateWidgetProps) => {
     const t = useT();
     const { connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
@@ -113,7 +118,7 @@ export const StateWidget = () => {
                     <SpeedIcon />
                     <Typography variant="h6" fontWeight="bold">{t('state.title')}</Typography>
                 </Box>
-                {attrs && attrs.InverterState !== undefined && (
+                {showInverterState && attrs && attrs.InverterState !== undefined && (
                     <Chip
                         label={getInverterStateLabel(t, attrs.InverterState)}
                         size="small"
@@ -150,8 +155,12 @@ export const StateWidget = () => {
                             <Box sx={{ px: 1 }}>
                                 <ReadingRow label={t('state.soc')} value={formatPct(attrs.SoC)} icon={<BatteryStdIcon fontSize="small" />} />
                                 <ReadingRow label={t('state.remainingEnergy')} value={formatKWh(attrs.RemainingEnergy)} icon={<BatteryStdIcon fontSize="small" />} />
-                                <ReadingRow label={t('state.batteryPower')} value={formatW(attrs.BatteryPower)} icon={<BatteryStdIcon fontSize="small" />} />
-                                <ReadingRow label={t('state.gridPower')} value={formatW(attrs.GridPower)} icon={<ElectricMeterIcon fontSize="small" />} />
+                                {attrs.BatteryPower !== undefined && (
+                                    <ReadingRow label={t('state.batteryPower')} value={formatW(attrs.BatteryPower)} icon={<BatteryStdIcon fontSize="small" />} />
+                                )}
+                                {attrs.GridPower !== undefined && (
+                                    <ReadingRow label={t('state.gridPower')} value={formatW(attrs.GridPower)} icon={<ElectricMeterIcon fontSize="small" />} />
+                                )}
                                 <ReadingRow label={t('state.acPower')} value={formatW(attrs.AcOutputPower)} icon={<PowerIcon fontSize="small" />} />
                                 <ReadingRow label={t('state.backupLoad')} value={formatW(attrs.BackupLoadPower)} icon={<OutletIcon fontSize="small" />} isLast />
                             </Box>

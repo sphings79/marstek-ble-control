@@ -125,6 +125,7 @@ gemeldet statt geflasht.
 | Marstek Venus A | `MST_VNSA_xxxx` | Unterstützt (aus dem Upstream-Projekt), dazu OTA und die zusätzlichen Steuerungen |
 | Marstek Venus D | `MST_VNSD_xxxx` | Unterstützt — der Schwerpunkt dieses Forks, an echter Hardware bestätigt |
 | Marstek Venus E 3.0 | `MST_VNSE3_xxxx` | Unterstützt, aber noch nicht an echter Hardware getestet |
+| Marstek Venus E v1/v2 | `MST_ACCP_xxxx` | Unterstützt, **nicht an echter Hardware getestet** — nur aus der statischen Analyse der Control-Firmware entstanden (siehe unten) |
 
 Andere Venus-Modelle landen in einer generischen Geräteansicht: Sie zeigt, was sich auslesen lässt,
 bietet aber keine modellspezifischen Steuerungen.
@@ -251,8 +252,17 @@ trägt aber man selbst. Nur Abbilder flashen, denen man traut — und eine laufe
 unterbrechen.
 
 **Wird die Venus E unterstützt?**
-Nicht gezielt. Venus E v1/v2 läuft auf einer anderen Firmware-Basis und landet daher in der
-generischen Geräteansicht.
+Venus E 3.0 (`MST_VNSE3_*`) und Venus E v1/v2 (`MST_ACCP_*`, Gerätetyp `HMG-50`) haben jeweils eine
+eigene Ansicht. Die v1/v2-Ansicht ist **nicht an echter Hardware getestet**: Sie beruht auf dem
+Lesen der Control-Firmware (153–158.1), nicht auf einem Live-Gerät. Sie bietet Arbeitsmodus
+(Eigenverbrauch, manueller Zeitplan, Economy/KI), Leistungsklasse (800 / 2500 W), Lade- und
+Entladegrenzen, Notstrom, Entladetiefe, Bluetooth-Schalter, CT-Modus und -Messwerte, lokale API und
+Zeit setzen. Entladetiefe und Bluetooth-Schalter brauchen Control-Firmware 156 oder neuer. Nicht
+angeboten, weil die Firmware den Befehl nicht kennt oder er sich nicht bestätigen ließ:
+Peak Shaving, Self-Control-Offset, Überschusseinspeisung, Batteriemodul-Ansicht (nur ein Pack),
+OTA per Bluetooth, Werksreset, CT-Zählertyp und LED-Schalter. Batterie- und Netzleistung sind nicht
+Teil des Statusberichts und werden nicht angezeigt. Venus E v1 und v2 lassen sich anhand der
+Firmware nicht unterscheiden, deshalb teilen sie sich eine Ansicht.
 
 ---
 

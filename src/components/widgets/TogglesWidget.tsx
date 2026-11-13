@@ -28,9 +28,14 @@ interface Props {
      * wrongly suggest a firmware update could enable it.
      */
     showSurplusFeedIn?: boolean;
+    /**
+     * Whether to show the LED row. The Venus E v1/v2 has an LED command (0x59, Control FW 158+) but
+     * its RuntimeInfo carries no LED state, so the switch could never show the real value.
+     */
+    showLed?: boolean;
 }
 
-export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
+export const TogglesWidget = ({ showSurplusFeedIn = true, showLed = true }: Props) => {
     const t = useT();
     const { sendPacket, connectionState, pollState, viaBridge } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
@@ -194,6 +199,7 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                             </ListItem>
                         )}
 
+                        {showLed && (
                         <ListItem divider>
                             <ListItemIcon>
                                 <LightModeIcon color={ledOn && ledControlSupported ? "warning" : "disabled"} />
@@ -211,6 +217,7 @@ export const TogglesWidget = ({ showSurplusFeedIn = true }: Props) => {
                                 color="warning"
                             />
                         </ListItem>
+                        )}
 
                         <ListItem divider>
                             <ListItemIcon>

@@ -10,6 +10,7 @@ import { Footer } from './components/Footer';
 import { VenusAView } from './components/views/VenusAView';
 import { VenusDView } from './components/views/VenusDView';
 import { VenusEView } from './components/views/VenusEView';
+import { VenusE12View } from './components/views/VenusE12View';
 import { GenericDeviceView } from './components/views/GenericDeviceView';
 import { BridgeAuthView } from './components/bridge/BridgeAuthView';
 import { BridgeScannerView } from './components/bridge/BridgeScannerView';
@@ -70,6 +71,8 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
                 <VenusDView />
             ) : deviceInfo.modelName === "Venus E 3.0" ? (
                 <VenusEView />
+            ) : deviceInfo.modelName === "Venus E 1/2" ? (
+                <VenusE12View />
             ) : (
                 <GenericDeviceView />
             )}

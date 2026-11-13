@@ -9,7 +9,7 @@
  * verification against 6 real Venus D + 4 real Venus E 3.0 firmware files).
  */
 
-export type VenusModel = 'Venus A' | 'Venus D' | 'Venus E 3.0' | 'Unknown';
+export type VenusModel = 'Venus A' | 'Venus D' | 'Venus E 3.0' | 'Venus E 1/2' | 'Unknown';
 
 export interface ModelGuess {
     model: VenusModel;
@@ -48,6 +48,11 @@ const MODEL_SIGNATURES: readonly { readonly tag: string; readonly model: VenusMo
     { tag: 'VNSA', model: 'Venus A' },
     { tag: 'VNSD', model: 'Venus D' },
     { tag: 'VNSE', model: 'Venus E 3.0' },
+    // Venus E v1/v2 (dev type HMG-50) runs the older firmware line: its Control image carries no
+    // VNS tag at all, but contains the BLE name format string "MST_ACCP_%c%c%c%c". None of the
+    // VNSA/VNSD/VNSE3 images in the firmware archive contains it. BMS images of this line have no
+    // text tag and are only recognised by file name.
+    { tag: 'MST_ACCP', model: 'Venus E 1/2' },
 ];
 
 /** Filename fallbacks, using Marstek's OTA package naming conventions. */
@@ -57,7 +62,10 @@ const MODEL_FILENAME_HINTS: readonly { readonly needle: string; readonly model: 
     { needle: 'vnsd', model: 'Venus D' },
     { needle: 'vd_inv', model: 'Venus D' },
     { needle: 'vnse', model: 'Venus E 3.0' },
-    { needle: 'ac_app', model: 'Venus E 3.0' },
+    // Venus E v1/v2 images are named ac_app_<ver>_... (newer) or contain HMG-50 (BMS/archive names).
+    { needle: 'ac_app', model: 'Venus E 1/2' },
+    { needle: 'hmg-50', model: 'Venus E 1/2' },
+    { needle: 'hmg_50', model: 'Venus E 1/2' },
 ];
 
 /**
@@ -76,8 +84,9 @@ const MODEL_FILENAME_HINTS: readonly { readonly needle: string; readonly model: 
  *
  * Fallback signal: filename.
  *
- * NOTE: the one archive sample without any tag is an early Venus E 3.0 BMS image (bms v106),
- * which falls through to the filename check. Venus E Gen 1/2 has never been sampled at all.
+ * NOTE: the one VNSE3 archive sample without any tag is an early Venus E 3.0 BMS image (bms v106),
+ * which falls through to the filename check. Venus E v1/v2 Control images are recognised by
+ * "MST_ACCP"; its BMS images fall through to the filename check.
  */
 export function detectFirmwareTargetModel(fileName: string, bytes: Uint8Array): ModelGuess {
     const name = (fileName || '').toLowerCase();
@@ -104,15 +113,15 @@ export function detectFirmwareTargetModel(fileName: string, bytes: Uint8Array): 
 
 /**
  * Guess the connected device's model from its BLE advertised name. The names come from the
- * Control firmware's own `AT+QBLENAME=MST_<type>_%c%c%c%c` string: MST_VNSA_xxxx, MST_VNSD_xxxx
- * and MST_VNSE3_xxxx. ("ACCP" belongs to the never-sampled Venus E Gen 1/2 and is not claimed
- * here.)
+ * Control firmware's own `AT+QBLENAME=MST_<type>_%c%c%c%c` string: MST_VNSA_xxxx, MST_VNSD_xxxx,
+ * MST_VNSE3_xxxx and, for the Venus E v1/v2 (HMG-50), MST_ACCP_xxxx (Control FW 158, 0x08006ed0).
  */
 export function detectConnectedDeviceModel(deviceName: string | undefined | null): VenusModel {
     const name = deviceName || '';
     if (name.includes('VNSA')) return 'Venus A';
     if (name.includes('VNSD')) return 'Venus D';
     if (name.includes('VNSE3')) return 'Venus E 3.0';
+    if (name.includes('ACCP')) return 'Venus E 1/2';
     return 'Unknown';
 }
 

@@ -122,6 +122,7 @@ than flashed.
 | Marstek Venus A | `MST_VNSA_xxxx` | Supported (from upstream), plus OTA and the extra controls |
 | Marstek Venus D | `MST_VNSD_xxxx` | Supported — the focus of this fork, confirmed on real hardware |
 | Marstek Venus E 3.0 | `MST_VNSE3_xxxx` | Supported, but not yet tested on real hardware |
+| Marstek Venus E v1/v2 | `MST_ACCP_xxxx` | Supported, **not tested on real hardware** — built from static analysis of the Control firmware only (see below) |
 
 Other Venus models fall back to a generic device view, which shows what can be read but does not
 offer the model-specific controls.
@@ -250,8 +251,16 @@ checks the image against the connected device before it starts, but you carry th
 images you trust, and do not interrupt a running transfer.
 
 **Is Venus E supported?**
-Not specifically. Venus E v1/v2 runs on a different firmware base, so it falls back to the generic
-device view.
+Venus E 3.0 (`MST_VNSE3_*`) and Venus E v1/v2 (`MST_ACCP_*`, device type `HMG-50`) both have their
+own view. The v1/v2 view is **not tested on real hardware**: it is based on reading the Control
+firmware (153–158.1), not on a live device. It offers the work mode (self-consumption, manual
+schedule, economy/AI), power class (800 / 2500 W), charge and discharge limits, backup power,
+depth of discharge, Bluetooth switch, CT mode and readings, local API and set time. Depth of
+discharge and the Bluetooth switch need Control firmware 156 or newer. Not offered, because the
+firmware has no such command or it could not be confirmed: peak shaving, self-control offset,
+surplus feed-in, battery module view (one pack only), OTA over Bluetooth, factory reset, CT meter
+type and the LED switch. Battery and grid power are not part of its status report and are not
+shown. Venus E v1 and v2 cannot be told apart from the firmware, so they share one view.
 
 ---
 

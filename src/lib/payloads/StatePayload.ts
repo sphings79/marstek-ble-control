@@ -77,6 +77,14 @@ export interface StateAttributes {
     ApiPort?: number;
 }
 
+// Venus E v1/v2 (dev type HMG-50, BLE name MST_ACCP_xxxx) RuntimeInfo payload lengths, read out of
+// the Control FW builder (FUN_08007230 in 158, 0x6f = 111 bytes): 104 B on Control 153, 109 B on
+// 155, 111 B on 156 / 158 / 158.1. No other model sends a payload this short (Venus E 3.0 sends 133
+// or 139, Venus A/D 167). Fields up to byte[93] sit at the same offsets as on the other models;
+// everything behind differs, so the model-specific blocks below must not be applied to it.
+const EV12_LENGTH_FULL = 111;
+const EV12_LENGTHS: readonly number[] = [104, 109, EV12_LENGTH_FULL];
+
 export class StatePayload extends VenusPayload {
     public attributes: StateAttributes;
 
@@ -122,7 +130,20 @@ export class StatePayload extends VenusPayload {
         // Local API enable + port live at byte[101] / byte[105] on every model (same builder offset
         // on Venus A/D and Venus E 3.0), ahead of the model-specific extended block. Guard only
         // against a payload too short to contain the port.
-        if (bytes.length >= 107) {
+        const isEv12 = EV12_LENGTHS.includes(bytes.length);
+
+        if (isEv12) {
+            // Venus E v1/v2. Only the 111-byte layout (Control 156+) was read out of the builder;
+            // 153/155 are shorter and not checked field by field, so they get the common fields only.
+            // Not present in this RuntimeInfo at all: battery power, grid power, self-control
+            // offset, LED state, MPPT, surplus feed-in.
+            if (bytes.length === EV12_LENGTH_FULL) {
+                attrs.LocalApiEnabled = bytes[101] === 0x01;
+                attrs.ApiPort = view.getUint16(102, true); // cfg+0x7d; the other models keep it at 105
+                attrs.BluetoothEnabled = bytes[109] === 0x01; // BLE advertising flag (cmd 0x53)
+                attrs.DepthOfDischarge = bytes[110]; // 100 - stored value (cmd 0x54)
+            }
+        } else if (bytes.length >= 107) {
             attrs.LocalApiEnabled = bytes[101] === 0x01;
             attrs.ApiPort = view.getUint16(105, true);
         }
@@ -137,7 +158,9 @@ export class StatePayload extends VenusPayload {
         // "Offset is outside the bounds of the DataView" at getInt16(140), which killed the entire
         // STATE parse and left every STATE-driven widget stuck on its spinner. The E3.0 extended
         // fields live at their own offsets and are parsed separately below.
-        if (bytes.length >= 153) {
+        if (isEv12) {
+            // handled above
+        } else if (bytes.length >= 153) {
             attrs.MPPT1Power = view.getUint16(107, true) / 10;
             attrs.MPPT1Enabled = bytes[109] === 0x01;
             attrs.MPPT2Power = view.getUint16(110, true) / 10;

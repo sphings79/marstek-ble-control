@@ -28,6 +28,11 @@ export const parseDeviceName = (name: string): DeviceInfo => {
         case "VNSE3":
             info.modelName = "Venus E 3.0";
             break;
+        // Venus E v1/v2 (dev type HMG-50) advertises as MST_ACCP_xxxx (Control FW 158:
+        // AT+QBLENAME=MST_ACCP_%c%c%c%c in FUN_08006ed0). It runs the older firmware line.
+        case "ACCP":
+            info.modelName = "Venus E 1/2";
+            break;
     }
 
     if (parts[2]) {

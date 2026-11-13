@@ -24,9 +24,16 @@ interface Props {
      * always read "--".
      */
     showMppt?: boolean;
+    /** Venus E v1/v2: device-info has no `inv_ver`, so the VNS row would always read "--". */
+    showVns?: boolean;
+    /**
+     * Venus E v1/v2: `bms_ver` in its device-info reads the same byte the RuntimeInfo reports as SoC
+     * (Control FW 158, unresolved), so the value cannot be trusted and the row is left out.
+     */
+    showBms?: boolean;
 }
 
-export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
+export const DeviceInfoWidget = ({ showMppt = true, showVns = true, showBms = true }: Props) => {
     const t = useT();
     const { sendPacket, connectionState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
@@ -184,10 +191,14 @@ export const DeviceInfoWidget = ({ showMppt = true }: Props) => {
                                 <Grid container columnSpacing={4}>
                                     <Grid size={{ xs: 12, sm: 6 }}>
                                         <InfoRow label={t('deviceInfo.emsFw')} value={versionLabel(data.data.get('dev_ver'), t('ota.archive.beta'))} icon={<MemoryIcon fontSize="small"/>} />
-                                        <InfoRow label={t('deviceInfo.bmsFw')} value={versionLabel(data.data.get('bms_ver'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
+                                        {showBms && (
+                                            <InfoRow label={t('deviceInfo.bmsFw')} value={versionLabel(data.data.get('bms_ver'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
+                                        )}
                                     </Grid>
                                     <Grid size={{ xs: 12, sm: 6 }}>
-                                        <InfoRow label={t('deviceInfo.vnsFw')} value={versionLabel(data.data.get('inv_ver'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
+                                        {showVns && (
+                                            <InfoRow label={t('deviceInfo.vnsFw')} value={versionLabel(data.data.get('inv_ver'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
+                                        )}
                                         {showMppt && (
                                             <InfoRow label={t('deviceInfo.mpptFw')} value={versionLabel(data.data.get('mppt_v'), t('ota.archive.beta'))} icon={<PowerIcon fontSize="small"/>} />
                                         )}

@@ -265,12 +265,15 @@ interface Props {
     scheduleItemMinPower?: number;
     scheduleItemMaxPower?: number;
     scheduleItemUPSSupported?: boolean;
+    // Offers the third global mode (0x05, "Economy / AI") that only the Venus E v1/v2 firmware has.
+    economyModeSupported?: boolean;
 }
 
 export const WorkModeWidget = ({ 
     scheduleItemMinPower = 100, 
     scheduleItemMaxPower = 1200, 
     scheduleItemUPSSupported = false,
+    economyModeSupported = false,
 }: Props) => {
     const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
@@ -512,6 +515,16 @@ export const WorkModeWidget = ({
                                 >
                                     {t('workMode.manual')}
                                 </Button>
+                                {economyModeSupported && (
+                                    <Button
+                                        variant={globalMode === WORK_MODE.ECONOMY ? "contained" : "outlined"}
+                                        fullWidth
+                                        onClick={() => handleGlobalModeChange(WORK_MODE.ECONOMY)}
+                                        disabled={isBusy}
+                                    >
+                                        {t('workMode.economy')}
+                                    </Button>
+                                )}
                             </Stack>
                         </Box>
 
@@ -521,7 +534,7 @@ export const WorkModeWidget = ({
                             elevation={0}
                             sx={{ 
                                 bgcolor: 'transparent',
-                                opacity: globalMode === WORK_MODE.SELF_CONSUMPTION ? 0.5 : 1,
+                                opacity: globalMode !== WORK_MODE.MANUAL ? 0.5 : 1,
                                 transition: 'opacity 0.2s',
                                 '&:before': { display: 'none' }
                             }}
@@ -546,7 +559,7 @@ export const WorkModeWidget = ({
                                     {upsSetting && (
                                         <ScheduleItemUI 
                                             setting={upsSetting} 
-                                            disabled={isBusy || globalMode === WORK_MODE.SELF_CONSUMPTION} 
+                                            disabled={isBusy || globalMode !== WORK_MODE.MANUAL} 
                                             isSaving={isBusy && busySlotIndex === upsSetting.slotIndex}
                                             isUpsSlot={true}
                                             minPower={scheduleItemMinPower}
@@ -576,7 +589,7 @@ export const WorkModeWidget = ({
                                                 <ScheduleItemUI 
                                                     key={setting.slotIndex} 
                                                     setting={setting} 
-                                                    disabled={isBusy || isUpsActive || globalMode === WORK_MODE.SELF_CONSUMPTION} 
+                                                    disabled={isBusy || isUpsActive || globalMode !== WORK_MODE.MANUAL} 
                                                     isSaving={isBusy && busySlotIndex === setting.slotIndex}
                                                     minPower={scheduleItemMinPower}
                                                     maxPower={scheduleItemMaxPower}
@@ -592,7 +605,7 @@ export const WorkModeWidget = ({
                                         startIcon={<AddCircleOutlineIcon />} 
                                         fullWidth 
                                         onClick={handleAdd}
-                                        disabled={isBusy || isUpsActive || globalMode === WORK_MODE.SELF_CONSUMPTION || renderableSchedules.length >= 9}
+                                        disabled={isBusy || isUpsActive || globalMode !== WORK_MODE.MANUAL || renderableSchedules.length >= 9}
                                         sx={{ borderStyle: 'dashed' }}
                                     >
                                         {t('workMode.addItem')}

@@ -44,7 +44,10 @@ export type COMMAND_ID = (typeof COMMAND_ID)[keyof typeof COMMAND_ID];
 
 export const WORK_MODE = Object.freeze({
     SELF_CONSUMPTION: 0x00,
-    MANUAL: 0x01
+    MANUAL: 0x01,
+    // Venus E v1/v2 only ("Set economy mode" in Control FW 158, cmd 0x09 mode 5, shown as "AI" in
+    // the vendor app). Mode 3 ("Passive") exists in the firmware but is not settable over BLE.
+    ECONOMY: 0x05
 });
 export type WORK_MODE = (typeof WORK_MODE)[keyof typeof WORK_MODE];
 

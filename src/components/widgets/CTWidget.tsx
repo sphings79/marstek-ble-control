@@ -18,7 +18,13 @@ import { CTModeControlPayload } from '../../lib/payloads/CTModeControlPayload';
 const READINGS_REQUEST_PAYLOAD = new Uint8Array([0x0a, 0x0b, 0x0c]);
 const PHASE_DETECT_PAYLOAD = new Uint8Array([0x0a, 0x0b, 0x0c]);
 
-export const CTWidget = () => {
+interface CTWidgetProps {
+    // Venus E v1/v2: the firmware accepts meter types 0..11 but which value is which meter was not
+    // resolved, so the type selector is left out there (mode, readings and phase detection stay).
+    showTypeSelect?: boolean;
+}
+
+export const CTWidget = ({ showTypeSelect = true }: CTWidgetProps) => {
     const t = useT();
     const { sendPacket, connectionState, pollState } = useBLE();
     const isConnected = connectionState === ConnectionState.CONNECTED;
@@ -225,6 +231,7 @@ export const CTWidget = () => {
                 ) : (
                     <Stack spacing={3}>
                         <Box>
+                            {showTypeSelect && (
                             <FormControl fullWidth size="small" disabled={isConfigBusy} sx={{ mb: 2 }}>
                                 <InputLabel>{t('ct.meterType')}</InputLabel>
                                 <Select
@@ -238,6 +245,7 @@ export const CTWidget = () => {
                                     <MenuItem value={CT_TYPE.SHELLY_PRO_EM_50}>Shelly Pro EM 50</MenuItem>
                                 </Select>
                             </FormControl>
+                            )}
 
                             <ToggleButtonGroup
                                 value={selectedMode}
