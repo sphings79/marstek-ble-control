@@ -1,12 +1,16 @@
+import { useContext } from 'react';
 import { Box, Link, Typography, Stack } from '@mui/material';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
-import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
+import { BRIDGE_REPO, GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
+import { BLEContext } from '../contexts/BLEContext';
 import { useT } from '../i18n/i18n';
 import { LanguageSwitch } from './LanguageSwitch';
 import { APP_VERSION } from '../version';
 
 export const Footer = () => {
     const t = useT();
+    // Optional on purpose: the footer also shows on screens that sit outside the provider.
+    const viaBridge = useContext(BLEContext)?.viaBridge ?? false;
 
     return (
     <Box
@@ -29,7 +33,7 @@ export const Footer = () => {
             sx={{ mb: 1 }}
         >
             <Link
-                href={GITHUB_REPO}
+                href={viaBridge ? BRIDGE_REPO : GITHUB_REPO}
                 target="_blank"
                 rel="noopener noreferrer"
                 underline="hover"

@@ -8,6 +8,11 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.6 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.3 or newer.
+- When the web interface is served by a bridge, *Star on GitHub* (footer and menu) links to the
+  marstek-ble-bridge repository instead of the Control repository. The hosted app keeps linking to Control.
+
 ## v1.4.0-beta.5 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.3 or newer.
 - Going back from a beta to a stable version no longer ends in a dead end. If the bridge runs older

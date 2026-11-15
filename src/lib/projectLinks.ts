@@ -1,6 +1,8 @@
 // Shared project/related links, used by both the page Footer and the mobile hamburger menu.
 
 export const GITHUB_REPO = 'https://github.com/sphings79/marstek-ble-control';
+// Served from an ESP32 bridge, the app is part of the bridge project, so that is the repo to star.
+export const BRIDGE_REPO = 'https://github.com/sphings79/marstek-ble-bridge';
 export const OFFLINE_ENDPOINT_REPO = 'https://github.com/sphings79/Marstek-offline-endpoint';
 export const UPSTREAM_REPO = 'https://github.com/Hypfer/venuscontrol';
 

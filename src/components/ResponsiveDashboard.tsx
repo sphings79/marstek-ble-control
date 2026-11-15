@@ -10,7 +10,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { APP_VERSION } from '../version';
-import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
+import { BRIDGE_REPO, GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
 import { useT, type StringKey } from '../i18n/i18n';
 import { SignalReadings } from './SignalReadings';
 import { LanguageSwitch } from './LanguageSwitch';
@@ -129,7 +129,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                         <List dense>
                             <ListItemButton
                                 component="a"
-                                href={GITHUB_REPO}
+                                href={viaBridge ? BRIDGE_REPO : GITHUB_REPO}
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
