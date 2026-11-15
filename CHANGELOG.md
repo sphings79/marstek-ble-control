@@ -8,6 +8,9 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.15 — 2026-11-16
+**Beta.** No change to the web interface; the version follows bridge firmware v1.4.0-beta.15 (connects the way the vendor app does).
+
 ## v1.4.0-beta.14 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.14.
 - **Commands wait for the storage's answer before the next one is sent** (at most 2 s, then a 75 ms
