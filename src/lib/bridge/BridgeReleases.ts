@@ -3,7 +3,8 @@ import { translate } from '../../i18n/i18n';
 
 const RELEASES_URL = 'https://api.github.com/repos/sphings79/marstek-ble-bridge/releases';
 const RELEASES_LATEST = `${RELEASES_URL}/latest`;
-const RELEASES_LIST = `${RELEASES_URL}?per_page=10`;
+// Plenty: the list is not in date order (see pickRelease), so the newest entry can sit anywhere in it.
+const RELEASES_LIST = `${RELEASES_URL}?per_page=30`;
 
 export interface BridgeRelease {
     tag: string;
@@ -35,16 +36,29 @@ export interface GithubRelease {
     body?: string;
     draft?: boolean;
     prerelease?: boolean;
+    published_at?: string | null;
+    created_at?: string;
     assets?: { name: string; browser_download_url: string }[];
 }
 
 /**
- * Choose the release to offer. With betas allowed that is the newest non-draft entry of the list
- * (GitHub lists newest first, prereleases included); otherwise the list is not used at all, as
- * `/releases/latest` already excludes prereleases and drafts.
+ * Choose the release to offer. With betas allowed that is the most recently published non-draft
+ * entry of the list; otherwise the list is not used at all, as `/releases/latest` already excludes
+ * prereleases and drafts.
+ *
+ * Not simply the first entry: GitHub orders this list by tag name as text, not by date, so
+ * `v1.4.0-beta.9` comes before `v1.4.0-beta.10` and the newest release was never the one offered.
+ * Entries without a date count as oldest, which keeps the list order for those.
  */
 export function pickRelease(list: GithubRelease[], includeBeta: boolean): GithubRelease | null {
-    return list.find(entry => !entry.draft && (includeBeta || !entry.prerelease) && !!entry.tag_name) ?? null;
+    const stamp = (entry: GithubRelease) => Date.parse(entry.published_at ?? entry.created_at ?? '') || 0;
+
+    let best: GithubRelease | null = null;
+    for (const entry of list) {
+        if (entry.draft || !entry.tag_name || (!includeBeta && entry.prerelease)) continue;
+        if (!best || stamp(entry) > stamp(best)) best = entry;
+    }
+    return best;
 }
 
 export function toBridgeRelease(data: GithubRelease): BridgeRelease | null {

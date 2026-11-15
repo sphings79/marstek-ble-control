@@ -187,6 +187,21 @@ test("pickRelease skips drafts and takes prereleases only when allowed", async (
   assert.equal(toBridgeRelease(list[2]).prerelease, false);
 });
 
+test("pickRelease takes the most recently published release, not the first in the list", async () => {
+  const { pickRelease } = await import("../src/lib/bridge/BridgeReleases.ts");
+  // GitHub's list order for tags beta.1 ... beta.10: by name as text, so beta.10 is far down.
+  const list = [
+    { tag_name: "v1.4.0-beta.9", prerelease: true, published_at: "2026-11-15T20:27:34Z" },
+    { tag_name: "v1.4.0-beta.2", prerelease: true, published_at: "2026-11-15T18:56:58Z" },
+    { tag_name: "v1.4.0-beta.10", prerelease: true, published_at: "2026-11-15T20:40:50Z" },
+    { tag_name: "v1.4.0-beta.1", prerelease: true, published_at: "2026-11-15T18:32:45Z" },
+    { tag_name: "v1.3.19", published_at: "2026-11-15T16:26:27Z" },
+    { tag_name: "v1.5.0-beta.1", draft: true, prerelease: true, published_at: "2026-11-16T10:00:00Z" },
+  ];
+  assert.equal(pickRelease(list, true).tag_name, "v1.4.0-beta.10");
+  assert.equal(pickRelease(list, false).tag_name, "v1.3.19");
+});
+
 test("releaseDirection detects crossing between beta and stable", async () => {
   const { releaseDirection } = await import("../src/lib/bridge/BridgeReleases.ts");
   assert.equal(releaseDirection("v1.4.0-beta.2", { prerelease: false }), "toStable");

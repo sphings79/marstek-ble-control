@@ -8,6 +8,12 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.11 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.10 or newer.
+- **Fix: the bridge update card did not offer the newest beta.** GitHub lists releases by tag name as
+  text, not by date (`beta.9` before `beta.10`), and the card took the first entry. It now offers the
+  most recently published release and asks GitHub for 30 entries instead of 10.
+
 ## v1.4.0-beta.10 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.10, which stops the storages from going silent after 30 s.
 - A slot that connects no longer keeps the error message of an earlier failed attempt (for example
