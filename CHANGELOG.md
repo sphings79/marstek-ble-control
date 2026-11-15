@@ -8,6 +8,11 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.10 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.10, which stops the storages from going silent after 30 s.
+- A slot that connects no longer keeps the error message of an earlier failed attempt (for example
+  "The storage dropped the connection before it was usable") while it shows as connected.
+
 ## v1.4.0-beta.9 — 2026-11-15
 **Beta.** No change to the web interface; the version follows bridge firmware v1.4.0-beta.9, which keeps connected slots from going silent.
 

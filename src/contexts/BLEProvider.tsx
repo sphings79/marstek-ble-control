@@ -98,6 +98,8 @@ export const BLEProvider = ({ transport, bridge, children }: {
                 }
 
                 if (state === ConnectionState.CONNECTED) {
+                    // An earlier failed attempt must not keep its message on a slot that is now up.
+                    setErrors(prev => replaceAt(prev, index, null));
                     setDeviceInfos(prev => replaceAt(prev, index, parseDeviceName(slotManager.deviceName || "Unknown")));
                     // A slot that connects in the background only holds its link. The manager
                     // starts polling right after this callback, and a suspended one declines.
