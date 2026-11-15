@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, LinearProgress, Paper, Stack, Typography
+    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, FormControlLabel, LinearProgress, Paper, Stack, Switch, Typography
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -16,6 +16,8 @@ import { useT } from '../../i18n/i18n';
 
 // 'uploading' is a hand-uploaded file with real byte progress; 'installing' is the bridge fetching
 // a release image itself, where there is no progress to report from here - shown indeterminate.
+const BETA_KEY = 'bridgeIncludeBeta';
+
 type Phase = 'idle' | 'uploading' | 'installing' | 'restarting' | 'done' | 'failed';
 
 /**
@@ -42,10 +44,30 @@ export const BridgeFirmwareCard = () => {
     const [message, setMessage] = useState<string | null>(null);
     const [release, setRelease] = useState<BridgeRelease | null>(null);
 
+    const [includeBeta, setIncludeBeta] = useState(() => {
+        try {
+            return localStorage.getItem(BETA_KEY) === '1';
+        } catch {
+            return false;
+        }
+    });
+
+    useEffect(() => { void fetchBridgeVersion().then(setVersion); }, []);
+
     useEffect(() => {
-        void fetchBridgeVersion().then(setVersion);
-        void fetchLatestRelease().then(setRelease);
-    }, []);
+        let cancelled = false;
+        void fetchLatestRelease(includeBeta).then(found => { if (!cancelled) setRelease(found); });
+        return () => { cancelled = true; };
+    }, [includeBeta]);
+
+    const toggleBeta = (checked: boolean) => {
+        setIncludeBeta(checked);
+        try {
+            localStorage.setItem(BETA_KEY, checked ? '1' : '0');
+        } catch {
+            // Not remembered; the switch still works for this visit.
+        }
+    };
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>, target: UpdateTarget) => {
         const file = event.target.files?.[0];
@@ -147,6 +169,13 @@ export const BridgeFirmwareCard = () => {
                         </Stack>
                     )}
 
+                    <FormControlLabel
+                        sx={{ m: 0 }}
+                        control={<Switch size="small" checked={includeBeta} onChange={(_, checked) => toggleBeta(checked)} disabled={busy} />}
+                        label={<Typography variant="body2">{t('bridgeFw.beta')}</Typography>}
+                    />
+                    {includeBeta && <Alert severity="info">{t('bridgeFw.betaWarning')}</Alert>}
+
                     {message && (
                         <Alert severity={phase === 'done' ? 'success' : 'error'}>{message}</Alert>
                     )}
@@ -160,7 +189,7 @@ export const BridgeFirmwareCard = () => {
                                   </Button>
                                 : undefined}
                         >
-                            <strong>{release.name}</strong> {t('bridgeFw.available')}
+                            <strong>{release.name}</strong>{release.prerelease && <Chip size="small" color="warning" label={t('bridgeFw.betaChip')} sx={{ mx: 0.5 }} />} {t('bridgeFw.available')}
                         </Alert>
                     )}
 

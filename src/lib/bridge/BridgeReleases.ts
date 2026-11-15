@@ -1,7 +1,9 @@
 import { bridgeUrl } from './BridgeApi';
 import { translate } from '../../i18n/i18n';
 
-const RELEASES_API = 'https://api.github.com/repos/sphings79/marstek-ble-bridge/releases/latest';
+const RELEASES_URL = 'https://api.github.com/repos/sphings79/marstek-ble-bridge/releases';
+const RELEASES_LATEST = `${RELEASES_URL}/latest`;
+const RELEASES_LIST = `${RELEASES_URL}?per_page=10`;
 
 export interface BridgeRelease {
     tag: string;
@@ -9,6 +11,7 @@ export interface BridgeRelease {
     /** Link to the release page, so the changelog is one click away rather than reproduced here. */
     url: string;
     notes: string;
+    prerelease: boolean;
     firmwareUrl?: string;
     webUrl?: string;
 }
@@ -24,33 +27,54 @@ export interface BridgeRelease {
  * API replies 404 to a browser with no token. Failing quietly is right here: an update check that
  * cannot reach GitHub is not a reason to put an error in front of someone.
  */
-export async function fetchLatestRelease(): Promise<BridgeRelease | null> {
+/** The parts of a GitHub release this module reads. */
+export interface GithubRelease {
+    tag_name?: string;
+    name?: string;
+    html_url?: string;
+    body?: string;
+    draft?: boolean;
+    prerelease?: boolean;
+    assets?: { name: string; browser_download_url: string }[];
+}
+
+/**
+ * Choose the release to offer. With betas allowed that is the newest non-draft entry of the list
+ * (GitHub lists newest first, prereleases included); otherwise the list is not used at all, as
+ * `/releases/latest` already excludes prereleases and drafts.
+ */
+export function pickRelease(list: GithubRelease[], includeBeta: boolean): GithubRelease | null {
+    return list.find(entry => !entry.draft && (includeBeta || !entry.prerelease) && !!entry.tag_name) ?? null;
+}
+
+export function toBridgeRelease(data: GithubRelease): BridgeRelease | null {
+    if (!data.tag_name) return null;
+
+    const assets = data.assets ?? [];
+    const find = (needle: string) =>
+        assets.find(a => a.name.toLowerCase().includes(needle))?.browser_download_url;
+
+    return {
+        tag: data.tag_name,
+        name: data.name || data.tag_name,
+        url: data.html_url ?? '',
+        notes: data.body ?? '',
+        prerelease: data.prerelease === true,
+        firmwareUrl: find('bridge.bin') ?? find('firmware'),
+        webUrl: find('web.bin'),
+    };
+}
+
+export async function fetchLatestRelease(includeBeta = false): Promise<BridgeRelease | null> {
     try {
-        const response = await fetch(RELEASES_API, { headers: { 'Accept': 'application/vnd.github+json' } });
+        const response = await fetch(includeBeta ? RELEASES_LIST : RELEASES_LATEST, {
+            headers: { 'Accept': 'application/vnd.github+json' },
+        });
         if (!response.ok) return null;
 
-        const data = await response.json() as {
-            tag_name?: string;
-            name?: string;
-            html_url?: string;
-            body?: string;
-            assets?: { name: string; browser_download_url: string }[];
-        };
-
-        if (!data.tag_name) return null;
-
-        const assets = data.assets ?? [];
-        const find = (needle: string) =>
-            assets.find(a => a.name.toLowerCase().includes(needle))?.browser_download_url;
-
-        return {
-            tag: data.tag_name,
-            name: data.name || data.tag_name,
-            url: data.html_url ?? '',
-            notes: data.body ?? '',
-            firmwareUrl: find('bridge.bin') ?? find('firmware'),
-            webUrl: find('web.bin'),
-        };
+        const data = await response.json() as GithubRelease | GithubRelease[];
+        const chosen = Array.isArray(data) ? pickRelease(data, includeBeta) : data;
+        return chosen ? toBridgeRelease(chosen) : null;
     } catch {
         return null;
     }

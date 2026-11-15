@@ -172,3 +172,17 @@ test("keep-connected and hold-time requests have the documented bodies", async (
   assert.deepEqual(keepBody(0, true), { keep: { slot: 0, enabled: true } });
   assert.deepEqual(holdBody(20), { holdSeconds: 20 });
 });
+
+test("pickRelease skips drafts and takes prereleases only when allowed", async () => {
+  const { pickRelease, toBridgeRelease } = await import("../src/lib/bridge/BridgeReleases.ts");
+  const list = [
+    { tag_name: "v2.0.0-draft", draft: true },
+    { tag_name: "v1.5.0-beta.1", prerelease: true },
+    { tag_name: "v1.4.0" },
+  ];
+  assert.equal(pickRelease(list, true).tag_name, "v1.5.0-beta.1");
+  assert.equal(pickRelease(list, false).tag_name, "v1.4.0");
+  assert.equal(pickRelease([{ tag_name: "x", draft: true }], true), null);
+  assert.equal(toBridgeRelease(list[1]).prerelease, true);
+  assert.equal(toBridgeRelease(list[2]).prerelease, false);
+});

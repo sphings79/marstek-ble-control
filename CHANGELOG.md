@@ -8,6 +8,13 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.4 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.3 or newer.
+- The bridge update card has a switch, *Include beta versions* (off by default, remembered in the
+  browser). GitHub's "latest release" never lists prereleases, so betas were invisible there. With the
+  switch on, the newest release including betas is offered, with a note to install firmware and web
+  interface of the same version together.
+
 ## v1.4.0-beta.3 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.3.
 - The *Connection* card has a switch per slot, *Keep connected permanently*, with a clear warning and a
