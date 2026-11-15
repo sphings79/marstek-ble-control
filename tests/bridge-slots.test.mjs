@@ -153,3 +153,22 @@ test("manager reports when a firmware transfer session starts and ends", async (
   assert.equal(manager.isOtaRunning, false);
   assert.deepEqual(seen, [true, false]);
 });
+
+test("settings responses are parsed, keepConnected is optional", async () => {
+  const { parseSettings, isValidHoldSeconds } = await import("../src/lib/bridge/BridgeSettings.ts");
+  assert.deepEqual(parseSettings({ holdSeconds: 15, keepConnected: [true, false, 1] }), {
+    holdSeconds: 15,
+    keepConnected: [true, false, false],
+  });
+  assert.deepEqual(parseSettings({ holdSeconds: 30 }), { holdSeconds: 30, keepConnected: [] });
+  assert.equal(parseSettings({ keepConnected: [] }), null);
+  assert.equal(parseSettings(null), null);
+  assert.equal(isValidHoldSeconds(4), false);
+  assert.equal(isValidHoldSeconds(3600), true);
+});
+
+test("keep-connected and hold-time requests have the documented bodies", async () => {
+  const { holdBody, keepBody } = await import("../src/lib/bridge/BridgeSettings.ts");
+  assert.deepEqual(keepBody(0, true), { keep: { slot: 0, enabled: true } });
+  assert.deepEqual(holdBody(20), { holdSeconds: 20 });
+});

@@ -8,6 +8,12 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.3 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.3.
+- The *Connection* card has a switch per slot, *Keep connected permanently*, with a clear warning and a
+  confirmation: while the bridge is connected, the manufacturer's app cannot connect, because a storage
+  only talks to one Bluetooth device at a time. Kept slots ignore the hold time.
+
 ## v1.4.0-beta.2 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.2 (protocol version 2).
 - Slot switching, binding a device and removing one are locked while a firmware update is running.
