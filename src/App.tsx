@@ -18,6 +18,7 @@ import { probeBridge, BRIDGE_PROTOCOL_VERSION, type BridgeInfo } from './lib/bri
 import { BridgeSocket } from './lib/bridge/BridgeSocket';
 import { BridgeTransport } from './lib/transport/BridgeTransport';
 import { BridgeSlotBar } from './components/bridge/BridgeSlotBar';
+import { BridgeFirmwareCard } from './components/bridge/BridgeFirmwareCard';
 import { BridgeCard } from './components/bridge/BridgeCard';
 import UpdateIcon from '@mui/icons-material/SystemUpdateAlt';
 import { useT } from './i18n/i18n';
@@ -157,8 +158,22 @@ export default function App() {
         return <><CssBaseline /><Splash /></>;
     }
 
-    // An older bridge speaks a protocol this build does not. Say so rather than misbehave.
+    // An older bridge speaks a protocol this build does not. Say so rather than misbehave - and
+    // keep the update card reachable, since installing the matching release is the way out. It
+    // only needs the bridge's HTTP endpoints, so it works without the BLE context.
     if (bridgeInfo && !(bridgeInfo.version >= BRIDGE_PROTOCOL_VERSION)) {
+        if (!bridgeInfo.claimed || !bridgeInfo.authenticated) {
+            return (
+                <>
+                    <CssBaseline />
+                    <BridgeAuthView
+                        claimed={bridgeInfo.claimed}
+                        onAuthenticated={() => setBridgeInfo({ ...bridgeInfo, claimed: true, authenticated: true })}
+                    />
+                </>
+            );
+        }
+
         return (
             <>
                 <CssBaseline />
@@ -166,6 +181,7 @@ export default function App() {
                     icon={<UpdateIcon sx={{ fontSize: 60, color: 'warning.main' }} />}
                     title={t('bridgeOld.title')}
                     description={t('bridgeOld.desc')}
+                    below={<BridgeFirmwareCard />}
                 >
                     {null}
                 </BridgeCard>

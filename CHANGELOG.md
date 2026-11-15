@@ -8,6 +8,15 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.5 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.3 or newer.
+- Going back from a beta to a stable version no longer ends in a dead end. If the bridge runs older
+  firmware than this web interface (for example after installing the stable firmware first), the page
+  now shows the login and the update card instead of only a "bridge too old" message, so the matching
+  web interface can be installed.
+- The update card warns when it offers a switch between beta and stable (either direction): install
+  both the web interface and the firmware, one after the other.
+
 ## v1.4.0-beta.4 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.3 or newer.
 - The bridge update card has a switch, *Include beta versions* (off by default, remembered in the

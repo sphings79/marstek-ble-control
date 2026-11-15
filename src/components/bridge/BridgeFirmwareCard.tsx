@@ -10,7 +10,7 @@ import {
     type BridgeVersion, type UpdateTarget,
 } from '../../lib/bridge/BridgeUpdate';
 import {
-    fetchLatestRelease, installFromUrl, isOutdated, type BridgeRelease,
+    fetchLatestRelease, installFromUrl, isOutdated, releaseDirection, type BridgeRelease,
 } from '../../lib/bridge/BridgeReleases';
 import { useT } from '../../i18n/i18n';
 
@@ -106,6 +106,7 @@ export const BridgeFirmwareCard = () => {
     // interface button saying the same thing before and after.
     const firmwareOutdated = release != null && isOutdated(version?.version, release.tag);
     const webOutdated = release != null && version?.web !== release.tag;
+    const direction = releaseDirection(version?.version, release);
     const outdated = firmwareOutdated || webOutdated;
     const canInstall = release != null;
 
@@ -175,6 +176,8 @@ export const BridgeFirmwareCard = () => {
                         label={<Typography variant="body2">{t('bridgeFw.beta')}</Typography>}
                     />
                     {includeBeta && <Alert severity="info">{t('bridgeFw.betaWarning')}</Alert>}
+
+                    {direction && <Alert severity="warning">{t(direction === 'toStable' ? 'bridgeFw.toStable' : 'bridgeFw.toBeta')}</Alert>}
 
                     {message && (
                         <Alert severity={phase === 'done' ? 'success' : 'error'}>{message}</Alert>

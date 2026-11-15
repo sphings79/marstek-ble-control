@@ -81,6 +81,21 @@ export async function fetchLatestRelease(includeBeta = false): Promise<BridgeRel
 }
 
 /**
+ * Whether installing `release` crosses between beta and stable. A beta is recognised by "-beta" in
+ * the running version; null when the release stays on the same side or the version is unknown.
+ */
+export function releaseDirection(
+    running: string | undefined,
+    release: { prerelease: boolean } | null,
+): 'toStable' | 'toBeta' | null {
+    if (!running || !release) return null;
+    const runningBeta = running.includes('-beta');
+    if (runningBeta && !release.prerelease) return 'toStable';
+    if (!runningBeta && release.prerelease) return 'toBeta';
+    return null;
+}
+
+/**
  * Whether the running build predates the release.
  *
  * ESP-IDF derives the running version from `git describe`, so a build made at the tag reads as the

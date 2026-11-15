@@ -186,3 +186,13 @@ test("pickRelease skips drafts and takes prereleases only when allowed", async (
   assert.equal(toBridgeRelease(list[1]).prerelease, true);
   assert.equal(toBridgeRelease(list[2]).prerelease, false);
 });
+
+test("releaseDirection detects crossing between beta and stable", async () => {
+  const { releaseDirection } = await import("../src/lib/bridge/BridgeReleases.ts");
+  assert.equal(releaseDirection("v1.4.0-beta.2", { prerelease: false }), "toStable");
+  assert.equal(releaseDirection("v1.4.0", { prerelease: true }), "toBeta");
+  assert.equal(releaseDirection("v1.4.0-beta.2", { prerelease: true }), null);
+  assert.equal(releaseDirection("v1.4.0", { prerelease: false }), null);
+  assert.equal(releaseDirection(undefined, { prerelease: true }), null);
+  assert.equal(releaseDirection("v1.4.0", null), null);
+});
