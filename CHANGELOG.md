@@ -8,6 +8,9 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.12 — 2026-11-15
+**Beta.** No change to the web interface; the version follows bridge firmware v1.4.0-beta.12 (more diagnostics in the link log).
+
 ## v1.4.0-beta.11 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.10 or newer.
 - **Fix: the bridge update card did not offer the newest beta.** GitHub lists releases by tag name as
