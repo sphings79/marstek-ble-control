@@ -1,7 +1,7 @@
 {
   "name": "marstek-ble-control",
   "private": true,
-  "version": "1.3.19",
+  "version": "1.4.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
-    "test": "node --import ./tests/register-loader.mjs --test --test-concurrency=1 ./tests/ota-acks.test.mjs ./tests/ota-lifecycle.test.mjs"
+    "test": "node --import ./tests/register-loader.mjs --test --test-concurrency=1 ./tests/ota-acks.test.mjs ./tests/ota-lifecycle.test.mjs ./tests/bridge-slots.test.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

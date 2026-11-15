@@ -1,26 +1,17 @@
 import { ConnectionState } from '../ConnectionState';
-import { bridgeUrl } from '../bridge/BridgeApi';
+import { BridgeSocket } from '../bridge/BridgeSocket';
+import { encodeWriteFrame } from '../bridge/BridgeProtocol';
 import { TransportKind, type Transport, type TransportCallbacks } from './Transport';
 import { translate, type StringKey } from '../../i18n/i18n';
 
-/** One device the bridge saw while scanning. */
-export interface BridgeDevice {
-    name: string;
-    address: string;
-    rssi: number;
-}
-
-/** Write kind, encoded as the first byte of every outbound binary frame. */
-const WRITE_WITHOUT_RESPONSE = 0x00;
-const WRITE_WITH_RESPONSE = 0x01;
+export type { BridgeDevice } from '../bridge/BridgeSocket';
 
 const noop = () => {};
 
-type BridgeState = 'idle' | 'scanning' | 'connecting' | 'connected' | 'disconnected' | 'error';
+type BridgeState = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
 
 const STATE_MAP: Record<BridgeState, ConnectionState> = {
     idle: ConnectionState.IDLE,
-    scanning: ConnectionState.SCANNING,
     connecting: ConnectionState.CONNECTING,
     connected: ConnectionState.CONNECTED,
     disconnected: ConnectionState.DISCONNECTED,
@@ -28,28 +19,20 @@ const STATE_MAP: Record<BridgeState, ConnectionState> = {
 };
 
 /**
- * Reaches the battery through an ESP32 that relays raw bytes over a WebSocket, so the browser no
- * longer has to be within Bluetooth range of the storage.
+ * Reaches one storage through an ESP32 that relays raw bytes over a WebSocket, so the browser no
+ * longer has to be within Bluetooth range of it.
  *
- * Wire format, as specified for the marstek-ble-bridge firmware:
- *
- * - Text frames carry JSON control messages in both directions.
- * - Binary frames carry device bytes. Outbound they are prefixed with one byte selecting the BLE
- *   write kind (0x01 acknowledged for commands, 0x00 unacknowledged for OTA chunks), because that
- *   distinction exists in Transport.send() and would otherwise be lost in transit. Inbound frames
- *   carry no prefix: one frame is exactly one notification, never merged and never split, which is
- *   what the reassembler upstream expects.
- *
- * The session cookie set at login rides along automatically because the socket is same-origin.
+ * The bridge holds several storages ("slots") behind one WebSocket. That socket is owned by a
+ * shared BridgeSocket; there is one BridgeTransport per slot, which sees only the frames that name
+ * its slot. See BridgeProtocol.ts for the wire format.
  */
 export class BridgeTransport implements Transport {
     public readonly kind = TransportKind.BRIDGE;
+    public readonly slot: number;
+    private readonly socket: BridgeSocket;
 
-    private socket: WebSocket | null = null;
     private state: BridgeState = 'idle';
-
-    private boundDeviceName: string | undefined;
-    private boundAddress: string | undefined;
+    private mtu: number | null = null;
 
     private callbacks: TransportCallbacks = {
         onNotify: noop,
@@ -58,38 +41,31 @@ export class BridgeTransport implements Transport {
         onDisconnected: noop,
     };
 
-    private mtu: number | null = null;
-    private wifiRssi: number | null = null;
-    private wifiListeners = new Set<(rssi: number | null) => void>();
-
-    /**
-     * Subscribe to the bridge's own WiFi signal strength. A relayed frame crosses two radio links,
-     * and the WiFi one is the harder to notice from the browser. Returns an unsubscribe function.
-     */
-    public onWifiRssi(listener: (rssi: number | null) => void): () => void {
-        this.wifiListeners.add(listener);
-        listener(this.wifiRssi);
-        return () => { this.wifiListeners.delete(listener); };
-    }
-
-    private scanListeners = new Set<(devices: BridgeDevice[]) => void>();
-
-    /** Subscribe to scan results for the device picker. Returns an unsubscribe function. */
-    public onScanResults(listener: (devices: BridgeDevice[]) => void): () => void {
-        this.scanListeners.add(listener);
-        return () => { this.scanListeners.delete(listener); };
+    constructor(slot: number, socket: BridgeSocket) {
+        this.slot = slot;
+        this.socket = socket;
+        socket.registerSlot(slot, {
+            onBinary: (bytes) => this.callbacks.onNotify(bytes),
+            onStatus: (msg) => this.handleStatus(msg),
+            onError: (msg) => this.callbacks.onStateChange(
+                ConnectionState.ERROR,
+                this.localise(typeof msg.msg === 'string' ? msg.msg : undefined) ?? translate('err.bridgeGeneric'),
+            ),
+            onSocketGone: () => this.handleSocketGone(),
+            onUnbound: () => this.handleUnbound(),
+        });
     }
 
     public get deviceName(): string | undefined {
-        return this.boundDeviceName;
+        return this.socket.slots[this.slot]?.name || undefined;
     }
 
     public get boundDeviceAddress(): string | undefined {
-        return this.boundAddress;
+        return this.socket.slots[this.slot]?.address;
     }
 
     public get isConnected(): boolean {
-        return this.socket?.readyState === WebSocket.OPEN && this.state === 'connected';
+        return this.socket.isOpen && this.state === 'connected';
     }
 
     public setCallbacks(callbacks: TransportCallbacks) {
@@ -97,12 +73,8 @@ export class BridgeTransport implements Transport {
     }
 
     /**
-     * Put a message from the bridge into the reader's language.
-     *
-     * The firmware writes its messages in English and has no idea which language the browser is
-     * in, so the ones worth translating carry a code in front of a pipe. Anything without one, or
-     * with a code this build does not know, falls through as it arrived - an English sentence
-     * beats no sentence.
+     * Put a message from the bridge into the reader's language. Messages worth translating carry a
+     * code in front of a pipe; anything else falls through as it arrived.
      */
     private localise(msg: string | undefined): string | undefined {
         if (!msg) return msg;
@@ -117,206 +89,67 @@ export class BridgeTransport implements Transport {
         return translated === key ? fallback : translated;
     }
 
-    private log(msg: string, data?: unknown) {
-        console.log(`[BridgeTransport] ${msg}`, data || '');
-    }
-
-    private error(msg: string, err?: unknown) {
-        console.error(`[BridgeTransport] ${msg}`, err || '');
-    }
-
-    /** Open the socket if needed, then ask the bridge to connect to the bound device. */
+    /** Open the socket if needed, then ask the bridge to connect this slot. */
     async scanAndConnect() {
-        await this.openSocket();
-        this.sendControl({ t: 'connect' });
+        await this.socket.open();
+        if (!this.socket.sendControl({ t: 'connect', slot: this.slot })) {
+            this.callbacks.onStateChange(ConnectionState.ERROR, translate('err.bridgeLost'));
+        }
     }
 
     async reconnect() {
         await this.scanAndConnect();
     }
 
+    /** Hang up this slot only; the socket stays open for the others. */
     disconnect() {
-        this.log('Disconnecting...');
+        const wasConnected = this.state === 'connected';
 
-        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.sendControl({ t: 'disconnect' });
-            this.socket.close();
+        if (this.socket.isOpen) {
+            this.socket.sendControl({ t: 'disconnect', slot: this.slot });
+            this.state = 'disconnected';
+            if (wasConnected) this.callbacks.onDisconnected();
+            else this.callbacks.onStateChange(ConnectionState.DISCONNECTED);
         } else {
             this.handleSocketGone();
         }
     }
 
-    /**
-     * Open the socket without asking the bridge to do anything.
-     *
-     * Connecting is enough to learn which storage it is bound to and what state it is in, which a
-     * screen needs before the user has clicked anything.
-     */
-    async hello() {
-        await this.openSocket();
-    }
-
-    /** Ask the bridge to scan for reachable devices; results arrive via onScanResults(). */
-    async scan(seconds = 5) {
-        await this.openSocket();
-        this.sendControl({ t: 'scan', seconds });
-    }
-
-    /**
-     * Pin the bridge to a device. Survives reboots on the bridge side.
-     *
-     * The name goes along because it decides which dashboard is shown and guards firmware updates
-     * against the wrong model. The bridge reads it from the device itself as well, so this is
-     * belt and braces rather than the only source.
-     */
-    async bind(address: string, name?: string) {
-        await this.openSocket();
-        this.sendControl({ t: 'bind', address, name });
-    }
-
     async send(bytes: Uint8Array, withResponse: boolean) {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-            throw new Error(translate('err.notConnected'));
-        }
-
-        const frame = new Uint8Array(bytes.length + 1);
-        frame[0] = withResponse ? WRITE_WITH_RESPONSE : WRITE_WITHOUT_RESPONSE;
-        frame.set(bytes, 1);
-
-        this.socket.send(frame);
+        this.socket.sendBinary(encodeWriteFrame(this.slot, bytes, withResponse));
     }
 
-    private openSocket(): Promise<void> {
-        if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
-            return this.socketReady();
+    private handleStatus(msg: Record<string, unknown>) {
+        if (typeof msg.rssi === 'number') this.callbacks.onRssi(msg.rssi);
+
+        // 23 is the Bluetooth default and means no MTU exchange happened, which caps every
+        // notification at 20 bytes.
+        if (typeof msg.mtu === 'number' && msg.mtu !== this.mtu) {
+            this.mtu = msg.mtu;
+            console.log(`[BridgeTransport ${this.slot}] Negotiated MTU: ${msg.mtu} bytes${msg.mtu <= 23 ? ' (no exchange happened)' : ''}`);
         }
 
-        const url = bridgeUrl('api/ws');
-        url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+        const next = STATE_MAP[msg.state as BridgeState];
+        if (!next) return;
 
-        this.log(`Opening ${url.href}`);
-        const socket = new WebSocket(url.href);
-        socket.binaryType = 'arraybuffer';
-        this.socket = socket;
+        const previous = this.state;
+        this.state = msg.state as BridgeState;
+        this.callbacks.onStateChange(next, this.localise(typeof msg.msg === 'string' ? msg.msg : undefined));
 
-        socket.addEventListener('message', (event) => this.handleMessage(event));
-        socket.addEventListener('close', () => this.handleSocketGone());
-        socket.addEventListener('error', () => {
-            this.error('WebSocket error');
-            this.callbacks.onStateChange(ConnectionState.ERROR, translate('err.bridgeConnectionFailed'));
-        });
-
-        return this.socketReady();
+        if (this.state === 'disconnected' && previous === 'connected') {
+            this.callbacks.onDisconnected();
+        }
     }
 
-    private socketReady(): Promise<void> {
-        const socket = this.socket;
-        if (!socket) return Promise.reject(new Error('No socket'));
-        if (socket.readyState === WebSocket.OPEN) return Promise.resolve();
-
-        return new Promise((resolve, reject) => {
-            const onOpen = () => { cleanup(); resolve(); };
-            const onFail = () => { cleanup(); reject(new Error(translate('err.bridgeConnectionFailed'))); };
-            const cleanup = () => {
-                socket.removeEventListener('open', onOpen);
-                socket.removeEventListener('error', onFail);
-                socket.removeEventListener('close', onFail);
-            };
-
-            socket.addEventListener('open', onOpen);
-            socket.addEventListener('error', onFail);
-            socket.addEventListener('close', onFail);
-        });
-    }
-
-    private sendControl(msg: Record<string, unknown>) {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-            // Silence here meant a press of Connect could do nothing at all, with no console
-            // entry and nothing on screen. Whatever the cause, a button that appears to do
-            // nothing is the worst of the possible outcomes.
-            this.error('Cannot send control message: socket not open', msg);
-            this.callbacks.onStateChange(ConnectionState.ERROR, translate('err.bridgeLost'));
-            return;
-        }
-        this.socket.send(JSON.stringify(msg));
-    }
-
-    private handleMessage(event: MessageEvent) {
-        // Binary: one inbound notification, verbatim.
-        if (event.data instanceof ArrayBuffer) {
-            this.callbacks.onNotify(new Uint8Array(event.data));
-            return;
-        }
-
-        if (typeof event.data !== 'string') return;
-
-        let msg: Record<string, unknown>;
-        try {
-            msg = JSON.parse(event.data);
-        } catch {
-            this.error('Malformed control message', event.data);
-            return;
-        }
-
-        switch (msg.t) {
-            case 'hello': {
-                const bound = msg.bound as { name?: string; address?: string } | null | undefined;
-                this.boundDeviceName = bound?.name;
-                this.boundAddress = bound?.address;
-                this.log(`Bridge v${msg.version}, bound device: ${this.boundDeviceName ?? 'none'}`);
-                break;
-            }
-            case 'status': {
-                // The device name rides on every status update, not just the first - it selects the
-                // dashboard and feeds the OTA model-mismatch guard, so it must not depend on having
-                // caught one particular message.
-                if (typeof msg.deviceName === 'string') this.boundDeviceName = msg.deviceName;
-                if (typeof msg.address === 'string') this.boundAddress = msg.address;
-                if (typeof msg.rssi === 'number') this.callbacks.onRssi(msg.rssi);
-
-                // 23 is the Bluetooth default and means no MTU exchange happened, which caps every
-                // notification at 20 bytes. Worth seeing when a storage that answers over Web
-                // Bluetooth stays silent through the bridge.
-                if (typeof msg.mtu === 'number' && msg.mtu !== this.mtu) {
-                    this.mtu = msg.mtu;
-                    this.log(`Negotiated MTU: ${msg.mtu} bytes${msg.mtu <= 23 ? ' (no exchange happened)' : ''}`);
-                }
-
-                const wifi = typeof msg.wifiRssi === 'number' ? msg.wifiRssi : null;
-                if (wifi !== this.wifiRssi) {
-                    this.wifiRssi = wifi;
-                    this.wifiListeners.forEach(listener => listener(wifi));
-                }
-
-                const next = STATE_MAP[msg.state as BridgeState];
-                if (next) {
-                    const previous = this.state;
-                    this.state = msg.state as BridgeState;
-                    this.callbacks.onStateChange(next, this.localise(typeof msg.msg === 'string' ? msg.msg : undefined));
-
-                    if (this.state === 'disconnected' && previous === 'connected') {
-                        this.callbacks.onDisconnected();
-                    }
-                }
-                break;
-            }
-            case 'scanResult': {
-                const found = (msg.devices as BridgeDevice[]) ?? [];
-                this.scanListeners.forEach(listener => listener(found));
-                break;
-            }
-            case 'error':
-                this.error(`Bridge reported ${msg.code}: ${msg.msg}`);
-                this.callbacks.onStateChange(ConnectionState.ERROR, this.localise(typeof msg.msg === 'string' ? msg.msg : undefined) ?? translate('err.bridgeGeneric'));
-                break;
-            default:
-                this.log('Ignoring unknown control message', msg);
-        }
+    private handleUnbound() {
+        const wasConnected = this.state === 'connected';
+        this.state = 'idle';
+        if (wasConnected) this.callbacks.onDisconnected();
+        this.callbacks.onStateChange(ConnectionState.IDLE);
     }
 
     private handleSocketGone() {
         const wasConnected = this.state === 'connected';
-        this.socket = null;
         this.state = 'disconnected';
 
         if (wasConnected) {

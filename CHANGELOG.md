@@ -8,6 +8,16 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.1 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.1 only (protocol version 2); an older bridge shows a
+message asking for an update. Not yet tested against real storages in several slots.
+- Three storages per bridge: a slot bar picks the storage; every slot keeps its own connection and only
+  the selected one is polled. Switching never disconnects. The device picker binds to the chosen slot
+  and a slot can be cleared again.
+- New card *API token* (bridge only): create, replace or switch off the token Home Assistant uses to
+  switch peak shaving over REST, with a copy-ready `rest_command` example. The token is shown once.
+- Over Web Bluetooth (hosted app) nothing changes: still one storage.
+
 ## v1.3.19 — 2026-11-15
 - The version is shown in the page footer and at the bottom of the mobile menu.
 - Firmware update: the transfer is isolated and a fresh connection is required before the next

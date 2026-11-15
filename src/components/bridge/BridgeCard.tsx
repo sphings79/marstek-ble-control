@@ -7,16 +7,20 @@ import { Footer } from '../Footer';
  * Full-screen card used by the bridge-mode screens that stand in front of the dashboard
  * (claiming, login, device selection). Same shell as ScannerView so the two modes look alike.
  */
-export const BridgeCard = ({ icon, title, description, children, below }: {
+export const BridgeCard = ({ icon, title, description, children, above, below }: {
     icon: ReactNode;
     title: string;
     description: string;
     children: ReactNode;
+    /** Rendered above the card, at the same width. */
+    above?: ReactNode;
     /** Rendered as its own card underneath, rather than nested inside this one. */
     below?: ReactNode;
 }) => (
     <Box display="flex" flexDirection="column" minHeight="100vh" bgcolor="#f4f6f8">
         <Box flexGrow={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" gap={3} p={2}>
+            {above && <Box sx={{ maxWidth: 450, width: '100%', mx: 2 }}>{above}</Box>}
+
             <Paper
                 elevation={4}
                 sx={{ p: 5, textAlign: 'center', borderRadius: 4, maxWidth: 450, width: '100%', mx: 2 }}

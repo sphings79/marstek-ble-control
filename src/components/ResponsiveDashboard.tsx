@@ -17,6 +17,7 @@ import { LanguageSwitch } from './LanguageSwitch';
 import { useBLE } from '../contexts/BLEContext';
 import { BridgeFirmwareCard } from './bridge/BridgeFirmwareCard';
 import { BridgeSecurityCard } from './bridge/BridgeSecurityCard';
+import { BridgeApiCard } from './bridge/BridgeApiCard';
 
 export interface WidgetGroup {
     key: string;
@@ -53,7 +54,7 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
     // firmware belongs in the System group" holds for every model, present and future.
     const groups = viaBridge
         ? modelGroups.map(group => group.key === 'system'
-            ? { ...group, widgets: [...group.widgets, <BridgeFirmwareCard key="bridge-fw" />, <BridgeSecurityCard key="bridge-pw" />] }
+            ? { ...group, widgets: [...group.widgets, <BridgeFirmwareCard key="bridge-fw" />, <BridgeSecurityCard key="bridge-pw" />, <BridgeApiCard key="bridge-api" />] }
             : group)
         : modelGroups;
 

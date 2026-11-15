@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { BLEConnectionManager, ConnectionState } from '../lib/BLEConnectionManager';
 import { TransportKind, type Transport } from '../lib/transport/Transport';
+import type { BridgeTransport } from '../lib/transport/BridgeTransport';
+import type { BridgeSocket } from '../lib/bridge/BridgeSocket';
 import { parseDeviceName, type DeviceInfo } from '../lib/DeviceUtils';
 import { COMMAND_ID } from '../lib/VenusConst.ts';
-import { BLEContext } from './BLEContext';
+import { BLEContext, type SlotInfo } from './BLEContext';
 
 // One manager per transport, for the life of the page. Looked up rather than kept in a ref so
 // rendering never has to read a ref, and so StrictMode's double render cannot build a second
@@ -23,66 +25,134 @@ const managerFor = (transport?: Transport): BLEConnectionManager => {
     return manager;
 };
 
-// Hooks the provider's state up to the manager's callbacks and undoes it on unmount. Kept out of
-// the component because assigning to the manager is wiring to an external object, not state.
-const attach = (
-    manager: BLEConnectionManager,
-    handlers: { onState: (state: ConnectionState, msg?: string) => void; onRssi: (rssi: number) => void },
-) => {
-    manager.onStateChange = handlers.onState;
-    manager.onRSSI = handlers.onRssi;
-    return () => manager.disconnect();
+const ACTIVE_SLOT_KEY = 'bridgeActiveSlot';
+
+const loadActiveSlot = (count: number): number => {
+    try {
+        const stored = Number(localStorage.getItem(ACTIVE_SLOT_KEY));
+        if (Number.isInteger(stored) && stored >= 0 && stored < count) return stored;
+    } catch {
+        // Storage refused; start on the first slot.
+    }
+    return 0;
 };
+
+const saveActiveSlot = (slot: number) => {
+    try {
+        localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
+    } catch {
+        // Not worth failing over.
+    }
+};
+
+const replaceAt = <T,>(list: T[], index: number, value: T): T[] =>
+    list.map((entry, i) => (i === index ? value : entry));
 
 /**
  * `transport` is chosen once, before the provider mounts: Web Bluetooth when the app is served
- * from the hosted site, the WebSocket bridge when it is served by an ESP32. Leaving it out keeps
- * the Web Bluetooth default.
+ * from the hosted site. Leaving it out keeps the Web Bluetooth default.
+ *
+ * In bridge mode `bridge` carries the shared socket and one transport per slot instead. Each slot
+ * gets its own manager and connection state; the context exposes the ACTIVE slot's, so every view
+ * and widget keeps using useBLE() as if there were a single storage.
  */
-export const BLEProvider = ({ transport, children }: { transport?: Transport; children: React.ReactNode }) => {
-    const manager = managerFor(transport);
+export const BLEProvider = ({ transport, bridge, children }: {
+    transport?: Transport;
+    bridge?: { socket: BridgeSocket; transports: BridgeTransport[] };
+    children: React.ReactNode;
+}) => {
+    const viaBridge = !!bridge || transport?.kind === TransportKind.BRIDGE;
 
-    // From the prop rather than the manager: it says the same thing.
-    const viaBridge = transport?.kind === TransportKind.BRIDGE;
+    const slotTransports: Transport[] | undefined = bridge?.transports;
+    const slotCount = slotTransports?.length ?? 1;
+    const managerList = slotTransports ? slotTransports.map(managerFor) : [managerFor(transport)];
 
-    const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.IDLE);
-    const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
-    const [rssi, setRssi] = useState<number | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [activeSlot, setActiveSlotState] = useState(() => loadActiveSlot(slotCount));
+    const manager = managerList[activeSlot] ?? managerList[0];
 
-    useEffect(() => attach(manager, {
-        onState: (state, msg) => {
-            setConnectionState(state);
+    const [states, setStates] = useState<ConnectionState[]>(() => managerList.map(() => ConnectionState.IDLE));
+    const [deviceInfos, setDeviceInfos] = useState<(DeviceInfo | null)[]>(() => managerList.map(() => null));
+    const [rssis, setRssis] = useState<(number | null)[]>(() => managerList.map(() => null));
+    const [errors, setErrors] = useState<(string | null)[]>(() => managerList.map(() => null));
+    // Bumped whenever the bridge reports a binding change, so the slot list is recomputed.
+    const [, setBindingsVersion] = useState(0);
 
-            if (state === ConnectionState.ERROR && msg) {
-                setError(msg);
-            }
+    useEffect(() => bridge?.socket.onSlotsChange(() => setBindingsVersion(v => v + 1)), [bridge]);
 
-            if (state === ConnectionState.CONNECTED) {
-                setDeviceInfo(parseDeviceName(manager.deviceName || "Unknown"));
-            }
-        },
-        onRssi: setRssi,
-    }), [manager]);
+    // The latest active slot, readable from the manager callbacks without re-attaching them.
+    const activeRef = React.useRef(activeSlot);
+    useEffect(() => { activeRef.current = activeSlot; }, [activeSlot]);
 
-    // Both of these are async underneath, and neither used to be awaited or caught: a rejected
-    // promise vanished into an unhandled rejection, so a press of connect that failed before it
-    // reached the bridge looked exactly like a press that had not registered at all. Which is
-    // what it was mistaken for.
-    const connect = () => {
-        setError(null);
-        void manager.scanAndConnect().catch((err: Error) => {
-            setConnectionState(ConnectionState.ERROR);
-            setError(err.message);
+    useEffect(() => {
+        const list = slotTransports ? slotTransports.map(managerFor) : [managerFor(transport)];
+
+        list.forEach((slotManager, index) => {
+            slotManager.onStateChange = (state, msg) => {
+                setStates(prev => replaceAt(prev, index, state));
+
+                if (state === ConnectionState.ERROR && msg) {
+                    setErrors(prev => replaceAt(prev, index, msg));
+                }
+
+                if (state === ConnectionState.CONNECTED) {
+                    setDeviceInfos(prev => replaceAt(prev, index, parseDeviceName(slotManager.deviceName || "Unknown")));
+                    // A slot that connects in the background only holds its link. The manager
+                    // starts polling right after this callback, and a suspended one declines.
+                    if (index !== activeRef.current) slotManager.suspendPolling();
+                }
+
+                if (state === ConnectionState.IDLE) {
+                    setDeviceInfos(prev => replaceAt(prev, index, null));
+                }
+            };
+            slotManager.onRSSI = (value) => setRssis(prev => replaceAt(prev, index, value));
+        });
+
+        return () => list.forEach(slotManager => slotManager.disconnect());
+    }, [slotTransports, transport]);
+
+    // Only the active slot polls. Switching never disconnects: the old slot just stops asking,
+    // the new one asks right away (resumePolling polls at once, and does nothing while offline).
+    const setActiveSlot = useCallback((slot: number) => {
+        if (slot === activeRef.current || slot < 0 || slot >= slotCount) return;
+
+        const list = slotTransports ? slotTransports.map(managerFor) : [];
+        list[activeRef.current]?.suspendPolling();
+        list[slot]?.resumePolling();
+
+        activeRef.current = slot;
+        setActiveSlotState(slot);
+        saveActiveSlot(slot);
+    }, [slotTransports, slotCount]);
+
+    const unbindSlot = (slot: number) => {
+        const target = managerList[slot];
+        if (!bridge || !target) return;
+
+        target.disconnect();
+        setDeviceInfos(prev => replaceAt(prev, slot, null));
+        setErrors(prev => replaceAt(prev, slot, null));
+        void bridge.socket.unbind(slot).catch((err: Error) => {
+            setErrors(prev => replaceAt(prev, slot, err.message));
         });
     };
 
+    const setActiveError = (message: string) => {
+        setStates(prev => replaceAt(prev, activeSlot, ConnectionState.ERROR));
+        setErrors(prev => replaceAt(prev, activeSlot, message));
+    };
+
+    // Both of these are async underneath, and neither used to be awaited or caught: a rejected
+    // promise vanished into an unhandled rejection, so a press of connect that failed before it
+    // reached the bridge looked exactly like a press that had not registered at all.
+    const connect = () => {
+        setErrors(prev => replaceAt(prev, activeSlot, null));
+        void manager.scanAndConnect().catch((err: Error) => setActiveError(err.message));
+    };
+
     const reconnect = () => {
-        setError(null);
-        void manager.reconnect().catch((err: Error) => {
-            setConnectionState(ConnectionState.ERROR);
-            setError(err.message);
-        });
+        setErrors(prev => replaceAt(prev, activeSlot, null));
+        void manager.reconnect().catch((err: Error) => setActiveError(err.message));
     };
 
     const disconnect = () => {
@@ -95,21 +165,34 @@ export const BLEProvider = ({ transport, children }: { transport?: Transport; ch
 
     const pollState = () => {
         manager.pollState();
-    }
+    };
+
+    const slots: SlotInfo[] = bridge
+        ? bridge.socket.slots.map((binding, index) => ({
+            index,
+            name: binding?.name || undefined,
+            address: binding?.address,
+            state: states[index] ?? ConnectionState.IDLE,
+        }))
+        : [];
 
     return (
         <BLEContext.Provider value={{
             manager,
             viaBridge,
-            connectionState,
-            deviceInfo,
-            rssi,
-            error,
+            connectionState: states[activeSlot] ?? ConnectionState.IDLE,
+            deviceInfo: deviceInfos[activeSlot] ?? null,
+            rssi: rssis[activeSlot] ?? null,
+            error: errors[activeSlot] ?? null,
             connect,
             reconnect,
             disconnect,
             sendPacket,
-            pollState
+            pollState,
+            slots,
+            activeSlot,
+            setActiveSlot,
+            unbindSlot,
         }}>
             {children}
         </BLEContext.Provider>

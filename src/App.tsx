@@ -14,11 +14,15 @@ import { VenusE12View } from './components/views/VenusE12View';
 import { GenericDeviceView } from './components/views/GenericDeviceView';
 import { BridgeAuthView } from './components/bridge/BridgeAuthView';
 import { BridgeScannerView } from './components/bridge/BridgeScannerView';
-import { probeBridge, type BridgeInfo } from './lib/bridge/BridgeApi';
+import { probeBridge, BRIDGE_PROTOCOL_VERSION, type BridgeInfo } from './lib/bridge/BridgeApi';
+import { BridgeSocket } from './lib/bridge/BridgeSocket';
 import { BridgeTransport } from './lib/transport/BridgeTransport';
+import { BridgeSlotBar } from './components/bridge/BridgeSlotBar';
+import { BridgeCard } from './components/bridge/BridgeCard';
+import UpdateIcon from '@mui/icons-material/SystemUpdateAlt';
 import { useT } from './i18n/i18n';
 
-const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
+const MainLayout = ({ bridge }: { bridge: BridgeSocket | null }) => {
     const [wifiRssi, setWifiRssi] = useState<number | null>(null);
 
     useEffect(() => bridge?.onWifiRssi(setWifiRssi), [bridge]);
@@ -30,7 +34,9 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
         error,
         connect,
         reconnect,
-        disconnect
+        disconnect,
+        slots,
+        activeSlot,
     } = useBLE();
 
     if (!deviceInfo) {
@@ -38,6 +44,8 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
             ? (
                 <BridgeScannerView
                     bridge={bridge}
+                    slot={activeSlot}
+                    bound={slots[activeSlot]?.name}
                     status={connectionState}
                     error={error}
                     onConnect={connect}
@@ -63,8 +71,17 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
                 onReconnect={reconnect}
             />
 
+            {bridge && (
+                <Box sx={{ px: { xs: 1, md: 3 }, py: 1, bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <BridgeSlotBar />
+                </Box>
+            )}
+
             {error && <Alert severity="error" sx={{ borderRadius: 0 }}>{error}</Alert>}
 
+            {/* Keyed by slot so a switch remounts the views: widgets keep their last value in
+                state, and another storage's numbers must not linger until the next poll. */}
+            <Box key={activeSlot} sx={{ display: 'contents' }}>
             {deviceInfo.modelName === "Venus A" ? (
                 <VenusAView />
             ) : deviceInfo.modelName === "Venus D" ? (
@@ -76,6 +93,7 @@ const MainLayout = ({ bridge }: { bridge: BridgeTransport | null }) => {
             ) : (
                 <GenericDeviceView />
             )}
+            </Box>
 
             {/* On mobile the hamburger menu already carries the project links, so the page footer
                 is only shown from md up to avoid duplicating them. */}
@@ -111,9 +129,10 @@ const Splash = () => {
  * Asking our own origin is what tells the two apart - only the bridge answers the probe.
  */
 export default function App() {
+    const t = useT();
     const [bridgeInfo, setBridgeInfo] = useState<BridgeInfo | null>(null);
     const [detecting, setDetecting] = useState(true);
-    const [transport, setTransport] = useState<BridgeTransport | null>(null);
+    const [bridge, setBridge] = useState<{ socket: BridgeSocket; transports: BridgeTransport[] } | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -121,7 +140,11 @@ export default function App() {
         void probeBridge().then(info => {
             if (cancelled) return;
             if (info) {
-                setTransport(new BridgeTransport());
+                const socket = new BridgeSocket(info.slots);
+                setBridge({
+                    socket,
+                    transports: Array.from({ length: info.slots }, (_, slot) => new BridgeTransport(slot, socket)),
+                });
                 setBridgeInfo(info);
             }
             setDetecting(false);
@@ -132,6 +155,22 @@ export default function App() {
 
     if (detecting) {
         return <><CssBaseline /><Splash /></>;
+    }
+
+    // An older bridge speaks a protocol this build does not. Say so rather than misbehave.
+    if (bridgeInfo && !(bridgeInfo.version >= BRIDGE_PROTOCOL_VERSION)) {
+        return (
+            <>
+                <CssBaseline />
+                <BridgeCard
+                    icon={<UpdateIcon sx={{ fontSize: 60, color: 'warning.main' }} />}
+                    title={t('bridgeOld.title')}
+                    description={t('bridgeOld.desc')}
+                >
+                    {null}
+                </BridgeCard>
+            </>
+        );
     }
 
     // Bridge mode, but the session cannot use it yet: set a password on a fresh bridge, or log in.
@@ -148,9 +187,9 @@ export default function App() {
     }
 
     return (
-        <BLEProvider transport={transport ?? undefined}>
+        <BLEProvider bridge={bridge ?? undefined}>
             <CssBaseline />
-            <MainLayout bridge={transport} />
+            <MainLayout bridge={bridge?.socket ?? null} />
         </BLEProvider>
     );
 }

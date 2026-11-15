@@ -6,6 +6,15 @@ import {VenusRegistry} from "../lib/payloads/VenusPayloads.ts";
 import type {VenusData, VenusPayloadStatic} from "../lib/payloads/VenusPayloads.ts";
 import {COMMAND_ID} from "../lib/VenusConst.ts";
 
+/** One storage slot of the bridge, as the slot selector shows it. */
+export interface SlotInfo {
+    index: number;
+    /** Advertised name of the bound storage, if one is bound. */
+    name?: string;
+    address?: string;
+    state: ConnectionState;
+}
+
 export interface BLEContextType {
     manager: BLEConnectionManager;
     /** True when this session reaches the storage through an ESP32 bridge. */
@@ -20,6 +29,14 @@ export interface BLEContextType {
     disconnect: () => void;
     sendPacket: (cmd: COMMAND_ID, payload?: Uint8Array) => Promise<void>;
     pollState: () => void;
+
+    /** Bridge only: every slot, with its binding and connection state. Empty over Web Bluetooth. */
+    slots: SlotInfo[];
+    /** The slot every other value in this context belongs to. Always 0 over Web Bluetooth. */
+    activeSlot: number;
+    setActiveSlot: (slot: number) => void;
+    /** Bridge only: disconnect a slot and remove its device from it. */
+    unbindSlot: (slot: number) => void;
 }
 
 export const BLEContext = createContext<BLEContextType | null>(null);

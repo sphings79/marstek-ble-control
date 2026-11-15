@@ -7,11 +7,13 @@
  */
 
 export const BRIDGE_MAGIC = 'marstek-ble-control';
-export const BRIDGE_PROTOCOL_VERSION = 1;
+export const BRIDGE_PROTOCOL_VERSION = 2;
 
 export interface BridgeInfo {
     bridge: string;
     version: number;
+    /** How many storages the bridge can hold at once. */
+    slots: number;
     /** Whether an admin password has been set yet. */
     claimed: boolean;
     /** Whether the current session is logged in. */

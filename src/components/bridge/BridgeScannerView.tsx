@@ -8,11 +8,16 @@ import BluetoothSearchingIcon from '@mui/icons-material/BluetoothSearching';
 import { BridgeCard } from './BridgeCard';
 import { BridgeFirmwareCard } from './BridgeFirmwareCard';
 import { ConnectionState } from '../../lib/ConnectionState';
-import type { BridgeDevice, BridgeTransport } from '../../lib/transport/BridgeTransport';
+import type { BridgeDevice, BridgeSocket } from '../../lib/bridge/BridgeSocket';
+import { BridgeSlotBar } from './BridgeSlotBar';
 import { useT } from '../../i18n/i18n';
 
 interface Props {
-    bridge: BridgeTransport;
+    bridge: BridgeSocket;
+    /** The slot a picked device is bound to. */
+    slot: number;
+    /** Name of the storage bound to that slot, if any. */
+    bound?: string;
     status: ConnectionState;
     error: string | null;
     onConnect: () => void;
@@ -27,17 +32,22 @@ interface Props {
  * Connecting is deliberately a button press rather than automatic: every open tab would otherwise
  * claim the battery's only BLE slot.
  */
-export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) => {
+export const BridgeScannerView = ({ bridge, slot, bound, status, error, onConnect }: Props) => {
     const t = useT();
     const [devices, setDevices] = useState<BridgeDevice[] | null>(null);
     const [scanning, setScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
 
-    const bound = bridge.deviceName;
     const busy = status === ConnectionState.CONNECTING || status === ConnectionState.SCANNING;
 
     useEffect(() => bridge.onScanResults((found) => {
         setDevices(found);
+        setScanning(false);
+    }), [bridge]);
+
+    // A scan that fails on the bridge's side answers with an error instead of results.
+    useEffect(() => bridge.onError((message) => {
+        setScanError(message);
         setScanning(false);
     }), [bridge]);
 
@@ -60,7 +70,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
 
     const pick = async (device: BridgeDevice) => {
         try {
-            await bridge.bind(device.address, device.name);
+            await bridge.bind(slot, device.address, device.name);
             setDevices(null);
             onConnect();
         } catch (err) {
@@ -73,6 +83,7 @@ export const BridgeScannerView = ({ bridge, status, error, onConnect }: Props) =
             icon={scanning
                 ? <BluetoothSearchingIcon sx={{ fontSize: 60, color: 'primary.main' }} />
                 : <RouterIcon sx={{ fontSize: 60, color: 'primary.main' }} />}
+            above={<BridgeSlotBar />}
             title={bound ?? t('bridgeScan.noneSelected')}
             description={t(bound ? 'bridgeScan.boundDesc' : 'bridgeScan.unboundDesc')}
             /* Also offered here, not just on the dashboard: a bridge that cannot reach the storage
