@@ -347,7 +347,7 @@ export const de: Record<keyof typeof en, string> = {
     "err.tokenFailed": "Die Bridge hat die API-Token-Anfrage nicht akzeptiert",
     "bridgeOld.title": "Bridge-Firmware zu alt",
     "bridgeOld.desc": "Diese Bridge läuft mit älterer Firmware als diese Weboberfläche. Installiere unten das passende Release - Firmware und Weboberfläche in derselben Version.",
-    "bridgeSlot.title": "Speicher {n}",
+    "bridgeSlot.title": "Gerät {n}",
     "bridgeSlot.empty": "leer - Gerät wählen",
     "bridgeSlot.remove": "Gerät aus diesem Platz entfernen",
     "bridgeApi.title": "API-Token",

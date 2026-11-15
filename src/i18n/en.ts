@@ -349,7 +349,7 @@ export const en = {
     "err.tokenFailed": "The bridge did not accept the API token request",
     "bridgeOld.title": "Bridge firmware too old",
     "bridgeOld.desc": "This bridge runs older firmware than this web interface. Install the matching release below - firmware and web interface of the same version.",
-    "bridgeSlot.title": "Storage {n}",
+    "bridgeSlot.title": "Device {n}",
     "bridgeSlot.empty": "empty - choose device",
     "bridgeSlot.remove": "Remove device from this slot",
     "bridgeApi.title": "API Token",
