@@ -3,6 +3,7 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
 import { useT } from '../i18n/i18n';
 import { LanguageSwitch } from './LanguageSwitch';
+import { APP_VERSION } from '../version';
 
 export const Footer = () => {
     const t = useT();
@@ -67,6 +68,10 @@ export const Footer = () => {
         <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
             <LanguageSwitch />
         </Box>
+
+        <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+            {t('footer.version', { version: APP_VERSION })}
+        </Typography>
     </Box>
     );
 };

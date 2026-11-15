@@ -197,7 +197,11 @@ export const OtaWidget = () => {
                         {t('ota.start')}
                     </Button>
 
-                    {manager.requiresReconnect && <Alert severity="info">{t('ota.reconnectRequired')}</Alert>}
+                    {manager.requiresReconnect && (
+                        <Alert severity="info">
+                            {progress?.phase === OtaPhase.SUCCESS ? t('ota.installing') : t('ota.reconnectRequired')}
+                        </Alert>
+                    )}
                     {analysis && connectedModel === 'Unknown' && <Alert severity="warning">{t('ota.unsupportedDevice')}</Alert>}
                     {running && (
                         <Button color="error" onClick={() => otaManagerRef.current?.cancel()}>

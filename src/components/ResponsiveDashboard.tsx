@@ -9,6 +9,7 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { APP_VERSION } from '../version';
 import { GITHUB_REPO, UPSTREAM_REPO, PROJECT_LINKS } from '../lib/projectLinks';
 import { useT, type StringKey } from '../i18n/i18n';
 import { SignalReadings } from './SignalReadings';
@@ -166,9 +167,13 @@ export const ResponsiveDashboard = ({ groups: modelGroups }: Props) => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ px: 2, pb: 2 }}>
+                        <Box sx={{ px: 2, pb: 1 }}>
                             <LanguageSwitch />
                         </Box>
+
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ px: 2, pb: 2 }}>
+                            {t('footer.version', { version: APP_VERSION })}
+                        </Typography>
                     </Box>
                 </Box>
             </Drawer>

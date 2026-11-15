@@ -8,6 +8,13 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.18 — 2026-11-15
+- The version is shown in the page footer and at the bottom of the mobile menu.
+- Firmware update: the transfer is isolated and a fresh connection is required before the next
+  transfer or any normal command. After a successful transfer the page says that the device needs
+  about 1 minute to finish installing, then to reconnect and check the version; the duplicated
+  wording between the progress line and the hint is gone.
+
 ## v1.3.17 — 2026-11-13
 - Venus E v1/v2 (`MST_ACCP_xxxx`, device type HMG-50) gets its own view. **Not tested on real
   hardware**: it is based on reading the Control firmware only. Work mode including economy/AI, power
