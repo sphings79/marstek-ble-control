@@ -34,6 +34,8 @@ export interface BLEContextType {
     slots: SlotInfo[];
     /** The slot every other value in this context belongs to. Always 0 over Web Bluetooth. */
     activeSlot: number;
+    /** True while any slot is in a firmware transfer; slot changes are locked meanwhile. */
+    otaRunning: boolean;
     setActiveSlot: (slot: number) => void;
     /** Bridge only: disconnect a slot and remove its device from it. */
     unbindSlot: (slot: number) => void;

@@ -26,6 +26,8 @@ export class BLEConnectionManager {
 
     public onStateChange: (state: ConnectionState, msg?: string) => void = () => {};
     public onRSSI: (rssi: number) => void = () => {};
+    /** Fires when a firmware transfer session starts or ends. */
+    public onOtaChange: (running: boolean) => void = () => {};
 
     // Legacy diagnostic hook for notification fragments. OTA uses subscribeFrames()
     // instead, which delivers checksum-valid complete frames after reassembly.
@@ -138,6 +140,9 @@ export class BLEConnectionManager {
         return this.transport.isConnected;
     }
 
+    /** True while a firmware transfer session holds the connection. */
+    public get isOtaRunning(): boolean { return this.otaToken !== null; }
+
     public get requiresReconnect(): boolean { return this.reconnectRequired; }
 
     /** Complete checksum-valid frames, independent of notification boundaries. */
@@ -173,6 +178,7 @@ export class BLEConnectionManager {
         const generation = this.connectionGeneration;
         const mutex = this.txMutex;
         this.otaToken = token;
+        this.onOtaChange(true);
         const previouslySuspended = this.pollingSuspended;
         this.suspendPolling();
         try {
@@ -192,6 +198,7 @@ export class BLEConnectionManager {
             this.resetReassembler();
         } catch (error) {
             this.otaToken = null;
+            this.onOtaChange(false);
             if (!previouslySuspended && this.isConnected) this.resumePolling();
             throw error;
         }
@@ -203,6 +210,7 @@ export class BLEConnectionManager {
             release: (resume = true) => {
                 if (this.otaToken !== token) return;
                 this.otaToken = null;
+                this.onOtaChange(false);
                 if (generation === this.connectionGeneration) this.resetReassembler();
                 if (!resume) this.reconnectRequired = true;
                 if (resume && !previouslySuspended && this.isConnected) this.resumePolling();

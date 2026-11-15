@@ -21,13 +21,14 @@ const dotColor = (state: ConnectionState, bound: boolean): string => {
  */
 export const BridgeSlotBar = () => {
     const t = useT();
-    const { slots, activeSlot, setActiveSlot, unbindSlot } = useBLE();
+    const { slots, activeSlot, setActiveSlot, unbindSlot, otaRunning } = useBLE();
 
     if (slots.length === 0) return null;
 
     const active = slots[activeSlot];
 
     return (
+        <Stack spacing={0.5} sx={{ width: '100%' }}>
         <Stack direction="row" spacing={1} alignItems="stretch" sx={{ width: '100%' }}>
             {slots.map(slot => {
                 const selected = slot.index === activeSlot;
@@ -37,6 +38,7 @@ export const BridgeSlotBar = () => {
                         key={slot.index}
                         onClick={() => setActiveSlot(slot.index)}
                         aria-pressed={selected}
+                        disabled={otaRunning}
                         sx={{
                             flex: '1 1 0', minWidth: 0, p: 1, borderRadius: 1, textAlign: 'left',
                             display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-start',
@@ -59,11 +61,13 @@ export const BridgeSlotBar = () => {
 
             {active?.address && (
                 <Tooltip title={t('bridgeSlot.remove')}>
-                    <IconButton aria-label={t('bridgeSlot.remove')} onClick={() => unbindSlot(activeSlot)} sx={{ flexShrink: 0 }}>
+                    <IconButton aria-label={t('bridgeSlot.remove')} onClick={() => unbindSlot(activeSlot)} sx={{ flexShrink: 0 }} disabled={otaRunning}>
                         <LinkOffIcon />
                     </IconButton>
                 </Tooltip>
             )}
+        </Stack>
+        {otaRunning && <Typography variant="caption" color="warning.main">{t('bridgeSlot.otaLocked')}</Typography>}
         </Stack>
     );
 };

@@ -8,6 +8,14 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.2 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.2 (protocol version 2).
+- Slot switching, binding a device and removing one are locked while a firmware update is running.
+- New card *Connection*: how long (5-3600 s) the bridge keeps the storages connected after the last
+  browser or REST command.
+- The *API token* card also shows a Home Assistant `rest` sensor example for `/api/status`, to check the
+  bridge, its slots and the last REST command from Home Assistant.
+
 ## v1.4.0-beta.1 — 2026-11-15
 **Beta.** Works with bridge firmware v1.4.0-beta.1 only (protocol version 2); an older bridge shows a
 message asking for an update. Not yet tested against real storages in several slots.

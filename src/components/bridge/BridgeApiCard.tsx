@@ -83,6 +83,23 @@ export const BridgeApiCard = () => {
     };
 
     const host = window.location.host;
+    const statusExample = [
+        'sensor:',
+        '  - platform: rest',
+        '    name: Marstek Bridge',
+        `    resource: "http://${host}/api/status"`,
+        '    headers:',
+        `      Authorization: "Bearer ${token ?? TOKEN_PLACEHOLDER}"`,
+        '    scan_interval: 60',
+        '    value_template: "{{ value_json.version }}"',
+        '    json_attributes:',
+        '      - slots',
+        '      - heap',
+        '      - uptimeSeconds',
+        '      - wifiRssi',
+        '      - holdSeconds',
+        '      - lastCommand',
+    ].join('\n');
     const example = [
         'rest_command:',
         '  bridge_peak_shaving:',
@@ -139,6 +156,8 @@ export const BridgeApiCard = () => {
 
                     <Typography variant="subtitle2">{t('bridgeApi.exampleTitle')}</Typography>
                     <Snippet text={example} label={t('bridgeApi.copyExample')} />
+                    <Typography variant="subtitle2">{t('bridgeApi.statusTitle')}</Typography>
+                    <Snippet text={statusExample} label={t('bridgeApi.copyExample')} />
                     <Typography variant="caption" color="text.secondary">{t('bridgeApi.httpNote')}</Typography>
                 </Stack>
             </Box>

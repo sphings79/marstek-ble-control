@@ -10,6 +10,7 @@ import { BridgeFirmwareCard } from './BridgeFirmwareCard';
 import { ConnectionState } from '../../lib/ConnectionState';
 import type { BridgeDevice, BridgeSocket } from '../../lib/bridge/BridgeSocket';
 import { BridgeSlotBar } from './BridgeSlotBar';
+import { useBLE } from '../../contexts/BLEContext';
 import { useT } from '../../i18n/i18n';
 
 interface Props {
@@ -34,6 +35,7 @@ interface Props {
  */
 export const BridgeScannerView = ({ bridge, slot, bound, status, error, onConnect }: Props) => {
     const t = useT();
+    const { otaRunning } = useBLE();
     const [devices, setDevices] = useState<BridgeDevice[] | null>(null);
     const [scanning, setScanning] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export const BridgeScannerView = ({ bridge, slot, bound, status, error, onConnec
     };
 
     const pick = async (device: BridgeDevice) => {
+        if (otaRunning) return;
         try {
             await bridge.bind(slot, device.address, device.name);
             setDevices(null);
@@ -104,7 +107,7 @@ export const BridgeScannerView = ({ bridge, slot, bound, status, error, onConnec
                 {devices && devices.length > 0 && (
                     <List dense sx={{ textAlign: 'left', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                         {devices.map(device => (
-                            <ListItemButton key={device.address} onClick={() => void pick(device)}>
+                            <ListItemButton key={device.address} disabled={otaRunning} onClick={() => void pick(device)}>
                                 <ListItemText primary={device.name} secondary={device.address} />
                                 <Chip size="small" label={`${device.rssi} dBm`} />
                             </ListItemButton>
@@ -136,7 +139,7 @@ export const BridgeScannerView = ({ bridge, slot, bound, status, error, onConnec
                     variant={bound ? 'outlined' : 'contained'}
                     size="large"
                     onClick={() => void rescan()}
-                    disabled={scanning || busy}
+                    disabled={scanning || busy || otaRunning}
                     fullWidth
                     sx={{ py: 1.5, fontWeight: 'bold', textTransform: 'none' }}
                 >

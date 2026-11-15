@@ -76,6 +76,9 @@ export const BLEProvider = ({ transport, bridge, children }: {
     const [errors, setErrors] = useState<(string | null)[]>(() => managerList.map(() => null));
     // Bumped whenever the bridge reports a binding change, so the slot list is recomputed.
     const [, setBindingsVersion] = useState(0);
+    // Bumped when any slot enters or leaves a firmware transfer; the flag itself is read from the managers.
+    const [, setOtaVersion] = useState(0);
+    const otaRunning = managerList.some(m => m.isOtaRunning);
 
     useEffect(() => bridge?.socket.onSlotsChange(() => setBindingsVersion(v => v + 1)), [bridge]);
 
@@ -105,6 +108,7 @@ export const BLEProvider = ({ transport, bridge, children }: {
                     setDeviceInfos(prev => replaceAt(prev, index, null));
                 }
             };
+            slotManager.onOtaChange = () => setOtaVersion(v => v + 1);
             slotManager.onRSSI = (value) => setRssis(prev => replaceAt(prev, index, value));
         });
 
@@ -114,9 +118,10 @@ export const BLEProvider = ({ transport, bridge, children }: {
     // Only the active slot polls. Switching never disconnects: the old slot just stops asking,
     // the new one asks right away (resumePolling polls at once, and does nothing while offline).
     const setActiveSlot = useCallback((slot: number) => {
+        const list = slotTransports ? slotTransports.map(managerFor) : [];
+        if (list.some(m => m.isOtaRunning)) return;
         if (slot === activeRef.current || slot < 0 || slot >= slotCount) return;
 
-        const list = slotTransports ? slotTransports.map(managerFor) : [];
         list[activeRef.current]?.suspendPolling();
         list[slot]?.resumePolling();
 
@@ -127,7 +132,7 @@ export const BLEProvider = ({ transport, bridge, children }: {
 
     const unbindSlot = (slot: number) => {
         const target = managerList[slot];
-        if (!bridge || !target) return;
+        if (!bridge || !target || managerList.some(m => m.isOtaRunning)) return;
 
         target.disconnect();
         setDeviceInfos(prev => replaceAt(prev, slot, null));
@@ -191,6 +196,7 @@ export const BLEProvider = ({ transport, bridge, children }: {
             pollState,
             slots,
             activeSlot,
+            otaRunning,
             setActiveSlot,
             unbindSlot,
         }}>

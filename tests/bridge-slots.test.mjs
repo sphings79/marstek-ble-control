@@ -128,3 +128,28 @@ test("a bridge older than protocol 2 is rejected", async () => {
   assert.equal(transports[0].deviceName, undefined);
   await assert.rejects(socket.open());
 });
+
+test("manager reports when a firmware transfer session starts and ends", async () => {
+  const { BLEConnectionManager } = await import("../src/lib/BLEConnectionManager.ts");
+  const transport = {
+    kind: "bridge",
+    isConnected: true,
+    deviceName: "MST_VNSE3_TEST",
+    setCallbacks() {},
+    send: async () => {},
+    scanAndConnect: async () => {},
+    reconnect: async () => {},
+    disconnect() {},
+  };
+  const manager = new BLEConnectionManager(transport);
+  const seen = [];
+  manager.onOtaChange = (running) => seen.push(running);
+
+  assert.equal(manager.isOtaRunning, false);
+  const session = await manager.beginOtaSession();
+  assert.equal(manager.isOtaRunning, true);
+  session.release(false);
+  manager.disconnect();
+  assert.equal(manager.isOtaRunning, false);
+  assert.deepEqual(seen, [true, false]);
+});
