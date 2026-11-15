@@ -211,3 +211,34 @@ test("releaseDirection detects crossing between beta and stable", async () => {
   assert.equal(releaseDirection(undefined, { prerelease: true }), null);
   assert.equal(releaseDirection("v1.4.0", null), null);
 });
+
+
+test("ordinary commands wait for the storage's answer before the next one is sent", async () => {
+  const { BLEConnectionManager } = await import("../src/lib/BLEConnectionManager.ts");
+  const sent = [];
+  let callbacks = null;
+  const transport = {
+    kind: "bridge",
+    isConnected: true,
+    deviceName: "MST_VNSD_TEST",
+    setCallbacks(cb) { callbacks = cb; },
+    send: async (bytes) => { sent.push(bytes[3]); },
+    scanAndConnect: async () => {},
+    reconnect: async () => {},
+    disconnect() {},
+  };
+  const manager = new BLEConnectionManager(transport);
+  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const first = manager.sendPacket(0x03);
+  const second = manager.sendPacket(0x42, new Uint8Array([1]));
+  await first;
+  await wait(150);
+  assert.deepEqual(sent, [0x03], "the second command must not go out while the first is unanswered");
+
+  callbacks.onNotify(new Uint8Array([0x73, 0x05, 0x23, 0x03, 0x56]));
+  await second;
+  await wait(50);
+  assert.deepEqual(sent, [0x03, 0x42], "it goes out once the answer has arrived");
+  manager.disconnect();
+});

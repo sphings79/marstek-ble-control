@@ -45,6 +45,14 @@ export class BLEConnectionManager {
     private lossListeners = new Set<() => void>();
     private disconnectListeners = new Set<() => void>();
     private txMutex = semaphore(1);
+
+    // Commands wait for the storage's answer before the next one goes out, as the vendor app and
+    // other integrations do: a storage handles one request at a time and drops one that arrives
+    // while it is still busy with the previous. Pacing the writes alone does not help, because
+    // two writes 25 ms apart can reach a bridge in the same instant.
+    private static readonly REPLY_TIMEOUT_MS = 2_000;
+    private static readonly GAP_AFTER_REPLY_MS = 75;
+    private replyWaiters = new Set<() => void>();
     private connectionGeneration = 0;
     private connectionTask: Promise<void> | null = null;
     private writeRejectors = new Set<(error: Error) => void>();
@@ -68,6 +76,7 @@ export class BLEConnectionManager {
                 // Preserve the raw diagnostic hook, then reassemble complete frames for OTA
                 // and ordinary command consumers.
                 this.onRawNotification(bytes);
+                for (const waiter of [...this.replyWaiters]) waiter();
 
                 // Feed the reassembler, which buffers across notifications and dispatches complete
                 // VenusPacket frames (see feedReassembler). This transparently handles responses that
@@ -493,6 +502,21 @@ export class BLEConnectionManager {
         return this.writeLocked(bytes, false);
     }
 
+    /** Resolves on the next notification, or after `timeoutMs`. Register BEFORE sending: the answer can beat the write's own completion. */
+    private expectReply(timeoutMs: number): { wait: Promise<void>; cancel: () => void } {
+        let done: () => void = () => {};
+        const wait = new Promise<void>((resolve) => {
+            const timer = setTimeout(() => done(), timeoutMs);
+            done = () => {
+                clearTimeout(timer);
+                this.replyWaiters.delete(done);
+                resolve();
+            };
+            this.replyWaiters.add(done);
+        });
+        return { wait, cancel: () => done() };
+    }
+
     private writeLocked(bytes: Uint8Array, withResponse: boolean, logLine?: string, token?: symbol) {
         const generation = this.connectionGeneration;
         const mutex = this.txMutex;
@@ -508,6 +532,7 @@ export class BLEConnectionManager {
             this.writeRejectors.add(fail);
             mutex.take(async () => {
                 if (settled) { mutex.leave(); return; }
+                let reply: { wait: Promise<void>; cancel: () => void } | null = null;
                 try {
                     if (generation !== this.connectionGeneration) throw new Error('Write belongs to a previous connection');
                     if (this.reconnectRequired) throw new Error('Reconnect before sending commands');
@@ -523,9 +548,20 @@ export class BLEConnectionManager {
                         this.log(logLine, bytes);
                     }
 
+                    // Ordinary commands only: firmware chunks (no response) and the transfer session
+                    // keep their own pacing.
+                    if (withResponse && !token) reply = this.expectReply(BLEConnectionManager.REPLY_TIMEOUT_MS);
+
                     await this.transport.send(bytes, withResponse);
                     finish();
+
+                    // The caller has its result; the next command waits for the storage.
+                    if (reply) {
+                        await reply.wait;
+                        await new Promise<void>(resolve => setTimeout(resolve, BLEConnectionManager.GAP_AFTER_REPLY_MS));
+                    }
                 } catch (err) {
+                    reply?.cancel();
                     this.error(withResponse ? "Write Failed" : "Raw Write Failed", err);
                     finish(err);
                 } finally {

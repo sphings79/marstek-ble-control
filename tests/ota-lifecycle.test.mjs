@@ -888,7 +888,9 @@ await check(
       codec.buildOtaFrame(0x07, new Uint8Array([0])),
     );
     for (let i = 0; i < 20; i++) await Promise.resolve();
-    await clock.drive(new Promise((resolve) => clock.set(resolve, 50)));
+    // The poll that starts on CONNECTED waits up to 2 s for its answer before the next command
+    // may go out, so give the fresh write that long (plus the pause after it).
+    await clock.drive(new Promise((resolve) => clock.set(resolve, 2_200)));
     if (typeof releaseNew !== "function")
       return {
         passesValidation: false,

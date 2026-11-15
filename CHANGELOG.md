@@ -8,6 +8,13 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.14 — 2026-11-15
+**Beta.** Works with bridge firmware v1.4.0-beta.14.
+- **Commands wait for the storage's answer before the next one is sent** (at most 2 s, then a 75 ms
+  pause), as other integrations do. A storage handles one request at a time and drops one that arrives
+  while it is busy; the event log showed the second of two commands a few milliseconds apart never being
+  answered. This also applies to the hosted app over Web Bluetooth. Firmware transfers are unchanged.
+
 ## v1.4.0-beta.13 — 2026-11-15
 **Beta.** No change to the web interface; the version follows bridge firmware v1.4.0-beta.13 (a test for a Venus D that stops answering after about 25 s).
 
