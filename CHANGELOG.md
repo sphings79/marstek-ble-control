@@ -8,6 +8,10 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.20 — 2026-11-16
+- No change to the web interface; the version follows bridge firmware v1.3.20, which fixes the Venus D
+  going silent about 28 s after connecting.
+
 ## v1.3.19 — 2026-11-15
 - The version is shown in the page footer and at the bottom of the mobile menu.
 - Firmware update: the transfer is isolated and a fresh connection is required before the next
