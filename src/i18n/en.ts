@@ -383,7 +383,7 @@ export const en = {
     "bridgeKeep.note": "Slots kept connected ignore the hold time above. If such a slot is disconnected by hand, the bridge waits 5 minutes before reconnecting on its own.",
     "bridgeKeep.confirmTitle": "Keep this storage connected?",
     "bridgeKeep.switchOn": "Switch on",
-    "bridgeFw.beta": "Include beta versions",
+    "bridgeFw.chooseVersion": "Version to install",
     "bridgeFw.betaWarning": "Beta versions are tested less. Install the firmware and the web interface of the same version together - a mismatch does not work.",
     "bridgeFw.betaChip": "Beta",
     "bridgeFw.toStable": "You are going back from a beta to a stable version. Install both the web interface and the firmware, one after the other - until both are installed the interface may not work.",

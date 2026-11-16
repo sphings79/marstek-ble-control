@@ -242,3 +242,24 @@ test("ordinary commands wait for the storage's answer before the next one is sen
   assert.deepEqual(sent, [0x03, 0x42], "it goes out once the answer has arrived");
   manager.disconnect();
 });
+
+test("sortReleases lists the newest first and drops drafts; the firmware image follows the chip", async () => {
+  const { sortReleases, toBridgeRelease } = await import("../src/lib/bridge/BridgeReleases.ts");
+  const list = [
+    { tag_name: "v1.4.0-beta.9", published_at: "2026-11-15T10:00:00Z", prerelease: true },
+    { tag_name: "v1.3.21", published_at: "2026-11-16T10:00:00Z" },
+    { tag_name: "v1.4.0-beta.10", published_at: "2026-11-15T12:00:00Z", prerelease: true },
+    { tag_name: "v1.9.9", published_at: "2026-11-17T10:00:00Z", draft: true },
+  ];
+  assert.deepEqual(sortReleases(list).map(r => r.tag_name), ["v1.3.21", "v1.4.0-beta.10", "v1.4.0-beta.9"]);
+
+  const assets = [
+    { name: "marstek-ble-bridge.bin", browser_download_url: "u/esp32" },
+    { name: "marstek-ble-bridge-esp32s3.bin", browser_download_url: "u/s3" },
+    { name: "web.bin", browser_download_url: "u/web" },
+  ];
+  assert.equal(toBridgeRelease({ tag_name: "v1", assets }).firmwareUrl, "u/esp32");
+  assert.equal(toBridgeRelease({ tag_name: "v1", assets }, "esp32").firmwareUrl, "u/esp32");
+  assert.equal(toBridgeRelease({ tag_name: "v1", assets }, "esp32s3").firmwareUrl, "u/s3");
+  assert.equal(toBridgeRelease({ tag_name: "v1", assets: assets.slice(0, 1) }, "esp32s3").firmwareUrl, undefined);
+});

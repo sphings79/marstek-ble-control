@@ -41,32 +41,39 @@ export interface GithubRelease {
     assets?: { name: string; browser_download_url: string }[];
 }
 
-/**
- * Choose the release to offer. With betas allowed that is the most recently published non-draft
- * entry of the list; otherwise the list is not used at all, as `/releases/latest` already excludes
- * prereleases and drafts.
- *
- * Not simply the first entry: GitHub orders this list by tag name as text, not by date, so
- * `v1.4.0-beta.9` comes before `v1.4.0-beta.10` and the newest release was never the one offered.
- * Entries without a date count as oldest, which keeps the list order for those.
- */
-export function pickRelease(list: GithubRelease[], includeBeta: boolean): GithubRelease | null {
-    const stamp = (entry: GithubRelease) => Date.parse(entry.published_at ?? entry.created_at ?? '') || 0;
+const stamp = (entry: GithubRelease) => Date.parse(entry.published_at ?? entry.created_at ?? '') || 0;
 
-    let best: GithubRelease | null = null;
-    for (const entry of list) {
-        if (entry.draft || !entry.tag_name || (!includeBeta && entry.prerelease)) continue;
-        if (!best || stamp(entry) > stamp(best)) best = entry;
-    }
-    return best;
+/**
+ * Every offered release, newest first, drafts left out. Not the list's own order: GitHub sorts it by
+ * tag name as text, so `v1.4.0-beta.9` comes before `v1.4.0-beta.10`. Entries without a date count
+ * as oldest, which keeps the list order for those.
+ */
+export function sortReleases(list: GithubRelease[]): GithubRelease[] {
+    return list
+        .filter(entry => !entry.draft && entry.tag_name)
+        .map((entry, index) => ({ entry, index }))
+        .sort((x, y) => stamp(y.entry) - stamp(x.entry) || x.index - y.index)
+        .map(({ entry }) => entry);
 }
 
-export function toBridgeRelease(data: GithubRelease): BridgeRelease | null {
+/**
+ * Choose the release to offer. With betas allowed that is the most recently published non-draft
+ * entry of the list; otherwise the newest one that is not a prerelease.
+ */
+export function pickRelease(list: GithubRelease[], includeBeta: boolean): GithubRelease | null {
+    return sortReleases(list).find(entry => includeBeta || !entry.prerelease) ?? null;
+}
+
+export function toBridgeRelease(data: GithubRelease, chip?: string): BridgeRelease | null {
     if (!data.tag_name) return null;
 
     const assets = data.assets ?? [];
     const find = (needle: string) =>
         assets.find(a => a.name.toLowerCase().includes(needle))?.browser_download_url;
+
+    // One firmware image per chip: an ESP32 and an ESP32-S3 do not run each other's. The image for
+    // the S3 carries its chip in the name; the ESP32 one is the plain "bridge.bin".
+    const firmwareUrl = chip && chip !== 'esp32' ? find(chip) : (find('bridge.bin') ?? find('firmware'));
 
     return {
         tag: data.tag_name,
@@ -74,12 +81,27 @@ export function toBridgeRelease(data: GithubRelease): BridgeRelease | null {
         url: data.html_url ?? '',
         notes: data.body ?? '',
         prerelease: data.prerelease === true,
-        firmwareUrl: find('bridge.bin') ?? find('firmware'),
+        firmwareUrl,
         webUrl: find('web.bin'),
     };
 }
 
-export async function fetchLatestRelease(includeBeta = false): Promise<BridgeRelease | null> {
+/** All releases of the bridge, newest first, for choosing one. Empty when GitHub cannot be reached. */
+export async function fetchReleases(chip?: string): Promise<BridgeRelease[]> {
+    try {
+        const response = await fetch(RELEASES_LIST, { headers: { 'Accept': 'application/vnd.github+json' } });
+        if (!response.ok) return [];
+        const data = await response.json() as GithubRelease[];
+        if (!Array.isArray(data)) return [];
+        return sortReleases(data)
+            .map(entry => toBridgeRelease(entry, chip))
+            .filter((entry): entry is BridgeRelease => entry != null);
+    } catch {
+        return [];
+    }
+}
+
+export async function fetchLatestRelease(includeBeta = false, chip?: string): Promise<BridgeRelease | null> {
     try {
         const response = await fetch(includeBeta ? RELEASES_LIST : RELEASES_LATEST, {
             headers: { 'Accept': 'application/vnd.github+json' },
@@ -88,7 +110,7 @@ export async function fetchLatestRelease(includeBeta = false): Promise<BridgeRel
 
         const data = await response.json() as GithubRelease | GithubRelease[];
         const chosen = Array.isArray(data) ? pickRelease(data, includeBeta) : data;
-        return chosen ? toBridgeRelease(chosen) : null;
+        return chosen ? toBridgeRelease(chosen, chip) : null;
     } catch {
         return null;
     }

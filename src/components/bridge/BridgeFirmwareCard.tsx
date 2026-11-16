@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, FormControlLabel, LinearProgress, Paper, Stack, Switch, Typography
+    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, LinearProgress, MenuItem, Paper, Stack, TextField, Typography
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -10,14 +10,12 @@ import {
     type BridgeVersion, type UpdateTarget,
 } from '../../lib/bridge/BridgeUpdate';
 import {
-    fetchLatestRelease, installFromUrl, isOutdated, releaseDirection, type BridgeRelease,
+    fetchReleases, installFromUrl, isOutdated, releaseDirection, type BridgeRelease,
 } from '../../lib/bridge/BridgeReleases';
 import { useT } from '../../i18n/i18n';
 
 // 'uploading' is a hand-uploaded file with real byte progress; 'installing' is the bridge fetching
 // a release image itself, where there is no progress to report from here - shown indeterminate.
-const BETA_KEY = 'bridgeIncludeBeta';
-
 type Phase = 'idle' | 'uploading' | 'installing' | 'restarting' | 'done' | 'failed';
 
 /**
@@ -42,32 +40,27 @@ export const BridgeFirmwareCard = () => {
     // indeterminate to a real percentage. Stays false against an older bridge that reports none.
     const [installDeterminate, setInstallDeterminate] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
-    const [release, setRelease] = useState<BridgeRelease | null>(null);
+    const [releases, setReleases] = useState<BridgeRelease[]>([]);
+    const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-    const [includeBeta, setIncludeBeta] = useState(() => {
-        try {
-            return localStorage.getItem(BETA_KEY) === '1';
-        } catch {
-            return false;
-        }
-    });
-
-    useEffect(() => { void fetchBridgeVersion().then(setVersion); }, []);
-
+    // The releases are looked up once the chip is known: the image to offer depends on it.
     useEffect(() => {
         let cancelled = false;
-        void fetchLatestRelease(includeBeta).then(found => { if (!cancelled) setRelease(found); });
+        void fetchBridgeVersion().then(async found => {
+            if (cancelled) return;
+            setVersion(found);
+            const list = await fetchReleases(found?.chip);
+            if (cancelled) return;
+            setReleases(list);
+            // Newest stable release, or the newest of all while a beta is running: someone on a
+            // beta is looking for the next one of those, not for a step back.
+            const onBeta = found?.version.includes('-beta') === true;
+            setSelectedTag((list.find(r => onBeta || !r.prerelease) ?? list[0])?.tag ?? null);
+        });
         return () => { cancelled = true; };
-    }, [includeBeta]);
+    }, []);
 
-    const toggleBeta = (checked: boolean) => {
-        setIncludeBeta(checked);
-        try {
-            localStorage.setItem(BETA_KEY, checked ? '1' : '0');
-        } catch {
-            // Not remembered; the switch still works for this visit.
-        }
-    };
+    const release = releases.find(r => r.tag === selectedTag) ?? null;
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>, target: UpdateTarget) => {
         const file = event.target.files?.[0];
@@ -170,12 +163,24 @@ export const BridgeFirmwareCard = () => {
                         </Stack>
                     )}
 
-                    <FormControlLabel
-                        sx={{ m: 0 }}
-                        control={<Switch size="small" checked={includeBeta} onChange={(_, checked) => toggleBeta(checked)} disabled={busy} />}
-                        label={<Typography variant="body2">{t('bridgeFw.beta')}</Typography>}
-                    />
-                    {includeBeta && <Alert severity="info">{t('bridgeFw.betaWarning')}</Alert>}
+                    {releases.length > 0 && (
+                        <TextField
+                            select
+                            size="small"
+                            fullWidth
+                            label={t('bridgeFw.chooseVersion')}
+                            value={selectedTag ?? ''}
+                            onChange={(e) => setSelectedTag(e.target.value)}
+                            disabled={busy}
+                        >
+                            {releases.map(r => (
+                                <MenuItem key={r.tag} value={r.tag}>
+                                    {r.tag}{r.prerelease ? ` (${t('bridgeFw.betaChip')})` : ''}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    )}
+                    {release?.prerelease && <Alert severity="info">{t('bridgeFw.betaWarning')}</Alert>}
 
                     {direction && <Alert severity="warning">{t(direction === 'toStable' ? 'bridgeFw.toStable' : 'bridgeFw.toBeta')}</Alert>}
 

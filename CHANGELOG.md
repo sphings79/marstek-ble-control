@@ -125,6 +125,16 @@ message asking for an update. Not yet tested against real storages in several sl
 - New card *API token* (bridge only): create, replace or switch off the token Home Assistant uses to
   switch peak shaving over REST, with a copy-ready `rest_command` example. The token is shown once.
 - Over Web Bluetooth (hosted app) nothing changes: still one storage.
+## v1.3.21 — 2026-11-16
+- The update card installs the firmware image that fits the bridge's chip: a bridge on an ESP32-S3 is
+  offered the S3 image, an ESP32 keeps getting the ESP32 one. (The bridge reports its chip from
+  firmware v1.3.21 on; older bridges are ESP32.)
+
+## v1.3.20 — 2026-11-16
+- The error message of an earlier failed connection attempt no longer stays on screen once a later
+  attempt has connected (the storage often drops the first connection and accepts the second).
+- The version follows bridge firmware v1.3.20, which fixes the Venus D going silent about 28 s after
+  connecting.
 
 ## v1.3.19 — 2026-11-15
 - The version is shown in the page footer and at the bottom of the mobile menu.

@@ -381,7 +381,7 @@ export const de: Record<keyof typeof en, string> = {
     "bridgeKeep.note": "Dauerhaft verbundene Speicher ignorieren die Haltezeit oben. Wird ein solcher Speicher von Hand getrennt, wartet die Bridge 5 Minuten, bevor sie sich von selbst wieder verbindet.",
     "bridgeKeep.confirmTitle": "Diesen Speicher dauerhaft verbunden halten?",
     "bridgeKeep.switchOn": "Einschalten",
-    "bridgeFw.beta": "Beta-Versionen einbeziehen",
+    "bridgeFw.chooseVersion": "Zu installierende Version",
     "bridgeFw.betaWarning": "Beta-Versionen sind weniger getestet. Firmware und Weboberfläche immer in derselben Version zusammen installieren - eine Mischung funktioniert nicht.",
     "bridgeFw.betaChip": "Beta",
     "bridgeFw.toStable": "Du wechselst von einer Beta zurück auf eine stabile Version. Installiere Weboberfläche und Firmware nacheinander beide - bis beide installiert sind, funktioniert die Oberfläche eventuell nicht.",
