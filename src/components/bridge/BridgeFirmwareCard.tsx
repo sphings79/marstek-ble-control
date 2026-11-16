@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, LinearProgress, MenuItem, Paper, Stack, TextField, Typography
+    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogContentText,
+    DialogTitle, FormControlLabel, LinearProgress, MenuItem, Paper, Stack, Switch, TextField, Typography
 } from '@mui/material';
 import RouterIcon from '@mui/icons-material/Router';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -16,6 +17,8 @@ import { useT } from '../../i18n/i18n';
 
 // 'uploading' is a hand-uploaded file with real byte progress; 'installing' is the bridge fetching
 // a release image itself, where there is no progress to report from here - shown indeterminate.
+const BETA_KEY = 'bridgeIncludeBeta';
+
 type Phase = 'idle' | 'uploading' | 'installing' | 'restarting' | 'done' | 'failed';
 
 /**
@@ -43,24 +46,51 @@ export const BridgeFirmwareCard = () => {
     const [releases, setReleases] = useState<BridgeRelease[]>([]);
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
+    // Off unless someone turned it on once (remembered) or a beta is running already: betas are
+    // never offered to somebody who did not ask for them.
+    const [includeBeta, setIncludeBeta] = useState(() => {
+        try {
+            return localStorage.getItem(BETA_KEY) === '1';
+        } catch {
+            return false;
+        }
+    });
+    const [confirmBeta, setConfirmBeta] = useState(false);
+
     // The releases are looked up once the chip is known: the image to offer depends on it.
     useEffect(() => {
         let cancelled = false;
         void fetchBridgeVersion().then(async found => {
             if (cancelled) return;
             setVersion(found);
+            if (found?.version.includes('-beta')) setIncludeBeta(true);
             const list = await fetchReleases(found?.chip);
-            if (cancelled) return;
-            setReleases(list);
-            // Newest stable release, or the newest of all while a beta is running: someone on a
-            // beta is looking for the next one of those, not for a step back.
-            const onBeta = found?.version.includes('-beta') === true;
-            setSelectedTag((list.find(r => onBeta || !r.prerelease) ?? list[0])?.tag ?? null);
+            if (!cancelled) setReleases(list);
         });
         return () => { cancelled = true; };
     }, []);
 
-    const release = releases.find(r => r.tag === selectedTag) ?? null;
+    const remember = (value: boolean) => {
+        setIncludeBeta(value);
+        try {
+            localStorage.setItem(BETA_KEY, value ? '1' : '0');
+        } catch {
+            // Not remembered; the switch still works for this visit.
+        }
+    };
+
+    const offered = releases.filter(r => includeBeta || !r.prerelease);
+
+    // Keep the selection on something that is offered: the newest stable release to begin with, the
+    // newest of all while a beta is running (someone on a beta is looking for the next one of those,
+    // not for a step back), and a stable one again as soon as betas are switched off.
+    useEffect(() => {
+        if (offered.some(r => r.tag === selectedTag)) return;
+        const onBeta = version?.version.includes('-beta') === true;
+        setSelectedTag((offered.find(r => onBeta || !r.prerelease) ?? offered[0])?.tag ?? null);
+    }, [offered, selectedTag, version]);
+
+    const release = offered.find(r => r.tag === selectedTag) ?? null;
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>, target: UpdateTarget) => {
         const file = event.target.files?.[0];
@@ -163,7 +193,21 @@ export const BridgeFirmwareCard = () => {
                         </Stack>
                     )}
 
-                    {releases.length > 0 && (
+                    <FormControlLabel
+                        sx={{ m: 0 }}
+                        control={
+                            <Switch
+                                size="small"
+                                checked={includeBeta}
+                                onChange={(_, checked) => (checked ? setConfirmBeta(true) : remember(false))}
+                                disabled={busy}
+                            />
+                        }
+                        label={<Typography variant="body2">{t('bridgeFw.beta')}</Typography>}
+                    />
+                    {includeBeta && <Alert severity="warning">{t('bridgeFw.betaWarning')}</Alert>}
+
+                    {offered.length > 0 && (
                         <TextField
                             select
                             size="small"
@@ -173,14 +217,13 @@ export const BridgeFirmwareCard = () => {
                             onChange={(e) => setSelectedTag(e.target.value)}
                             disabled={busy}
                         >
-                            {releases.map(r => (
+                            {offered.map(r => (
                                 <MenuItem key={r.tag} value={r.tag}>
                                     {r.tag}{r.prerelease ? ` (${t('bridgeFw.betaChip')})` : ''}
                                 </MenuItem>
                             ))}
                         </TextField>
                     )}
-                    {release?.prerelease && <Alert severity="info">{t('bridgeFw.betaWarning')}</Alert>}
 
                     {direction && <Alert severity="warning">{t(direction === 'toStable' ? 'bridgeFw.toStable' : 'bridgeFw.toBeta')}</Alert>}
 
@@ -279,6 +322,23 @@ export const BridgeFirmwareCard = () => {
                     </Typography>
                 </Stack>
             </Box>
+
+            <Dialog open={confirmBeta} onClose={() => setConfirmBeta(false)}>
+                <DialogTitle>{t('bridgeFw.betaConfirmTitle')}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>{t('bridgeFw.betaConfirmText')}</DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmBeta(false)}>{t('bridgeFw.betaConfirmCancel')}</Button>
+                    <Button
+                        color="warning"
+                        variant="contained"
+                        onClick={() => { setConfirmBeta(false); remember(true); }}
+                    >
+                        {t('bridgeFw.betaConfirmOk')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Paper>
     );
 };

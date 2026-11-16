@@ -8,6 +8,9 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.4.0-beta.29 — 2026-11-16
+**Beta.** No change to the web interface; the version follows bridge firmware v1.4.0-beta.29 (Venus D mute recovery).
+
 ## v1.4.0-beta.28 — 2026-11-16
 **Beta.** No change to the web interface; the version follows bridge firmware v1.4.0-beta.28 (Venus D mute recovery).
 
