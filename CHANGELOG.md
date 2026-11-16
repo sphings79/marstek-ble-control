@@ -9,8 +9,10 @@ bridge's releases carry the matching firmware and installer. On the hosted copy 
 arrives on the next page load.
 
 ## v1.3.20 — 2026-11-16
-- No change to the web interface; the version follows bridge firmware v1.3.20, which fixes the Venus D
-  going silent about 28 s after connecting.
+- The error message of an earlier failed connection attempt no longer stays on screen once a later
+  attempt has connected (the storage often drops the first connection and accepts the second).
+- The version follows bridge firmware v1.3.20, which fixes the Venus D going silent about 28 s after
+  connecting.
 
 ## v1.3.19 — 2026-11-15
 - The version is shown in the page footer and at the bottom of the mobile menu.

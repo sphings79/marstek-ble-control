@@ -59,6 +59,8 @@ export const BLEProvider = ({ transport, children }: { transport?: Transport; ch
             }
 
             if (state === ConnectionState.CONNECTED) {
+                // An earlier failed attempt must not keep its message on a link that is now up.
+                setError(null);
                 setDeviceInfo(parseDeviceName(manager.deviceName || "Unknown"));
             }
         },
