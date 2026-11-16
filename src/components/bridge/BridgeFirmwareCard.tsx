@@ -43,8 +43,11 @@ export const BridgeFirmwareCard = () => {
     const [release, setRelease] = useState<BridgeRelease | null>(null);
 
     useEffect(() => {
-        void fetchBridgeVersion().then(setVersion);
-        void fetchLatestRelease().then(setRelease);
+        // The release is looked up once the chip is known: the image to offer depends on it.
+        void fetchBridgeVersion().then(v => {
+            setVersion(v);
+            void fetchLatestRelease(v?.chip).then(setRelease);
+        });
     }, []);
 
     const handleFile = async (event: React.ChangeEvent<HTMLInputElement>, target: UpdateTarget) => {

@@ -13,6 +13,8 @@ export interface BridgeVersion {
      * can be read back, so this is the only way to tell whether it matches a release.
      */
     web?: string;
+    /** The chip the firmware runs on ("esp32", "esp32s3"); absent on a bridge older than v1.3.21, which is an ESP32. */
+    chip?: string;
 }
 
 export async function fetchBridgeVersion(): Promise<BridgeVersion | null> {

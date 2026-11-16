@@ -24,7 +24,7 @@ export interface BridgeRelease {
  * API replies 404 to a browser with no token. Failing quietly is right here: an update check that
  * cannot reach GitHub is not a reason to put an error in front of someone.
  */
-export async function fetchLatestRelease(): Promise<BridgeRelease | null> {
+export async function fetchLatestRelease(chip?: string): Promise<BridgeRelease | null> {
     try {
         const response = await fetch(RELEASES_API, { headers: { 'Accept': 'application/vnd.github+json' } });
         if (!response.ok) return null;
@@ -43,12 +43,16 @@ export async function fetchLatestRelease(): Promise<BridgeRelease | null> {
         const find = (needle: string) =>
             assets.find(a => a.name.toLowerCase().includes(needle))?.browser_download_url;
 
+        // One firmware image per chip: an ESP32 and an ESP32-S3 do not run each other's. The image
+        // for the S3 carries its chip in the name; the ESP32 one is the plain "bridge.bin".
+        const firmwareUrl = chip && chip !== 'esp32' ? find(chip) : (find('bridge.bin') ?? find('firmware'));
+
         return {
             tag: data.tag_name,
             name: data.name || data.tag_name,
             url: data.html_url ?? '',
             notes: data.body ?? '',
-            firmwareUrl: find('bridge.bin') ?? find('firmware'),
+            firmwareUrl,
             webUrl: find('web.bin'),
         };
     } catch {

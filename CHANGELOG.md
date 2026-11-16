@@ -8,6 +8,11 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.21 — 2026-11-16
+- The update card installs the firmware image that fits the bridge's chip: a bridge on an ESP32-S3 is
+  offered the S3 image, an ESP32 keeps getting the ESP32 one. (The bridge reports its chip from
+  firmware v1.3.21 on; older bridges are ESP32.)
+
 ## v1.3.20 — 2026-11-16
 - The error message of an earlier failed connection attempt no longer stays on screen once a later
   attempt has connected (the storage often drops the first connection and accepts the second).
