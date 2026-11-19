@@ -200,6 +200,7 @@ export const de: Record<keyof typeof en, string> = {
     "peak.title": "Lastspitzenkappung",
     "peak.power": "Spitzenleistung (W)",
     "peak.note": "Begrenzt die Netzleistung auf den eingestellten Schwellwert (Firmware v150+).",
+    "peak.offsetNote": "Achtung: Beim Aktivieren speichert die Firmware den Schwellwert zusätzlich als Eigenverbrauchs-Offset, beim Deaktivieren setzt sie den Offset auf 0. Der Regler zielt dann auf diesen Netzbezug; liegt der Hausverbrauch darunter, kann der Speicher aus dem Netz laden.",
     "offset.title": "Eigenverbrauchs-Offset",
     "offset.target": "Ziel-Netzleistung (W)",
     "offset.note": "Regelt auf diese Netzleistung statt auf 0 W. Positiv = etwas beziehen, negativ = etwas einspeisen.",

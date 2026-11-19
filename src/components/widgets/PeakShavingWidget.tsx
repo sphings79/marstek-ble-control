@@ -82,6 +82,9 @@ export const PeakShavingWidget = () => {
                         <Typography variant="caption" color="text.secondary">
                             {t('peak.note')}
                         </Typography>
+                        <Typography variant="caption" color="warning.main">
+                            {t('peak.offsetNote')}
+                        </Typography>
                     </Stack>
                 )}
             </Box>

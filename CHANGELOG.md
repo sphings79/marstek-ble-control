@@ -8,6 +8,13 @@ which serves this same interface. The two are released together and share this v
 bridge's releases carry the matching firmware and installer. On the hosted copy an update simply
 arrives on the next page load.
 
+## v1.3.24 — 2026-11-19
+- **Peak shaving now says what it does to the self-consumption offset.** On the Venus A, D and E 3.0 the
+  firmware stores the peak-shaving threshold as the self-consumption offset as well when it is enabled,
+  and sets the offset back to 0 when it is disabled. The controller then aims for that grid import, so
+  with a house load below the threshold the storage can charge from the grid. The card carries a note.
+- The version follows bridge firmware v1.3.24 (v1.3.22 and v1.3.23 changed the firmware only).
+
 ## v1.3.21 — 2026-11-16
 - The update card installs the firmware image that fits the bridge's chip: a bridge on an ESP32-S3 is
   offered the S3 image, an ESP32 keeps getting the ESP32 one. (The bridge reports its chip from
