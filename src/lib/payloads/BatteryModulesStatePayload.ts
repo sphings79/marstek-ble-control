@@ -10,7 +10,7 @@ export interface BatteryModuleState {
 /** Fixed part before the per-module entries. */
 const HEADER_LENGTH = 7;
 
-/** Each entry: state of charge (u16 LE, tenths), status (u8), temperature (u16 LE, tenths). */
+/** Each entry: state of charge (u16 LE, tenths), status (u8), temperature (i16 LE, tenths). */
 const ENTRY_LENGTH = 5;
 
 export class BatteryModulesStatePayload extends VenusPayload {
@@ -56,7 +56,8 @@ export class BatteryModulesStatePayload extends VenusPayload {
                 index: i + 1,
                 soc: view.getUint16(offset, true) / 10,
                 status: view.getUint8(offset + 2),
-                temperature: view.getUint16(offset + 3, true) / 10,
+                // Signed: sub-zero readings arrive as two's complement (0xFFF7 = -0.9 C), not 6552.7 C.
+                temperature: view.getInt16(offset + 3, true) / 10,
             });
         }
 

@@ -131,6 +131,19 @@ message asking for an update. Not yet tested against real storages in several sl
 - New card *API token* (bridge only): create, replace or switch off the token Home Assistant uses to
   switch peak shaving over REST, with a copy-ready `rest_command` example. The token is shown once.
 - Over Web Bluetooth (hosted app) nothing changes: still one storage.
+
+## v1.3.25 — 2026-11-20
+- **Fix: a battery module below 0 °C showed about 6552 °C.** The module temperature was read as an unsigned
+  16-bit value, so a reading such as -0.9 °C (sent as 0xFFF7) came out as 6552.7 °C. It is now read as signed.
+- The version follows bridge release v1.3.25 (web interface only; the firmware is unchanged).
+
+## v1.3.24 — 2026-11-19
+- **Peak shaving now says what it does to the self-consumption offset.** On the Venus A, D and E 3.0 the
+  firmware stores the peak-shaving threshold as the self-consumption offset as well when it is enabled,
+  and sets the offset back to 0 when it is disabled. The controller then aims for that grid import, so
+  with a house load below the threshold the storage can charge from the grid. The card carries a note.
+- The version follows bridge firmware v1.3.24 (v1.3.22 and v1.3.23 changed the firmware only).
+
 ## v1.3.21 — 2026-11-16
 - The update card installs the firmware image that fits the bridge's chip: a bridge on an ESP32-S3 is
   offered the S3 image, an ESP32 keeps getting the ESP32 one. (The bridge reports its chip from

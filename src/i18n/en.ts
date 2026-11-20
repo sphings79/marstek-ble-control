@@ -202,6 +202,7 @@ export const en = {
     "peak.title": "Peak Shaving",
     "peak.power": "Peak power (W)",
     "peak.note": "Caps grid power at the configured threshold (firmware v150+).",
+    "peak.offsetNote": "Note: enabling this also stores the threshold as the self-consumption offset, and disabling it resets the offset to 0. The controller then aims for that grid import; when the house draws less than that, the storage may charge from the grid.",
     "offset.title": "Self-Consumption Offset",
     "offset.target": "Grid target offset (W)",
     "offset.note": "Regulate to this grid power instead of 0 W. Positive = keep importing a little, negative = keep exporting a little.",
